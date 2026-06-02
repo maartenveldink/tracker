@@ -1,0 +1,388 @@
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  useWorkout,
+  updateWorkoutSet,
+  addWorkoutSet,
+  addWorkoutExercise,
+  updateExerciseNotes,
+  updateWorkoutNotes,
+  pauseWorkout,
+  resumeWorkout,
+  completeWorkout,
+} from '../hooks/useWorkout';
+import { useExercises } from '../hooks/useExercises';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+import { Pause, Play, Check, SkipForward, Plus, FileText, StickyNote } from 'lucide-react';
+import type { Exercise } from '../db/index';
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+export function WorkoutPage() {
+  const { id } = useParams<{ id: string }>();
+  const workoutId = id ? Number(id) : undefined;
+  const workout = useWorkout(workoutId);
+  const allExercises = useExercises();
+  const navigate = useNavigate();
+
+  const [elapsed, setElapsed] = useState(0);
+  const [showAddExercise, setShowAddExercise] = useState(false);
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [showFinish, setShowFinish] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<number | null>(null);
+  const [workoutNotesOpen, setWorkoutNotesOpen] = useState(false);
+
+  const exerciseMap = useMemo(() => {
+    const map = new Map<number, Exercise>();
+    allExercises.forEach(e => map.set(e.id!, e));
+    return map;
+  }, [allExercises]);
+
+  // Timer (E3-06)
+  const workoutStatus = workout?.status;
+  const startedAt = workout?.startedAt;
+  const pausedAt = workout?.pausedAt;
+  const totalPausedMs = workout?.totalPausedMs;
+
+  useEffect(() => {
+    if (!workoutStatus || workoutStatus === 'completed') return;
+
+    const interval = setInterval(() => {
+      if (workoutStatus === 'paused' && pausedAt && startedAt) {
+        const activeDuration = pausedAt.getTime() - startedAt.getTime() - (totalPausedMs ?? 0);
+        setElapsed(activeDuration);
+      } else if (startedAt) {
+        const activeDuration = Date.now() - startedAt.getTime() - (totalPausedMs ?? 0);
+        setElapsed(activeDuration);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [workoutStatus, startedAt, pausedAt, totalPausedMs]);
+
+  // Navigate to summary when workout is completed (must be in useEffect, not during render)
+  const completedRef = useRef(false);
+  useEffect(() => {
+    if (workout?.status === 'completed' && workoutId && !completedRef.current) {
+      completedRef.current = true;
+      navigate(`/workout/${workoutId}/summary`, { replace: true });
+    }
+  }, [workout?.status, workoutId, navigate]);
+
+  if (!workout || !workoutId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Training laden...</p>
+      </div>
+    );
+  }
+
+  if (workout.status === 'completed') {
+    return null;
+  }
+
+  const filteredAddExercises = allExercises.filter(e =>
+    !exerciseSearch || e.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
+  );
+
+  async function handleSetComplete(exerciseIndex: number, setIndex: number, currentlyCompleted: boolean) {
+    if (!workoutId) return;
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
+      completed: !currentlyCompleted,
+      skipped: false,
+    });
+  }
+
+  async function handleSetSkip(exerciseIndex: number, setIndex: number, currentlySkipped: boolean) {
+    if (!workoutId) return;
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
+      skipped: !currentlySkipped,
+      completed: false,
+    });
+  }
+
+  async function handleWeightChange(exerciseIndex: number, setIndex: number, value: string) {
+    if (!workoutId) return;
+    const weight = value === '' ? null : parseFloat(value);
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight });
+  }
+
+  async function handleRepsChange(exerciseIndex: number, setIndex: number, value: string) {
+    if (!workoutId) return;
+    const reps = value === '' ? null : parseInt(value);
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { actualReps: reps });
+  }
+
+  async function handleAddExercise(exerciseId: number) {
+    if (!workoutId) return;
+    await addWorkoutExercise(workoutId, exerciseId);
+    setShowAddExercise(false);
+    setExerciseSearch('');
+  }
+
+  async function handleFinish() {
+    if (!workoutId) return;
+    await completeWorkout(workoutId);
+    navigate(`/workout/${workoutId}/summary`, { replace: true });
+  }
+
+  const isPaused = workout.status === 'paused';
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Minimal header for active training (NF-05) */}
+      <header className="sticky top-0 z-40 bg-card border-b border-border px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-sm font-semibold truncate">
+              {workout.schemaName ?? 'Losse training'}
+            </h1>
+            <span className="text-xs text-muted-foreground">{formatDuration(elapsed)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Pause/Resume (E3-07) */}
+            <Button
+              size="sm"
+              variant={isPaused ? 'default' : 'secondary'}
+              className={cn(
+                'text-xs',
+                !isPaused && 'bg-amber-600 text-white hover:bg-amber-500',
+              )}
+              onClick={() =>
+                isPaused ? resumeWorkout(workoutId) : pauseWorkout(workoutId)
+              }
+            >
+              {isPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+              {isPaused ? 'Hervat' : 'Pauze'}
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowFinish(true)}
+            >
+              Afronden
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Paused banner */}
+      {isPaused && (
+        <div className="bg-amber-900/30 border-b border-amber-800/50 px-4 py-2 text-center">
+          <span className="text-amber-300 text-xs font-medium">Training gepauzeerd</span>
+        </div>
+      )}
+
+      {/* Exercise list -- minimal UI during training (NF-05) */}
+      <div className="flex-1 px-4 py-3 space-y-4 pb-24">
+        {workout.exercises.map((workoutExercise, exIdx) => {
+          const exercise = exerciseMap.get(workoutExercise.exerciseId);
+          const completedSets = workoutExercise.sets.filter(s => s.completed).length;
+          const totalSets = workoutExercise.sets.length;
+
+          return (
+            <div key={workoutExercise.exerciseId} className="bg-card rounded-xl border border-border overflow-hidden">
+              {/* Exercise header */}
+              <div className="px-3 py-2 flex items-center justify-between border-b border-border">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium truncate">
+                    {exercise?.name ?? 'Onbekend'}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {completedSets}/{totalSets} sets
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground"
+                    onClick={() => setExpandedNotes(expandedNotes === exIdx ? null : exIdx)}
+                    aria-label="Notities"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground"
+                    onClick={() => addWorkoutSet(workoutId, exIdx)}
+                    aria-label="Set toevoegen"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Notes (E3-09) */}
+              {expandedNotes === exIdx && (
+                <div className="px-3 py-2 border-b border-border">
+                  <textarea
+                    value={workoutExercise.notes}
+                    onChange={e => updateExerciseNotes(workoutId, exIdx, e.target.value)}
+                    placeholder="Notities voor deze oefening..."
+                    rows={2}
+                    className="flex w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Sets table (E3-02, E3-03, E3-04) */}
+              <div className="divide-y divide-border/50">
+                {/* Table header */}
+                <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem_2.5rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+                  <span className="text-center">#</span>
+                  <span className="text-center">kg</span>
+                  <span className="text-center">reps</span>
+                  <span></span>
+                  <span></span>
+                </div>
+
+                {workoutExercise.sets.map((set, setIdx) => (
+                  <div
+                    key={set.setNumber}
+                    className={cn(
+                      'grid grid-cols-[2rem_1fr_1fr_2.5rem_2.5rem] gap-1 px-3 py-1.5 items-center',
+                      set.completed && 'bg-primary/10',
+                      set.skipped && 'bg-secondary/50 opacity-50',
+                    )}
+                  >
+                    <span className="text-xs text-muted-foreground text-center">{set.setNumber}</span>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={set.weight ?? ''}
+                      onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
+                      placeholder="-"
+                      className="h-7 text-center text-sm px-1.5"
+                    />
+                    <Input
+                      type="number"
+                      value={set.actualReps ?? ''}
+                      onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
+                      placeholder={set.plannedReps?.toString() ?? '-'}
+                      className="h-7 text-center text-sm px-1.5"
+                    />
+                    {/* Complete button (E3-03) */}
+                    <Button
+                      variant={set.completed ? 'default' : 'secondary'}
+                      size="icon"
+                      className={cn(
+                        'h-7 w-7',
+                        set.completed && 'bg-primary text-primary-foreground',
+                      )}
+                      onClick={() => handleSetComplete(exIdx, setIdx, set.completed)}
+                      aria-label={set.completed ? 'Markeer als niet voltooid' : 'Markeer als voltooid'}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    {/* Skip button (E3-05) */}
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className={cn(
+                        'h-7 w-7',
+                        set.skipped && 'text-amber-400',
+                      )}
+                      onClick={() => handleSetSkip(exIdx, setIdx, set.skipped)}
+                      aria-label={set.skipped ? 'Set herstellen' : 'Set overslaan'}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Add exercise via Sheet */}
+        <Sheet open={showAddExercise} onOpenChange={(open) => { setShowAddExercise(open); if (!open) setExerciseSearch(''); }}>
+          <Button
+            variant="outline"
+            className="w-full border-dashed text-muted-foreground"
+            onClick={() => setShowAddExercise(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Oefening toevoegen
+          </Button>
+          <SheetContent side="bottom" className="max-h-[70vh]">
+            <SheetHeader>
+              <SheetTitle>Oefening toevoegen</SheetTitle>
+              <SheetDescription>Selecteer een oefening om toe te voegen aan je training</SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 space-y-3">
+              <Input
+                type="text"
+                value={exerciseSearch}
+                onChange={e => setExerciseSearch(e.target.value)}
+                placeholder="Zoek oefening..."
+                autoFocus
+              />
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {filteredAddExercises.map(ex => (
+                  <button
+                    key={ex.id}
+                    onClick={() => handleAddExercise(ex.id!)}
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                  >
+                    {ex.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Workout notes (E3-09) */}
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => setWorkoutNotesOpen(!workoutNotesOpen)}
+          >
+            <StickyNote className="h-3 w-3" />
+            {workoutNotesOpen ? 'Trainingsnotities verbergen' : 'Trainingsnotities'}
+          </Button>
+          {workoutNotesOpen && (
+            <textarea
+              value={workout.notes}
+              onChange={e => updateWorkoutNotes(workoutId, e.target.value)}
+              placeholder="Notities voor deze training..."
+              rows={3}
+              className="mt-2 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Finish confirmation */}
+      <ConfirmDialog
+        open={showFinish}
+        title="Training afronden"
+        message="Wil je deze training afronden? Je kunt daarna de samenvatting bekijken."
+        confirmLabel="Afronden"
+        onConfirm={handleFinish}
+        onCancel={() => setShowFinish(false)}
+      />
+    </div>
+  );
+}

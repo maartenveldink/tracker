@@ -1,0 +1,1 @@
+- [Tracker stack & MVP status](project_stack.md) — React+Vite+TS+Dexie PWA, Epics 1-4 implemented, 5-8 pending
