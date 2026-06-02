@@ -12,6 +12,8 @@ import {
   completeWorkout,
 } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
+import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
+import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,14 +25,96 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, FileText, StickyNote } from 'lucide-react';
-import type { Exercise } from '../../../db/index';
+import { Pause, Play, Check, SkipForward, Plus, FileText, StickyNote, History } from 'lucide-react';
+import type { Exercise, Workout } from '../../../db/index';
+
+// --- Previous session reference (E3-10) ---
+
+interface PreviousSetRef {
+  weight: number;
+  reps: number;
+  estimated1RM: number;
+}
+
+interface PreviousSessionRef {
+  date: Date;
+  sets: PreviousSetRef[];
+}
+
+function findPreviousSession(
+  exerciseId: number,
+  completedWorkouts: Workout[],
+  currentWorkoutId: number | undefined,
+  formula: OneRMFormula,
+): PreviousSessionRef | null {
+  // Walk workouts from newest to oldest, skip the current workout
+  for (let i = completedWorkouts.length - 1; i >= 0; i--) {
+    const w = completedWorkouts[i];
+    if (!w) continue;
+    if (w.id === currentWorkoutId) continue;
+
+    const exerciseData = w.exercises.find(e => e.exerciseId === exerciseId);
+    if (!exerciseData) continue;
+
+    const completedSets = exerciseData.sets.filter(
+      s => s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0,
+    );
+    if (completedSets.length === 0) continue;
+
+    return {
+      date: w.startedAt,
+      sets: completedSets.map(s => ({
+        weight: s.weight!,
+        reps: s.actualReps!,
+        estimated1RM: calculate1RM(s.weight!, s.actualReps!, formula),
+      })),
+    };
+  }
+  return null;
+}
+
+function formatRefDate(date: Date): string {
+  return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function PreviousSessionBar({ reference, currentSetCount }: {
+  reference: PreviousSessionRef;
+  currentSetCount: number;
+}) {
+  // Only show sets up to the current set count (position matching)
+  const setsToShow = reference.sets.slice(0, currentSetCount);
+
+  return (
+    <div className="px-3 py-2 border-b border-border bg-muted/30">
+      <div className="flex items-center gap-1.5 mb-1">
+        <History className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[11px] text-muted-foreground font-medium">
+          {formatRefDate(reference.date)}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {setsToShow.map((s, i) => (
+          <span key={i} className="text-[11px] text-muted-foreground">
+            S{i + 1}: {s.weight}kg x {s.reps}{' '}
+            <span className="text-muted-foreground/60">
+              (~{Math.round(s.estimated1RM * 10) / 10})
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Main component ---
 
 export function WorkoutPage() {
   const { id } = useParams<{ id: string }>();
   const workoutId = id ? Number(id) : undefined;
   const workout = useWorkout(workoutId);
   const allExercises = useExercises();
+  const completedWorkouts = useCompletedWorkouts();
+  const settings = useSettings();
   const navigate = useNavigate();
 
   const [elapsed, setElapsed] = useState(0);
@@ -52,6 +136,21 @@ export function WorkoutPage() {
     allExercises.forEach(e => map.set(e.id!, e));
     return map;
   }, [allExercises]);
+
+  // Build previous session references for each exercise in the workout (E3-10)
+  const previousSessions = useMemo(() => {
+    if (!workout) return new Map<number, PreviousSessionRef | null>();
+    const map = new Map<number, PreviousSessionRef | null>();
+    for (const ex of workout.exercises) {
+      if (!map.has(ex.exerciseId)) {
+        map.set(
+          ex.exerciseId,
+          findPreviousSession(ex.exerciseId, completedWorkouts, workoutId, settings.oneRMFormula),
+        );
+      }
+    }
+    return map;
+  }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
 
   // Timer (E3-06)
   const workoutStatus = workout?.status;
@@ -197,6 +296,7 @@ export function WorkoutPage() {
           const exercise = exerciseMap.get(workoutExercise.exerciseId);
           const completedSets = workoutExercise.sets.filter(s => s.completed).length;
           const totalSets = workoutExercise.sets.length;
+          const prevSession = previousSessions.get(workoutExercise.exerciseId);
 
           return (
             <div key={exIdx} className="bg-card rounded-xl border border-border overflow-hidden">
@@ -231,6 +331,18 @@ export function WorkoutPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Previous session reference (E3-10) */}
+              {prevSession ? (
+                <PreviousSessionBar reference={prevSession} currentSetCount={totalSets} />
+              ) : (
+                <div className="px-3 py-1.5 border-b border-border bg-muted/30">
+                  <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1.5">
+                    <History className="h-3 w-3" />
+                    Geen eerdere sessie
+                  </span>
+                </div>
+              )}
 
               {/* Notes (E3-09) */}
               {expandedNotes === exIdx && (

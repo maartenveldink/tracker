@@ -6,7 +6,7 @@ import { db, type Workout, type WorkoutSet } from '../../../db/index';
 
 export type OneRMFormula = 'epley' | 'brzycki' | 'lombardi';
 
-function calculate1RM(weight: number, reps: number, formula: OneRMFormula): number {
+export function calculate1RM(weight: number, reps: number, formula: OneRMFormula): number {
   if (reps <= 0 || weight <= 0) return 0;
   if (reps === 1) return weight;
 

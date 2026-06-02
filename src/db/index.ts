@@ -139,6 +139,20 @@ export interface MacroGoals {
   fat: number | null;
 }
 
+// --- App Settings ---
+
+export interface AppSettings {
+  id: 1; // singleton row
+  oneRMFormula: 'epley' | 'brzycki' | 'lombardi';
+  muscleDetailLevel: 'global' | 'detailed';
+  macroGoals: {
+    calories: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
+  };
+}
+
 // --- Database ---
 
 class TrackerDB extends Dexie {
@@ -148,6 +162,7 @@ class TrackerDB extends Dexie {
   foods!: EntityTable<Food, 'id'>;
   recipes!: EntityTable<Recipe, 'id'>;
   dailyLog!: EntityTable<DailyLogEntry, 'id'>;
+  settings!: EntityTable<AppSettings, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -178,6 +193,38 @@ class TrackerDB extends Dexie {
       foods: '++id, name',
       recipes: '++id, name',
       dailyLog: '++id, date, itemType, itemId',
+    });
+
+    // E8-04: persistent settings — migrate macroGoals from localStorage
+    this.version(4).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+    }).upgrade(async tx => {
+      const defaults: AppSettings = {
+        id: 1,
+        oneRMFormula: 'epley',
+        muscleDetailLevel: 'global',
+        macroGoals: { calories: null, protein: null, carbs: null, fat: null },
+      };
+
+      // Migrate macroGoals from localStorage
+      try {
+        const stored = localStorage.getItem('tracker_macro_goals');
+        if (stored) {
+          const parsed = JSON.parse(stored) as AppSettings['macroGoals'];
+          defaults.macroGoals = parsed;
+          localStorage.removeItem('tracker_macro_goals');
+        }
+      } catch {
+        // ignore parse errors
+      }
+
+      await tx.table('settings').put(defaults);
     });
   }
 }

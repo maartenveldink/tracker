@@ -1,7 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type DailyLogEntry, type DailyLogItemType, type Food, type Recipe, type Macros, type MacroGoals } from '../../../db/index';
-
-const MACRO_GOALS_KEY = 'tracker_macro_goals';
+import { db, type DailyLogEntry, type DailyLogItemType, type Food, type Recipe, type Macros } from '../../../db/index';
 
 export function useDailyLog(date: string) {
   return useLiveQuery(
@@ -99,20 +97,3 @@ export async function deleteDailyLogEntry(entryId: number): Promise<void> {
   await db.dailyLog.delete(entryId);
 }
 
-// --- Macro Goals (stored in localStorage for simplicity, E6-04 / E8-03) ---
-
-export function getMacroGoals(): MacroGoals {
-  try {
-    const stored = localStorage.getItem(MACRO_GOALS_KEY);
-    if (stored) {
-      return JSON.parse(stored) as MacroGoals;
-    }
-  } catch {
-    // ignore
-  }
-  return { calories: null, protein: null, carbs: null, fat: null };
-}
-
-export function saveMacroGoals(goals: MacroGoals): void {
-  localStorage.setItem(MACRO_GOALS_KEY, JSON.stringify(goals));
-}

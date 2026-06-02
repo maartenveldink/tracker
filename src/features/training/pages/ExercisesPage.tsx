@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { useExercises, deleteExercise, isExerciseInUse } from '../hooks/useExercises';
 import { getMuscleGroups } from '../db/muscles';
+import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -13,11 +14,12 @@ import { Card, CardContent } from '@/components/ui/card';
 export function ExercisesPage() {
   const exercises = useExercises();
   const navigate = useNavigate();
+  const settings = useSettings();
   const [search, setSearch] = useState('');
   const [filterMuscle, setFilterMuscle] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string; inUse: boolean } | null>(null);
 
-  const muscleGroups = getMuscleGroups('global');
+  const muscleGroups = getMuscleGroups(settings.muscleDetailLevel);
 
   const filtered = useMemo(() => {
     return exercises.filter(e => {

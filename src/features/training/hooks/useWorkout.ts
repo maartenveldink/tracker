@@ -165,6 +165,17 @@ export async function updateWorkoutNotes(
   await db.workouts.update(workoutId, { notes });
 }
 
+/** Update an entire workout's exercises and notes (E4-08). */
+export async function updateWorkout(
+  workoutId: number,
+  exercises: WorkoutExercise[],
+  notes: string,
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    await db.workouts.update(workoutId, { exercises, notes });
+  });
+}
+
 /** Pause a workout (E3-07). */
 export async function pauseWorkout(workoutId: number): Promise<void> {
   await db.workouts.update(workoutId, {

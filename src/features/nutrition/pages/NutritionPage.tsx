@@ -9,8 +9,8 @@ import {
   addDailyLogEntry,
   updateDailyLogEntry,
   deleteDailyLogEntry,
-  getMacroGoals,
 } from '../hooks/useDailyLog';
+import { useSettings } from '../../../hooks/useSettings';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +43,8 @@ export function NutritionPage() {
   const [date, setDate] = useState(() => formatDate(new Date()));
   const entries = useDailyLog(date);
   const totals = sumMacros(entries);
-  const goals = getMacroGoals();
+  const settings = useSettings();
+  const goals = settings.macroGoals;
 
   // Add item dialog
   const [addOpen, setAddOpen] = useState(false);

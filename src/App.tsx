@@ -6,6 +6,7 @@ import { SchemasPage } from './features/training/pages/SchemasPage';
 import { SchemaFormPage } from './features/training/pages/SchemaFormPage';
 import { SchemaDetailPage } from './features/training/pages/SchemaDetailPage';
 import { WorkoutPage } from './features/training/pages/WorkoutPage';
+import { WorkoutEditPage } from './features/training/pages/WorkoutEditPage';
 import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage';
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
 import { ProgressPage } from './features/training/pages/ProgressPage';
@@ -21,6 +22,7 @@ export function App() {
     <Routes>
       {/* Workout pages have their own minimal layout */}
       <Route path="/workout/:id" element={<WorkoutPage />} />
+      <Route path="/workout/:id/edit" element={<WorkoutEditPage />} />
       <Route path="/workout/:id/summary" element={<WorkoutSummaryPage />} />
 
       {/* Standard pages with nav layout */}

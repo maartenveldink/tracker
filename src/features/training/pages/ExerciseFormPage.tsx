@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExercise, createExercise, updateExercise } from '../hooks/useExercises';
 import { getMuscleGroups } from '../db/muscles';
+import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,8 @@ export function ExerciseFormPage() {
   const [primaryMuscles, setPrimaryMuscles] = useState<string[]>([]);
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
 
-  const muscleGroups = getMuscleGroups('global');
+  const settings = useSettings();
+  const muscleGroups = getMuscleGroups(settings.muscleDetailLevel);
   const initialized = useRef(false);
 
   useEffect(() => {

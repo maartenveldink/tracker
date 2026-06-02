@@ -1,15 +1,26 @@
-import { db, type Workout } from '../../../db/index';
+import { db, type Workout, type AppSettings } from '../../../db/index';
 import { seedDatabase } from './seed';
+
+const SETTINGS_DEFAULTS: AppSettings = {
+  id: 1,
+  oneRMFormula: 'epley',
+  muscleDetailLevel: 'global',
+  macroGoals: { calories: null, protein: null, carbs: null, fat: null },
+};
 
 /**
  * Wipes all data and re-seeds the default exercise library.
  * Called by the "Alles wissen" button in Settings.
  */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', db.exercises, db.schemas, db.workouts, async () => {
+  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings], async () => {
     await db.workouts.clear();
     await db.schemas.clear();
     await db.exercises.clear();
+    await db.foods.clear();
+    await db.recipes.clear();
+    await db.dailyLog.clear();
+    await db.settings.put(SETTINGS_DEFAULTS);
   });
   await seedDatabase();
 }

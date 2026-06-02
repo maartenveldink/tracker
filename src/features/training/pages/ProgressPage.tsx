@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, Trash2, Pencil } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -16,8 +17,8 @@ import {
   deleteWorkout,
   filterByPeriod,
   type PeriodFilter,
-  type OneRMFormula,
 } from '../hooks/useProgress';
+import { useSettings } from '../../../hooks/useSettings';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
@@ -104,11 +105,12 @@ function ExerciseDetail({
   exerciseName: string;
   onBack: () => void;
 }) {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodFilter>('3m');
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; date: Date } | null>(null);
 
-  // TODO(E8-01): read formula from user settings once the settings screen is implemented
-  const formula: OneRMFormula = 'epley';
+  const settings = useSettings();
+  const formula = settings.oneRMFormula;
   const sessions = useProgress(exerciseId, formula);
   const filteredSessions = useMemo(() => filterByPeriod(sessions, period), [sessions, period]);
 
@@ -244,15 +246,26 @@ function ExerciseDetail({
                           </span>
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                        onClick={() => setDeleteTarget({ id: session.workoutId, date: session.date })}
-                        aria-label="Verwijder training"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground"
+                          onClick={() => navigate(`/workout/${session.workoutId}/edit`)}
+                          aria-label="Bewerk training"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteTarget({ id: session.workoutId, date: session.date })}
+                          aria-label="Verwijder training"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays } from '../hooks/useSchemas';
 import { useExercises } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
+import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -29,9 +30,10 @@ interface MuscleAnalysis {
 function computeMuscleAnalysis(
   exercises: SchemaExercise[],
   exerciseMap: Map<number, Exercise>,
+  muscleDetailLevel: 'global' | 'detailed' = 'global',
 ): MuscleAnalysis {
   const statsMap = new Map<string, MuscleStats>();
-  const allMuscles = getMuscleGroups('global');
+  const allMuscles = getMuscleGroups(muscleDetailLevel);
   allMuscles.forEach(m => {
     statsMap.set(m.id, { id: m.id, name: m.name, primarySets: 0, secondarySets: 0 });
   });
@@ -186,6 +188,7 @@ export function SchemaDetailPage() {
     return map;
   }, [allExercises]);
 
+  const settings = useSettings();
   const multiDay = schema ? isMultiDay(schema) : false;
   const sortedDays = useMemo(() => schema ? getSortedDays(schema) : [], [schema]);
 
@@ -193,18 +196,18 @@ export function SchemaDetailPage() {
   const totalAnalysis = useMemo(() => {
     if (!schema) return { stats: [], missing: [], totalSets: 0 };
     const allExs = getAllSchemaExercises(schema);
-    return computeMuscleAnalysis(allExs, exerciseMap);
-  }, [schema, exerciseMap]);
+    return computeMuscleAnalysis(allExs, exerciseMap, settings.muscleDetailLevel);
+  }, [schema, exerciseMap, settings.muscleDetailLevel]);
 
   // Per-day analysis (E2-10)
   const dayAnalyses = useMemo(() => {
     if (!schema || !multiDay) return new Map<string, MuscleAnalysis>();
     const map = new Map<string, MuscleAnalysis>();
     for (const day of sortedDays) {
-      map.set(day.id, computeMuscleAnalysis(day.exercises, exerciseMap));
+      map.set(day.id, computeMuscleAnalysis(day.exercises, exerciseMap, settings.muscleDetailLevel));
     }
     return map;
-  }, [schema, multiDay, sortedDays, exerciseMap]);
+  }, [schema, multiDay, sortedDays, exerciseMap, settings.muscleDetailLevel]);
 
   const [analysisTab, setAnalysisTab] = useState<string>('totaal');
 
