@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Dumbbell, ClipboardList, Play, TrendingUp, Apple, Settings } from 'lucide-react';
+import { Dumbbell, ClipboardList, Play, TrendingUp, Apple, CalendarDays, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/schemas', label: "Schema's", icon: ClipboardList },
   { to: '/start', label: 'Train', icon: Play },
   { to: '/nutrition', label: 'Voeding', icon: Apple },
+  { to: '/planner', label: 'Planner', icon: CalendarDays },
   { to: '/progress', label: 'Progressie', icon: TrendingUp },
   { to: '/settings', label: 'Instellingen', icon: Settings },
 ];

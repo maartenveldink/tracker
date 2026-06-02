@@ -78,6 +78,7 @@ function stripId<T extends { id?: number }>(record: T): Omit<T, 'id'> {
  * - **replace**: clears all tables, then inserts everything using original IDs (bulkPut).
  *   After inserting, re-seeds the default exercise library so seed exercises are present.
  * - **merge**: appends records with new auto-generated IDs (no conflicts with existing data).
+ *   Foreign-key references (exerciseId, foodId, itemId) are remapped to the new IDs.
  *
  * The entire operation runs inside a Dexie transaction so a failure rolls everything back.
  */
@@ -96,7 +97,7 @@ export async function importData(
 
   await db.transaction(
     'rw',
-    [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings],
+    [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings, db.weekPlans],
     async () => {
       if (mode === 'replace') {
         // Wipe all tables
@@ -106,6 +107,7 @@ export async function importData(
         await db.foods.clear();
         await db.recipes.clear();
         await db.dailyLog.clear();
+        await db.weekPlans.clear();
 
         // Insert with original IDs preserved (bulkPut accepts explicit keys)
         await db.exercises.bulkPut(data.exercises as Exercise[]);
@@ -120,25 +122,104 @@ export async function importData(
           await db.settings.put({ ...data.settings, id: 1 });
         }
       } else {
-        // Merge: strip IDs so Dexie auto-generates new ones, avoiding conflicts
+        // ---------------------------------------------------------------------------
+        // Merge: strip IDs so Dexie auto-generates new ones, then remap all
+        // foreign-key references so schemas/workouts/recipes/dailyLog stay consistent.
+        // ---------------------------------------------------------------------------
+
+        // Step 1: add exercises, build old → new ID map
+        const exerciseIdMap = new Map<number, number>();
         if (data.exercises.length > 0) {
-          await db.exercises.bulkAdd(data.exercises.map(stripId));
+          const newIds = await db.exercises.bulkAdd(
+            data.exercises.map(stripId) as Exercise[],
+            { allKeys: true },
+          );
+          data.exercises.forEach((ex, i) => {
+            const oldId = ex.id;
+            const newId = (newIds as number[])[i];
+            if (oldId !== undefined && newId !== undefined) {
+              exerciseIdMap.set(oldId, newId);
+            }
+          });
         }
+        const remapExId = (id: number): number => exerciseIdMap.get(id) ?? id;
+
+        // Step 2: add schemas with remapped exerciseIds
         if (data.schemas.length > 0) {
-          await db.schemas.bulkAdd(data.schemas.map(stripId));
+          const remappedSchemas = data.schemas.map(schema => ({
+            ...stripId(schema),
+            exercises: schema.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
+            days: schema.days?.map(day => ({
+              ...day,
+              exercises: day.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
+            })),
+          }));
+          await db.schemas.bulkAdd(remappedSchemas as TrainingSchema[]);
         }
+
+        // Step 3: add workouts with remapped exerciseIds (exercises and sets)
         if (data.workouts.length > 0) {
-          await db.workouts.bulkAdd(data.workouts.map(stripId));
+          const remappedWorkouts = data.workouts.map(workout => ({
+            ...stripId(workout),
+            exercises: workout.exercises.map(e => ({
+              ...e,
+              exerciseId: remapExId(e.exerciseId),
+              sets: e.sets.map(s => ({ ...s, exerciseId: remapExId(s.exerciseId) })),
+            })),
+          }));
+          await db.workouts.bulkAdd(remappedWorkouts as Workout[]);
         }
+
+        // Step 4: add foods, build old → new food ID map
+        const foodIdMap = new Map<number, number>();
         if (data.foods.length > 0) {
-          await db.foods.bulkAdd(data.foods.map(stripId));
+          const newFoodIds = await db.foods.bulkAdd(
+            data.foods.map(stripId) as Food[],
+            { allKeys: true },
+          );
+          data.foods.forEach((food, i) => {
+            const oldId = food.id;
+            const newId = (newFoodIds as number[])[i];
+            if (oldId !== undefined && newId !== undefined) {
+              foodIdMap.set(oldId, newId);
+            }
+          });
         }
+
+        // Step 5: add recipes with remapped foodIds, build old → new recipe ID map
+        const recipeIdMap = new Map<number, number>();
         if (data.recipes.length > 0) {
-          await db.recipes.bulkAdd(data.recipes.map(stripId));
+          const remappedRecipes = data.recipes.map(recipe => ({
+            ...stripId(recipe),
+            ingredients: recipe.ingredients.map(ing => ({
+              ...ing,
+              foodId: foodIdMap.get(ing.foodId) ?? ing.foodId,
+            })),
+          }));
+          const newRecipeIds = await db.recipes.bulkAdd(
+            remappedRecipes as Recipe[],
+            { allKeys: true },
+          );
+          data.recipes.forEach((recipe, i) => {
+            const oldId = recipe.id;
+            const newId = (newRecipeIds as number[])[i];
+            if (oldId !== undefined && newId !== undefined) {
+              recipeIdMap.set(oldId, newId);
+            }
+          });
         }
+
+        // Step 6: add daily log with remapped food/recipe itemIds
         if (data.dailyLog.length > 0) {
-          await db.dailyLog.bulkAdd(data.dailyLog.map(stripId));
+          const remappedLog = data.dailyLog.map(entry => ({
+            ...stripId(entry),
+            itemId: entry.itemType === 'food'
+              ? (foodIdMap.get(entry.itemId) ?? entry.itemId)
+              : (recipeIdMap.get(entry.itemId) ?? entry.itemId),
+          }));
+          await db.dailyLog.bulkAdd(remappedLog as DailyLogEntry[]);
         }
+
         // In merge mode we do not overwrite settings
       }
     },

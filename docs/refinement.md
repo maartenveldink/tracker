@@ -1,6 +1,8 @@
 # Refinement — UX-verbeteringen tijdens training
 *Versie 1.0 | Datum: 2026-06-02*
 
+> Geïntegreerd in requirements.md op 2026-06-02.
+
 ---
 
 Dit document beschrijft UX-verbeteringen voor het live logging-scherm en de bredere trainingservaring. Het vertrekpunt is de huidige implementatie van Epic 3 (WorkoutPage, StartWorkoutPage, WorkoutSummaryPage). De centrale vraag bij elke requirement: kost dit de gebruiker minder moeite dan de huidige situatie?

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { Trash2, FlaskConical, CheckCircle2, Calculator, Eye, Target, Download, Upload } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Trash2, FlaskConical, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,8 +34,8 @@ export function SettingsPage() {
   const [feedback, setFeedback] = useState<Feedback>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Export/Import state
-  const [hasData, setHasData] = useState(false);
+  // Export/Import state — reactive: re-evaluates whenever any relevant table changes
+  const hasData = useLiveQuery(hasExportableData) ?? false;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<TrackerExport | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -86,8 +87,11 @@ export function SettingsPage() {
     setConfirmSeed(false);
     setLoading(true);
     try {
-      const workoutCount = await db.workouts.count();
-      if (workoutCount > 0) {
+      const [workoutCount, schemaCount] = await Promise.all([
+        db.workouts.count(),
+        db.schemas.count(),
+      ]);
+      if (workoutCount > 0 || schemaCount > 0) {
         flash('error', 'Er is al trainingsdata aanwezig. Wis eerst alle data.');
         setLoading(false);
         return;
@@ -112,10 +116,6 @@ export function SettingsPage() {
     });
   }
 
-  // Check whether there is data to export
-  useEffect(() => {
-    void hasExportableData().then(setHasData);
-  }, []);
 
   const handleExport = async () => {
     setLoading(true);
@@ -157,8 +157,6 @@ export function SettingsPage() {
     try {
       const result = await importData(importPreview, mode);
       setImportResult(result);
-      // Refresh exportable-data check
-      void hasExportableData().then(setHasData);
       if (mode === 'replace') {
         macroInitialized.current = false;
       }
@@ -261,6 +259,52 @@ export function SettingsPage() {
                 void updateSettings({ muscleDetailLevel: checked ? 'detailed' : 'global' })
               }
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* RT-05: Rest timer duration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Timer className="h-4 w-4 text-primary" />
+            Rusttimer
+          </CardTitle>
+          <CardDescription>
+            Standaard rustduur na een voltooide set (15s - 10 min, stappen van 15s).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              disabled={settings.restTimerSeconds <= 15}
+              onClick={() =>
+                void updateSettings({
+                  restTimerSeconds: Math.max(15, settings.restTimerSeconds - 15),
+                })
+              }
+            >
+              -
+            </Button>
+            <div className="flex-1 text-center font-medium">
+              {Math.floor(settings.restTimerSeconds / 60)}:{String(settings.restTimerSeconds % 60).padStart(2, '0')}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              disabled={settings.restTimerSeconds >= 600}
+              onClick={() =>
+                void updateSettings({
+                  restTimerSeconds: Math.min(600, settings.restTimerSeconds + 15),
+                })
+              }
+            >
+              +
+            </Button>
           </div>
         </CardContent>
       </Card>

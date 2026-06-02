@@ -139,6 +139,23 @@ export interface MacroGoals {
   fat: number | null;
 }
 
+// --- Week Planner Types (Epic 9) ---
+
+export interface WeekPlanDay {
+  weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = maandag, 6 = zondag
+  schemaId: number | null;    // null = rustdag
+  schemaDayId: string | null; // null = single-day schema of rustdag
+  label: string | null;       // optioneel override-label, bv. "Push A"
+}
+
+export interface WeekPlan {
+  id?: number;
+  name: string;
+  days: WeekPlanDay[]; // 7 entries, een per weekdag
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // --- App Settings ---
 
 export interface AppSettings {
@@ -151,6 +168,7 @@ export interface AppSettings {
     carbs: number | null;
     fat: number | null;
   };
+  restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
 }
 
 // --- Database ---
@@ -163,6 +181,7 @@ class TrackerDB extends Dexie {
   recipes!: EntityTable<Recipe, 'id'>;
   dailyLog!: EntityTable<DailyLogEntry, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
+  weekPlans!: EntityTable<WeekPlan, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -210,6 +229,7 @@ class TrackerDB extends Dexie {
         oneRMFormula: 'epley',
         muscleDetailLevel: 'global',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
+        restTimerSeconds: 90,
       };
 
       // Migrate macroGoals from localStorage
@@ -225,6 +245,33 @@ class TrackerDB extends Dexie {
       }
 
       await tx.table('settings').put(defaults);
+    });
+
+    // RT-05: add restTimerSeconds to settings
+    this.version(5).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+    }).upgrade(async tx => {
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.restTimerSeconds === undefined) s.restTimerSeconds = 90;
+      });
+    });
+
+    // Epic 9: week planner
+    this.version(6).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
     });
   }
 }

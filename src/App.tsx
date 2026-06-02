@@ -11,6 +11,8 @@ import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
 import { ProgressPage } from './features/training/pages/ProgressPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PlannerPage } from './features/planner/pages/PlannerPage';
+import { WeekPlanFormPage } from './features/planner/pages/WeekPlanFormPage';
 import { NutritionPage } from './features/nutrition/pages/NutritionPage';
 import { FoodsPage } from './features/nutrition/pages/FoodsPage';
 import { FoodFormPage } from './features/nutrition/pages/FoodFormPage';
@@ -44,6 +46,9 @@ export function App() {
         <Route path="/recipes" element={<RecipesPage />} />
         <Route path="/recipes/new" element={<RecipeFormPage />} />
         <Route path="/recipes/:id/edit" element={<RecipeFormPage />} />
+        <Route path="/planner" element={<PlannerPage />} />
+        <Route path="/planner/new" element={<WeekPlanFormPage />} />
+        <Route path="/planner/:id/edit" element={<WeekPlanFormPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/exercises" replace />} />
       </Route>

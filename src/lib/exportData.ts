@@ -83,5 +83,6 @@ export function downloadExport(data: TrackerExport): void {
   a.href = url;
   a.download = `tracker-export-${date}.json`;
   a.click();
-  URL.revokeObjectURL(url);
+  // Delay revoke to ensure Firefox has time to initiate the download
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }

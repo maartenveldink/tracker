@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { useSchemas, isMultiDay, getSortedDays } from '../hooks/useSchemas';
 import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
-import { db } from '../../../db/index';
+import { useCompletedWorkouts } from '../hooks/useProgress';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Play, Calendar } from 'lucide-react';
+import { Zap, Play, Calendar, AlertTriangle } from 'lucide-react';
 import type { WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
@@ -63,30 +62,57 @@ function buildWorkoutExercises(
   }));
 }
 
+// CT-02: format "X dagen geleden" or "Nog niet getraind"
+function formatDaysAgo(date: Date | null): string {
+  if (!date) return 'Nog niet getraind';
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Vandaag';
+  if (diffDays === 1) return 'Gisteren';
+  return `${diffDays} dagen geleden`;
+}
+
 export function StartWorkoutPage() {
   const schemas = useSchemas();
   const activeWorkoutState = useActiveWorkout();
   const activeWorkout = activeWorkoutState?.workout;
+  const completedWorkouts = useCompletedWorkouts();
   const navigate = useNavigate();
 
   // Expanded schema card (for day selection on multi-day schemas)
   const [expandedSchemaId, setExpandedSchemaId] = useState<number | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // Fetch last completed workout per schema for default day logic (E2-11)
-  const lastCompletedBySchema = useLiveQuery(async () => {
+  // CT-06: recent usage warning
+  const [recentWarningSchemaId, setRecentWarningSchemaId] = useState<number | null>(null);
+
+  // Last completed workout per multi-day schema — derived from already-loaded completedWorkouts
+  // (avoids N+1 queries, one per schema)
+  const lastCompletedBySchema = useMemo(() => {
     const map = new Map<number, Workout>();
-    for (const schema of schemas) {
-      if (!schema.id || !isMultiDay(schema)) continue;
-      const last = await db.workouts
-        .where('schemaId')
-        .equals(schema.id)
-        .filter(w => w.status === 'completed')
-        .last();
-      if (last) map.set(schema.id, last);
+    for (const w of completedWorkouts) {
+      if (w.schemaId === null || !w.schemaDayId) continue;
+      const existing = map.get(w.schemaId);
+      if (!existing || w.startedAt > existing.startedAt) {
+        map.set(w.schemaId, w);
+      }
     }
     return map;
-  }, [schemas]) ?? new Map<number, Workout>();
+  }, [completedWorkouts]);
+
+  // CT-02: last session date per schema
+  const lastSessionBySchema = useMemo(() => {
+    const map = new Map<number, Date>();
+    for (const w of completedWorkouts) {
+      if (w.schemaId === null) continue;
+      const existing = map.get(w.schemaId);
+      if (!existing || w.startedAt > existing) {
+        map.set(w.schemaId, w.startedAt);
+      }
+    }
+    return map;
+  }, [completedWorkouts]);
 
   // Still loading from IndexedDB
   if (!activeWorkoutState || activeWorkoutState.isLoading) {
@@ -124,13 +150,35 @@ export function StartWorkoutPage() {
     );
   }
 
+  // CT-06: check if schema was used recently (< 48 hours)
+  function isRecentlyUsed(schemaId: number): boolean {
+    const lastDate = lastSessionBySchema.get(schemaId);
+    if (!lastDate) return false;
+    const hoursSince = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60);
+    return hoursSince < 48;
+  }
+
   async function handleStartSingleDay(schema: TrainingSchema) {
+    // CT-06: show warning if recently used
+    if (schema.id && isRecentlyUsed(schema.id) && recentWarningSchemaId !== schema.id) {
+      setRecentWarningSchemaId(schema.id);
+      return;
+    }
+    setRecentWarningSchemaId(null);
+
     const exercises = buildWorkoutExercises(schema.exercises);
     const workoutId = await startWorkout(schema.id!, schema.name, exercises);
     navigate(`/workout/${workoutId}`);
   }
 
   async function handleStartMultiDay(schema: TrainingSchema, dayId: string) {
+    // CT-06: show warning if recently used
+    if (schema.id && isRecentlyUsed(schema.id) && recentWarningSchemaId !== schema.id) {
+      setRecentWarningSchemaId(schema.id);
+      return;
+    }
+    setRecentWarningSchemaId(null);
+
     const sortedDays = getSortedDays(schema);
     const day = sortedDays.find(d => d.id === dayId);
     if (!day) return;
@@ -156,6 +204,7 @@ export function StartWorkoutPage() {
     if (expandedSchemaId === schema.id) {
       setExpandedSchemaId(null);
       setSelectedDayId(null);
+      setRecentWarningSchemaId(null);
       return;
     }
 
@@ -165,6 +214,7 @@ export function StartWorkoutPage() {
 
     setExpandedSchemaId(schema.id!);
     setSelectedDayId(defaultDayId);
+    setRecentWarningSchemaId(null);
   }
 
   async function handleStartAdHoc() {
@@ -210,6 +260,9 @@ export function StartWorkoutPage() {
                   ? sortedDays.reduce((sum, d) => sum + d.exercises.reduce((s, e) => s + e.sets, 0), 0)
                   : schema.exercises.reduce((sum, e) => sum + e.sets, 0);
 
+                // CT-02: last session info
+                const lastSessionDate = schema.id ? lastSessionBySchema.get(schema.id) ?? null : null;
+
                 return (
                   <div key={schema.id}>
                     <Card
@@ -226,6 +279,10 @@ export function StartWorkoutPage() {
                               {' | '}
                               {totalSets} sets
                             </p>
+                            {/* CT-02: last session */}
+                            <p className="text-muted-foreground/70 text-[11px] mt-0.5">
+                              Laatste sessie: {formatDaysAgo(lastSessionDate)}
+                            </p>
                           </div>
                           {multiDay && (
                             <Badge variant="outline" className="text-xs shrink-0">
@@ -236,6 +293,23 @@ export function StartWorkoutPage() {
                         </div>
                       </CardContent>
                     </Card>
+
+                    {/* CT-06: recent usage warning (single-day) */}
+                    {!multiDay && recentWarningSchemaId === schema.id && (
+                      <div className="mt-2 ml-2 flex items-start gap-2 rounded-lg bg-amber-900/30 border border-amber-800/50 px-3 py-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs text-amber-300">Je hebt dit schema recent al gedaan.</p>
+                          <Button
+                            size="sm"
+                            className="mt-1.5 text-xs h-7"
+                            onClick={() => handleStartSingleDay(schema)}
+                          >
+                            Toch starten
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Day selection for multi-day schemas (E2-11) */}
                     {isExpanded && multiDay && (
@@ -271,6 +345,17 @@ export function StartWorkoutPage() {
                             </Card>
                           );
                         })}
+
+                        {/* CT-06: recent usage warning (multi-day) */}
+                        {recentWarningSchemaId === schema.id && (
+                          <div className="flex items-start gap-2 rounded-lg bg-amber-900/30 border border-amber-800/50 px-3 py-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-300">
+                              Je hebt dit schema recent al gedaan. Klik nogmaals om toch te starten.
+                            </p>
+                          </div>
+                        )}
+
                         <Button
                           className="w-full mt-2"
                           disabled={!selectedDayId}

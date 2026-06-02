@@ -6,6 +6,7 @@ const SETTINGS_DEFAULTS: AppSettings = {
   oneRMFormula: 'epley',
   muscleDetailLevel: 'global',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
+  restTimerSeconds: 90,
 };
 
 /**
@@ -13,13 +14,14 @@ const SETTINGS_DEFAULTS: AppSettings = {
  * Called by the "Alles wissen" button in Settings.
  */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings], async () => {
+  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings, db.weekPlans], async () => {
     await db.workouts.clear();
     await db.schemas.clear();
     await db.exercises.clear();
     await db.foods.clear();
     await db.recipes.clear();
     await db.dailyLog.clear();
+    await db.weekPlans.clear();
     await db.settings.put(SETTINGS_DEFAULTS);
   });
   await seedDatabase();
@@ -40,7 +42,7 @@ export async function seedDemoData(): Promise<void> {
     db.exercises.where('name').equals('Lateral Raise').first(),
   ]);
 
-  if (!benchPress?.id) return;
+  if (!benchPress?.id) throw new Error('Oefening "Barbell Bench Press" niet gevonden. Is de database geseed?');
 
   // --- Schema ---
   const now = new Date();

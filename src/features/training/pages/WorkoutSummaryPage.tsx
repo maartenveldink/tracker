@@ -3,13 +3,15 @@ import { formatDurationLong } from '../../../lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
+import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
+import { useSettings } from '../../../hooks/useSettings';
 import { getMuscleGroupById } from '../db/muscles';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight } from 'lucide-react';
-import type { Exercise } from '../../../db/index';
+import { X, Clock, Layers, Weight, ArrowRight } from 'lucide-react';
+import type { Exercise, Workout } from '../../../db/index';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', {
@@ -24,10 +26,78 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 }
 
+// MF-05: Calculate training streak (consecutive ISO weeks with at least 1 workout)
+function calculateStreak(completedWorkouts: Workout[]): number {
+  if (completedWorkouts.length === 0) return 0;
+
+  // Get ISO week number for a date
+  function getISOWeek(date: Date): string {
+    const d = new Date(date.getTime());
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return `${d.getFullYear()}-W${weekNum}`;
+  }
+
+  // Collect unique ISO weeks with workouts
+  const weeksWithWorkouts = new Set<string>();
+  for (const w of completedWorkouts) {
+    weeksWithWorkouts.add(getISOWeek(w.startedAt));
+  }
+
+  // Sort weeks descending
+  const sortedWeeks = Array.from(weeksWithWorkouts).sort().reverse();
+  if (sortedWeeks.length === 0) return 0;
+
+  // Check if the most recent week is the current week or last week
+  const currentWeek = getISOWeek(new Date());
+  const mostRecent = sortedWeeks[0]!;
+  if (mostRecent !== currentWeek) {
+    // Check if it's last week (allow 1-week gap for "current" streak)
+    const lastWeekDate = new Date();
+    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
+    const lastWeek = getISOWeek(lastWeekDate);
+    if (mostRecent !== lastWeek) return 0;
+  }
+
+  // Count consecutive weeks
+  let streak = 1;
+  for (let i = 1; i < sortedWeeks.length; i++) {
+    const current = sortedWeeks[i];
+    const previous = sortedWeeks[i - 1];
+    if (!current || !previous) break;
+
+    // Parse weeks and check if they're consecutive
+    const [currYear, currWeekStr] = current.split('-W');
+    const [prevYear, prevWeekStr] = previous.split('-W');
+    if (!currYear || !currWeekStr || !prevYear || !prevWeekStr) break;
+    const currWeek = parseInt(currWeekStr);
+    const prevWeek = parseInt(prevWeekStr);
+    const cy = parseInt(currYear);
+    const py = parseInt(prevYear);
+
+    const isConsecutive =
+      (cy === py && prevWeek - currWeek === 1) ||
+      (py - cy === 1 && currWeek >= 52 && prevWeek === 1);
+
+    if (isConsecutive) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 export function WorkoutSummaryPage() {
   const { id } = useParams<{ id: string }>();
-  const workout = useWorkout(id ? Number(id) : undefined);
+  const workoutId = id ? Number(id) : undefined;
+  const workout = useWorkout(workoutId);
   const allExercises = useExercises();
+  const completedWorkouts = useCompletedWorkouts();
+  const settings = useSettings();
   const navigate = useNavigate();
 
   const exerciseMap = useMemo(() => {
@@ -60,6 +130,80 @@ export function WorkoutSummaryPage() {
     return volumeMap;
   }, [workout, exerciseMap]);
 
+  // MF-03: PR detection per exercise
+  const prExercises = useMemo(() => {
+    if (!workout) return new Set<number>();
+    const prSet = new Set<number>();
+
+    for (const we of workout.exercises) {
+      // Best 1RM from this session
+      let bestThisSession = 0;
+      for (const set of we.sets) {
+        if (!set.completed || !set.weight || set.weight <= 0 || !set.actualReps || set.actualReps <= 0) continue;
+        const est = calculate1RM(set.weight, set.actualReps, settings.oneRMFormula);
+        if (est > bestThisSession) bestThisSession = est;
+      }
+      if (bestThisSession <= 0) continue;
+
+      // Best 1RM from all previous sessions
+      let bestPrevious = 0;
+      for (const w of completedWorkouts) {
+        if (w.id === workout.id) continue;
+        const ex = w.exercises.find(e => e.exerciseId === we.exerciseId);
+        if (!ex) continue;
+        for (const set of ex.sets) {
+          if (!set.completed || !set.weight || set.weight <= 0 || !set.actualReps || set.actualReps <= 0) continue;
+          const est = calculate1RM(set.weight, set.actualReps, settings.oneRMFormula);
+          if (est > bestPrevious) bestPrevious = est;
+        }
+      }
+
+      if (bestThisSession > bestPrevious && bestPrevious > 0) {
+        prSet.add(we.exerciseId);
+      }
+    }
+
+    return prSet;
+  }, [workout, completedWorkouts, settings.oneRMFormula]);
+
+  // MF-04: Volume comparison with previous session of same schema
+  const volumeComparison = useMemo<{ current: number; previous: number | null }>(() => {
+    if (!workout) return { current: 0, previous: null };
+
+    const current = workout.exercises.reduce((sum, we) => {
+      return sum + we.sets
+        .filter(s => s.completed && s.weight && s.actualReps)
+        .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
+    }, 0);
+
+    if (!workout.schemaId) return { current, previous: null };
+
+    // Find previous workout with same schemaId
+    let previousWorkout: Workout | null = null;
+    for (let i = completedWorkouts.length - 1; i >= 0; i--) {
+      const w = completedWorkouts[i];
+      if (!w) continue;
+      if (w.id === workout.id) continue;
+      if (w.schemaId === workout.schemaId) {
+        previousWorkout = w;
+        break;
+      }
+    }
+
+    if (!previousWorkout) return { current, previous: null };
+
+    const previous = previousWorkout.exercises.reduce((sum, we) => {
+      return sum + we.sets
+        .filter(s => s.completed && s.weight && s.actualReps)
+        .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
+    }, 0);
+
+    return { current, previous };
+  }, [workout, completedWorkouts]);
+
+  // MF-05: Training streak
+  const streak = useMemo(() => calculateStreak(completedWorkouts), [completedWorkouts]);
+
   if (!workout) {
     return (
       <div>
@@ -87,6 +231,10 @@ export function WorkoutSummaryPage() {
     .map(([id, vol]) => ({ id, name: getMuscleGroupById(id)?.name ?? id, volume: vol }))
     .sort((a, b) => b.volume - a.volume);
 
+  const volumeDiff = volumeComparison.previous !== null
+    ? Math.round(volumeComparison.current - volumeComparison.previous)
+    : null;
+
   return (
     <div className="min-h-screen">
       <PageHeader
@@ -112,6 +260,23 @@ export function WorkoutSummaryPage() {
           )}
         </h2>
         <p className="text-muted-foreground text-sm">{formatDate(workout.startedAt)}</p>
+
+        {/* MF-05: streak */}
+        {streak >= 2 && (
+          <p className="text-sm font-medium text-amber-400 mt-1">
+            {'\uD83D\uDD25'} {streak} weken op rij getraind
+          </p>
+        )}
+
+        {/* MF-04: volume comparison */}
+        {volumeDiff !== null && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Volume: {Math.round(volumeComparison.current)} kg{' '}
+            <span className={volumeDiff >= 0 ? 'text-green-400' : 'text-red-400'}>
+              ({volumeDiff >= 0 ? '+' : ''}{volumeDiff} kg t.o.v. vorige sessie)
+            </span>
+          </p>
+        )}
 
         <div className="grid grid-cols-3 gap-3 mt-4">
           <Card className="shadow-none">
@@ -147,14 +312,23 @@ export function WorkoutSummaryPage() {
       <div className="px-4 py-3">
         <h3 className="text-sm font-medium text-muted-foreground mb-2">Oefeningen</h3>
         <div className="space-y-3">
-          {workout.exercises.map((we) => {
+          {workout.exercises.map((we, idx) => {
             const exercise = exerciseMap.get(we.exerciseId);
             const completedSets = we.sets.filter(s => s.completed);
+            const isPR = prExercises.has(we.exerciseId);
 
             return (
-              <Card key={we.exerciseId} className="shadow-none">
+              <Card key={`${we.exerciseId}-${idx}`} className="shadow-none">
                 <CardContent className="p-3">
-                  <h4 className="text-sm font-medium mb-1">{exercise?.name ?? 'Onbekend'}</h4>
+                  <h4 className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                    {exercise?.name ?? 'Onbekend'}
+                    {/* MF-03: PR badge */}
+                    {isPR && (
+                      <span className="text-xs text-amber-400 font-medium">
+                        {'\uD83C\uDFC6'} Persoonlijk record!
+                      </span>
+                    )}
+                  </h4>
                   {completedSets.length > 0 ? (
                     <div className="space-y-0.5">
                       {completedSets.map((set) => (
@@ -181,7 +355,7 @@ export function WorkoutSummaryPage() {
       {sortedMuscleVolume.length > 0 && (
         <>
           <Separator />
-          <div className="px-4 py-3 pb-8">
+          <div className="px-4 py-3">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Volume per spiergroep</h3>
             <div className="space-y-2">
               {sortedMuscleVolume.map(({ id, name, volume }) => {
@@ -212,12 +386,30 @@ export function WorkoutSummaryPage() {
       {workout.notes && (
         <>
           <Separator />
-          <div className="px-4 py-3 pb-8">
+          <div className="px-4 py-3">
             <h3 className="text-sm font-medium text-muted-foreground mb-1">Trainingsnotities</h3>
             <p className="text-sm text-card-foreground">{workout.notes}</p>
           </div>
         </>
       )}
+
+      {/* CT-05: Next session button */}
+      <Separator />
+      <div className="px-4 py-4 pb-8">
+        <Button
+          className="w-full"
+          onClick={() => {
+            if (workout.schemaId) {
+              navigate('/start', { state: { suggestedSchemaId: workout.schemaId } });
+            } else {
+              navigate('/start');
+            }
+          }}
+        >
+          <ArrowRight className="h-4 w-4" />
+          Volgende sessie starten
+        </Button>
+      </div>
     </div>
   );
 }

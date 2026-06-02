@@ -83,6 +83,39 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E3-07 | ✓ | De gebruiker kan een training tussentijds pauzeren en later hervatten (data blijft bewaard). |
 | E3-08 | ✓ | Na afronding toont het systeem een samenvattingsscherm (oefeningen, sets, totaal volume per spiergroep). |
 | E3-09 | ✓ | Notities kunnen per oefening of per training worden toegevoegd. |
+| E3-10 | — | Zodra de gebruiker een set als voltooid markeert, start het systeem automatisch een afteltimer met een instelbare standaardduur (zie E3-14). De timer is per actieve set zichtbaar direct onder of in de setrij. |
+| E3-11 | — | De resterende rusttijd wordt weergegeven als aftellende klok (MM:SS) met een visuele voortgangsindicator (balk of cirkel) die krimpt naarmate de rusttijd verstrijkt. |
+| E3-12 | — | Wanneer de rusttimer afloopt geeft de app een signaal: trillen (via Vibration API) op mobiel, aangevuld met een kort hoorbaar geluid. Beide signalen zijn afzonderlijk in- en uitschakelbaar via de instellingen. |
+| E3-13 | — | De gebruiker kan de lopende rusttimer handmatig vroeg stoppen ("Sla over") of opnieuw starten ("Reset"). Beide acties zijn bereikbaar met één tik vanuit het loggingscherm. |
+| E3-14 | — | De standaard rusttijdsduur is instelbaar via het instellingenscherm (E8) in stappen van 15 seconden, met een minimum van 15 seconden en een maximum van 10 minuten. Standaardwaarde: 90 seconden. |
+| E3-15 | — | De rusttijdsduur is per oefening overschrijfbaar: in het schema-formulier (E2) en vanuit het live loggingscherm via een contextmenu per oefening. De oefening-specifieke waarde heeft voorrang boven de globale instelling. |
+| E3-16 | — | Wanneer er een actieve rusttimer loopt en de gebruiker navigeert weg van de WorkoutPage, blijft de timer doorlopen en geeft het signaal af zodra hij afloopt, ook als de app op de achtergrond staat (via Web Notification of Vibration API). |
+| E3-17 | — | Er is maximaal één actieve rusttimer tegelijkertijd. Als de gebruiker een nieuwe set voltooit terwijl er al een timer loopt, herstart de timer op de ingestelde duur. |
+| E3-18 | — | Bij het openen van een set toont het systeem het gewicht en het aantal reps van dezelfde set uit de meest recente voltooide sessie met dit schema als prefill. Als er geen vorige sessie is, blijven de velden leeg. |
+| E3-19 | — | Naast de kg- en reps-invoer verschijnt een "Zelfde als vorige" knop die met één tik het gewicht en reps van de corresponderende set uit de vorige sessie overneemt en de set direct als voltooid markeert. |
+| E3-20 | — | Het gewicht-invoerveld biedt snelle aanpassingsknoppen (+/−) voor veelgebruikte stappen: +2,5 kg / −2,5 kg en +5 kg / −5 kg, bereikbaar zonder het toetsenbord te openen. |
+| E3-21 | — | Het reps-invoerveld biedt +1 / −1 knoppen naast het veld, zodat kleine afwijkingen van de geplande reps met één tik aanpasbaar zijn. |
+| E3-22 | — | Wanneer de gebruiker het kg-veld of reps-veld aanraakt, selecteert het systeem automatisch de volledige inhoud, zodat de gebruiker direct kan overtypen zonder eerst te wissen. |
+| E3-23 | — | De eerstvolgende niet-voltooide set wordt visueel gemarkeerd als "actieve set" (bv. lichte accentkleur of pijl-indicator) zodat de gebruiker in één oogopslag ziet waar hij is. |
+| E3-24 | — | Na het voltooien van de laatste set van een oefening scrollt de pagina automatisch naar de volgende oefening (soepele animatie), mits er geen actieve rusttimer loopt. Als er een rusttimer actief is, wacht het systeem met scrollen tot de timer is afgelopen of de gebruiker hem overslaat. |
+| E3-25 | — | Het systeem biedt een "Herhaal vorige set" knop per oefening waarmee gewicht en reps van de vorige set (binnen dezelfde sessie) worden overgenomen naar de eerstvolgende open set, zonder de set meteen als voltooid te markeren. |
+| E3-26 | — | Bovenaan het loggingscherm verschijnt een horizontaal scrollende oefeningen-navigatiebalk met de naam (verkort) van elke oefening in de training. De actieve oefening is gemarkeerd. Tikken op een naam scrollt direct naar die oefening. |
+| E3-27 | — | De navigatiebalk (E3-26) toont per oefening een compacte voortgangsindicator: het aantal voltooide sets t.o.v. het totaal (bv. "3/4"), inclusief een kleurcodering: grijs = niet gestart, amber = gedeeltelijk, groen = volledig voltooid. |
+| E3-28 | — | Vanuit het loggingscherm is met één tik de detailpagina van een oefening (trainingshistorie, E4) te bereiken via een icoon in de oefening-header. Na het sluiten keert de gebruiker terug naar exact dezelfde positie in het loggingscherm. |
+| E3-29 | — | Het loggingscherm toont een vaste "Afronden"-knop onderaan het scherm (floating action area) naast de timer, zodat de gebruiker altijd zichtbaar kan afronden zonder naar de header te scrollen. |
+| E3-30 | — | Wanneer de gebruiker de app sluit en heropent tijdens een actieve training, navigeert de app automatisch terug naar het loggingscherm (WorkoutPage) van de actieve training, zonder tussenkomst van de gebruiker. |
+| E3-31 | — | De "Oefening toevoegen"-sheet is ook bereikbaar via de navigatiebalk (E3-26) als laatste item met een "+" icoon, zodat de gebruiker niet hoeft te scrollen naar het einde van de lijst. |
+| E3-32 | — | Wanneer een oefening volledig is afgerond (alle sets voltooid of overgeslagen), toont de oefening-header een duidelijke "voltooid"-markering (bv. groen vinkje naast de naam). |
+| E3-33 | — | Bij het voltooien van de laatste set van een oefening toont het systeem een korte inline-melding (bv. toast of subtiele animatie) met de beste set van die oefening in vergelijking met de vorige sessie (bv. "Beste set: 80 kg × 8 — +2,5 kg t.o.v. vorige sessie"). |
+| E3-34 | — | Op het samenvattingsscherm toont het systeem een persoonlijk record-melding per oefening als de geschatte 1RM van deze sessie hoger is dan alle voorgaande sessies. |
+| E3-35 | — | Het samenvattingsscherm toont een vergelijking met de vorige sessie van hetzelfde schema: totaal volume deze sessie t.o.v. vorige sessie, met een +/− verschil. |
+| E3-36 | — | De training-timer in de header van WorkoutPage toont naast de verstreken tijd ook de geschatte resterende tijd op basis van de gemiddelde set-duur en het aantal resterende sets. De schatting is pas zichtbaar na minimaal 2 voltooide sets. |
+| E3-37 | — | Bij het starten van een training vanuit een schema toont het systeem per oefening de datum en de beste set (gewicht × reps) van de meest recente sessie met datzelfde schema als subtekst onder de oefeningnaam. |
+| E3-38 | — | Het systeem biedt bij het starten van een schema de optie "Kopieer gewichten van vorige sessie": hiermee worden alle kg-velden van alle sets geprefilled met de gewichten uit de corresponderende sets van de meest recente sessie. De gebruiker kan dit per set nog aanpassen. |
+| E3-39 | — | Op de oefening-header in het loggingscherm is zichtbaar of de geplande sets en gewichten zijn verhoogd, verlaagd of gelijk t.o.v. de vorige sessie via een klein pijltje-icoon (omhoog / omlaag / gelijk), gebaseerd op de geprefillde waarden. |
+| E3-40 | — | Na het afronden van een training stelt het samenvattingsscherm de volgende schema-dag voor (conform de logica van E2-11) inclusief een snelstartknop "Plan volgende sessie", die de gebruiker direct terugbrengt naar StartWorkoutPage met dat schema geselecteerd. |
+| E3-41 | — | Wanneer een gebruiker een training start vanuit hetzelfde schema als de vorige sessie en de vorige sessie minder dan 48 uur geleden was, toont het systeem een niet-blokkerende waarschuwing: "Je hebt dit schema recent al gedaan. Weet je het zeker?" met een optie om toch door te gaan. |
+| E3-42 | — | De StartWorkoutPage toont per schema de datum van de laatste sessie en het aantal dagen geleden (bv. "Laatste sessie: 3 dagen geleden") als subtekst onder de schema-naam. |
 
 ---
 
@@ -98,6 +131,7 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E4-04 | ✓ | Per sessie wordt de beste set gemarkeerd op basis van de hoogste geschatte 1RM. |
 | E4-05 | ✓ | De progressiepagina toont een lijst van alle oefeningen waarvoor sessies zijn gelogd, gesorteerd op meest recente sessie (nieuwste bovenaan). Klikken op een oefening opent een detailweergave met grafiek en sessielijst. |
 | E4-06 | ~ | Trainingen kunnen worden verwijderd. Bewerken van bestaande trainingen is nog niet geïmplementeerd. |
+| E4-07 | — | Het systeem toont een "Streak"-indicator: het aantal opeenvolgende weken dat de gebruiker minimaal één training heeft voltooid. De indicator is zichtbaar op het samenvattingsscherm na een training en/of op de historiepagina. |
 
 ---
 

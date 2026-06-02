@@ -318,7 +318,7 @@ export function WorkoutEditPage() {
           const exercise = exerciseMap.get(workoutExercise.exerciseId);
 
           return (
-            <div key={exIdx} className="bg-card rounded-xl border border-border overflow-hidden">
+            <div key={`${workoutExercise.exerciseId}-${exIdx}`} className="bg-card rounded-xl border border-border overflow-hidden">
               {/* Exercise header */}
               <div className="px-3 py-2 flex items-center justify-between border-b border-border">
                 <div className="flex-1 min-w-0">

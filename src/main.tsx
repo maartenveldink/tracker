@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { seedDatabase } from './features/training/db/seed';
+import { initSettings } from './hooks/useSettings';
 import './index.css';
 
 seedDatabase()
+  .then(() => initSettings())
   .then(() => {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>

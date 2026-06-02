@@ -1,1 +1,2 @@
 - [Tracker stack & MVP status](project_stack.md) — React+Vite+TS+Dexie PWA, Epics 1-4 implemented, E2-08..E2-11 multi-day schemas added 2026-06-02
+- [Refinement UX implemented](project_refinement.md) — RT/SL/NAV/MF/CT requirements from docs/refinement.md, Dexie v5 for restTimerSeconds

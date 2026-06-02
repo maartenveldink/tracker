@@ -1,12 +1,14 @@
 ---
 name: Tracker App — Project Context
-description: Core facts about the Tracker fitness PWA: domain, tech stack, implemented epics, requirements document location, and next iteration plan
+description: "Core facts about the Tracker fitness PWA: domain, tech stack, implemented epics, requirements document location, and next iteration plan"
 type: project
 ---
 
 Tracker is a single-user personal fitness PWA (React 19 + Vite 6 + TypeScript + Dexie.js/IndexedDB, shadcn/ui). Offline-first, no backend, no auth. Primary language of the codebase and requirements document is Dutch.
 
 Requirements document: `/docs/requirements.md` (v1.2, 2026-06-02).
+Google Health requirements: `/docs/requirements.google.health.md` (v1.0, 2026-06-02) — uitwerking van Epic 7 (E7-05 t/m E7-25).
+Refinement artefact (historisch): `/docs/refinement.md` — UX-verbeteringen geïntegreerd in requirements.md op 2026-06-02.
 
 **Implemented epics (as of 2026-06-02):**
 - Epic 1 (E1-01–E1-05): Exercise & muscle database — CRUD, search, filter, 25 seed exercises
@@ -15,6 +17,11 @@ Requirements document: `/docs/requirements.md` (v1.2, 2026-06-02).
 - Epic 4 (E4-01–E4-06): Progress & history — partially. E4-01 t/m E4-05 = volledig. E4-06 = ~ (verwijderen wel, bewerken niet).
 - Epic 8 (E8-05, E8-06): Settings — data wissen en voorbeelddata laden zijn geimplementeerd.
 - CLAUDE.md incorrect lists Epic 4 as "Not Yet Implemented" — requirements.md is authoritative.
+
+**Requirements added 2026-06-02 (refinement.md integratie):**
+- Epic 3 uitgebreid: E3-10 t/m E3-42 (rusttimer, snel loggen, navigatie, motivatie/feedback, continuïteit tussen sessies)
+- Epic 4 uitgebreid: E4-07 (streak-indicator — wekelijkse trainingsreeks)
+- Epic 7 uitgebreid: E7-05 t/m E7-25 in /docs/requirements.google.health.md (autorisatie OAuth 2.0 PKCE, slaapdata, stappen, RHR, foutafhandeling, privacy, dashboard-integratie)
 
 **Not yet implemented:** Epic 5–6 (nutrition), Epic 7 (Fitbit), Epic 8 functional settings (E8-01 to E8-04).
 
