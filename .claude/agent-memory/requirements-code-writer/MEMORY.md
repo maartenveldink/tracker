@@ -1,1 +1,1 @@
-- [Tracker stack & MVP status](project_stack.md) — React+Vite+TS+Dexie PWA, Epics 1-4 implemented, 5-8 pending
+- [Tracker stack & MVP status](project_stack.md) — React+Vite+TS+Dexie PWA, Epics 1-4 implemented, E2-08..E2-11 multi-day schemas added 2026-06-02

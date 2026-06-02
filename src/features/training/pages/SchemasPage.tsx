@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useSchemas, deleteSchema, copySchema } from '../hooks/useSchemas';
-import { PageHeader } from '../components/PageHeader';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PageHeader } from '../../../components/PageHeader';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useState } from 'react';
 import { Plus, Copy, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,10 @@ export function SchemasPage() {
                 >
                   <h3 className="font-medium text-sm truncate">{schema.name}</h3>
                   <p className="text-muted-foreground text-xs mt-0.5">
-                    {schema.exercises.length} oefening{schema.exercises.length !== 1 ? 'en' : ''}
+                    {schema.days && schema.days.length > 0
+                      ? `${schema.days.length} dagen | ${schema.days.reduce((sum, d) => sum + d.exercises.length, 0)} oefeningen`
+                      : `${schema.exercises.length} oefening${schema.exercises.length !== 1 ? 'en' : ''}`
+                    }
                   </p>
                 </button>
                 <Button

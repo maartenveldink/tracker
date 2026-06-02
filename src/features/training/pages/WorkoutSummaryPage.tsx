@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
-import { formatDurationLong } from '../lib/utils';
+import { formatDurationLong } from '../../../lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { getMuscleGroupById } from '../db/muscles';
-import { PageHeader } from '../components/PageHeader';
+import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { X, Clock, Layers, Weight } from 'lucide-react';
-import type { Exercise } from '../db/index';
+import type { Exercise } from '../../../db/index';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', {
@@ -107,6 +107,9 @@ export function WorkoutSummaryPage() {
       <div className="px-4 py-4">
         <h2 className="text-lg font-semibold mb-1">
           {workout.schemaName ?? 'Losse training'}
+          {workout.schemaDayName && (
+            <span className="text-muted-foreground font-normal"> - {workout.schemaDayName}</span>
+          )}
         </h2>
         <p className="text-muted-foreground text-sm">{formatDate(workout.startedAt)}</p>
 

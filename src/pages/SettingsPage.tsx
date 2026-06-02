@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trash2, FlaskConical, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { clearAllData, seedDemoData } from '@/db/seedDemoWorkouts';
+import { clearAllData, seedDemoData } from '@/features/training/db/seedDemoWorkouts';
 import { db } from '@/db/index';
 
 type Feedback = { type: 'success' | 'error'; message: string } | null;
@@ -21,10 +21,18 @@ export function SettingsPage() {
   const [confirmSeed, setConfirmSeed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
 
   const flash = (type: 'success' | 'error', message: string) => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     setFeedback({ type, message });
-    setTimeout(() => setFeedback(null), 3000);
+    feedbackTimerRef.current = setTimeout(() => setFeedback(null), 3000);
   };
 
   const handleClear = async () => {

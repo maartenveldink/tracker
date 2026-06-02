@@ -1,4 +1,4 @@
-import { db, type Workout } from './index';
+import { db, type Workout } from '../../../db/index';
 import { seedDatabase } from './seed';
 
 /**
@@ -74,6 +74,8 @@ export async function seedDemoData(): Promise<void> {
     return {
       schemaId,
       schemaName: 'Push A',
+      schemaDayId: null,
+      schemaDayName: null,
       exercises: [{ exerciseId: bpId, order: 0, sets, notes: '' }],
       status: 'completed',
       startedAt: start,

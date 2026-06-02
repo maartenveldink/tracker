@@ -26,10 +26,20 @@ export interface SchemaExercise {
   order: number;
 }
 
+export interface SchemaDay {
+  id: string;       // unique within the schema (e.g. crypto.randomUUID())
+  name: string;     // user-defined name (e.g. "Push", "Pull", "Legs")
+  exercises: SchemaExercise[];
+  order: number;
+}
+
 export interface TrainingSchema {
   id?: number;
   name: string;
+  /** Legacy flat exercise list — used when days is undefined/empty (single-day schema). */
   exercises: SchemaExercise[];
+  /** Multi-day schemas store exercises per day. When set, `exercises` is ignored. */
+  days?: SchemaDay[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +67,8 @@ export interface Workout {
   id?: number;
   schemaId: number | null;    // null = ad-hoc
   schemaName: string | null;
+  schemaDayId: string | null; // null = ad-hoc or single-day schema
+  schemaDayName: string | null;
   exercises: WorkoutExercise[];
   status: WorkoutStatus;
   startedAt: Date;
@@ -66,12 +78,76 @@ export interface Workout {
   notes: string;
 }
 
+// --- Nutrition Types ---
+
+export interface Macros {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface Food {
+  id?: number;
+  name: string;
+  servingSize: number;  // grams per serving
+  calories: number;     // per serving
+  protein: number;      // per serving
+  carbs: number;        // per serving
+  fat: number;          // per serving
+  createdAt: Date;
+}
+
+export interface RecipeIngredient {
+  foodId: number;
+  grams: number;
+}
+
+export interface Recipe {
+  id?: number;
+  name: string;
+  ingredients: RecipeIngredient[];
+  totalWeight: number;  // computed: sum of ingredient grams
+  calories: number;     // computed totals
+  protein: number;
+  carbs: number;
+  fat: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type DailyLogItemType = 'food' | 'recipe';
+
+export interface DailyLogEntry {
+  id?: number;
+  date: string;          // YYYY-MM-DD
+  itemType: DailyLogItemType;
+  itemId: number;        // food or recipe id
+  itemName: string;      // denormalized for display
+  grams: number;         // actual grams consumed
+  calories: number;      // computed for this entry
+  protein: number;
+  carbs: number;
+  fat: number;
+  createdAt: Date;
+}
+
+export interface MacroGoals {
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}
+
 // --- Database ---
 
 class TrackerDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>;
   schemas!: EntityTable<TrainingSchema, 'id'>;
   workouts!: EntityTable<Workout, 'id'>;
+  foods!: EntityTable<Food, 'id'>;
+  recipes!: EntityTable<Recipe, 'id'>;
+  dailyLog!: EntityTable<DailyLogEntry, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -80,6 +156,28 @@ class TrackerDB extends Dexie {
       exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
       schemas: '++id, name',
       workouts: '++id, status, startedAt, schemaId',
+    });
+
+    // E2-08: multi-day schemas — add schemaDayId to workouts for day tracking
+    this.version(2).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+    }).upgrade(tx => {
+      return tx.table('workouts').toCollection().modify(workout => {
+        if (workout.schemaDayId === undefined) workout.schemaDayId = null;
+        if (workout.schemaDayName === undefined) workout.schemaDayName = null;
+      });
+    });
+
+    // Epic 5+6: nutrition module — foods, recipes, daily log
+    this.version(3).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
     });
   }
 }

@@ -1,4 +1,4 @@
-import { db, type Exercise } from './index';
+import { db, type Exercise } from '../../../db/index';
 
 /**
  * Seed data: 25 common exercises with muscle group mappings (E1-02).

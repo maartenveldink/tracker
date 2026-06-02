@@ -61,6 +61,10 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E2-05 | ✓ | Het systeem signaleert ontbrekende spiergroepen op basis van een instelbaar referentieframe (bv. "full body" of door de gebruiker gedefinieerde doelgroepen). |
 | E2-06 | ✓ | Het systeem kan oefeningen suggereren die een ontbrekende of onderbelichte spiergroep aanvullen, op basis van de oefenendatabase. |
 | E2-07 | ✓ | Schema's kunnen worden gekopieerd als basis voor een nieuw schema. |
+| E2-08 | ✓ | Een schema kan worden onderverdeeld in meerdere benoemde dagen (bv. "Dag 1", "Push", "Pull", "Legs"). Elke dag bevat een eigen lijst van oefeningen met sets en reps. Een schema zonder dagindeling werkt als voorheen (één dag). |
+| E2-09 | ✓ | Bij het aanmaken of bewerken van een schema kan de gebruiker dagen toevoegen, hernoemen, herordenen en verwijderen. Oefeningen worden aan een specifieke dag toegewezen. |
+| E2-10 | ✓ | De spiergroepoverzicht (E2-04), ontbrekende spiergroepen (E2-05) en suggesties (E2-06) zijn beschikbaar per dag én voor het volledige schema als geheel. |
+| E2-11 | ✓ | Bij het starten van een training vanuit een meerdaags schema kiest de gebruiker welke dag hij uitvoert. De default selectie werkt als volgt: (1) is er een actieve of gepauzeerde sessie voor dit schema, dan is de dag van die sessie de default; (2) is de laatste sessie afgerond, dan is de eerstvolgende dag in de reeks de default (na de laatste dag wordt dag 1 weer de default); (3) zonder eerdere sessies is dag 1 de default. |
 
 ---
 
@@ -103,14 +107,14 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 
 | ID | Status | Requirement |
 |----|--------|-------------|
-| E5-01 | — | De gebruiker kan een voedingsmiddel handmatig aanmaken met naam, portiegrootte (gram), calorieën, eiwitten, koolhydraten en vetten. |
+| E5-01 | ✓ | De gebruiker kan een voedingsmiddel handmatig aanmaken met naam, portiegrootte (gram), calorieën, eiwitten, koolhydraten en vetten. |
 | E5-02 | — | Via een barcode-scanner (cameratoegang op mobiel) kan een product worden opgezocht in Open Food Facts. |
 | E5-03 | — | Gevonden producten via barcode kunnen worden opgeslagen in de lokale database voor hergebruik. |
-| E5-04 | — | De gebruiker kan recepten aanmaken met een naam en een lijst van ingrediënten (met grammen per ingrediënt). |
-| E5-05 | — | Het systeem berekent automatisch de totale voedingswaarde van een recept op basis van de ingrediënten. |
-| E5-06 | — | Bij het loggen van een recept kan de gebruiker kiezen voor: het gehele recept, een fractie (bv. 1/4), of een specifieke hoeveelheid gram. |
-| E5-07 | — | Voedingsmiddelen en recepten zijn doorzoekbaar op naam. |
-| E5-08 | — | Voedingsmiddelen en recepten kunnen worden bewerkt of verwijderd. |
+| E5-04 | ✓ | De gebruiker kan recepten aanmaken met een naam en een lijst van ingrediënten (met grammen per ingrediënt). |
+| E5-05 | ✓ | Het systeem berekent automatisch de totale voedingswaarde van een recept op basis van de ingrediënten. |
+| E5-06 | ✓ | Bij het loggen van een recept kan de gebruiker kiezen voor: het gehele recept, een fractie (bv. 1/4), of een specifieke hoeveelheid gram. |
+| E5-07 | ✓ | Voedingsmiddelen en recepten zijn doorzoekbaar op naam. |
+| E5-08 | ✓ | Voedingsmiddelen en recepten kunnen worden bewerkt of verwijderd. |
 
 ---
 
@@ -120,11 +124,11 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 
 | ID | Status | Requirement |
 |----|--------|-------------|
-| E6-01 | — | De gebruiker kan op elke datum voedingsmiddelen of recepten toevoegen aan een daglog. |
-| E6-02 | — | Per toevoeging specificeert de gebruiker de hoeveelheid (gram, portie of fractie afhankelijk van het type). |
-| E6-03 | — | De daglog toont een lopende totaaltelling van calorieën, eiwitten, koolhydraten en vetten. |
-| E6-04 | — | De gebruiker kan een dagelijks macrodoel instellen (calorieën, eiwitten, koolhydraten, vetten); de daglog toont voortgang t.o.v. dit doel. |
-| E6-05 | — | Items in de daglog kunnen worden bewerkt of verwijderd. |
+| E6-01 | ✓ | De gebruiker kan op elke datum voedingsmiddelen of recepten toevoegen aan een daglog. |
+| E6-02 | ✓ | Per toevoeging specificeert de gebruiker de hoeveelheid (gram, portie of fractie afhankelijk van het type). |
+| E6-03 | ✓ | De daglog toont een lopende totaaltelling van calorieën, eiwitten, koolhydraten en vetten. |
+| E6-04 | ✓ | De gebruiker kan een dagelijks macrodoel instellen (calorieën, eiwitten, koolhydraten, vetten); de daglog toont voortgang t.o.v. dit doel. |
+| E6-05 | ✓ | Items in de daglog kunnen worden bewerkt of verwijderd. |
 | E6-06 | — | De gebruiker kan voedingen als "favoriet" markeren voor snelle toegang bij het loggen. |
 
 ---
@@ -141,6 +145,21 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E8-04 | — | Instellingen worden lokaal opgeslagen en blijven behouden na het sluiten van de app. |
 | E8-05 | ✓ | De gebruiker kan alle data wissen (trainingen, schema's, zelfgemaakte oefeningen). De standaard oefeningen worden daarna automatisch opnieuw ingeladen. Actie vereist bevestiging. |
 | E8-06 | ✓ | De gebruiker kan een voorbeelddataset laden: een schema "Push A" en 13 bench press sessies verspreid over 3 maanden. Alleen beschikbaar als er nog geen trainingsdata aanwezig is. |
+
+---
+
+### Epic 9 — Weekplanner en persoonlijk assistent (toekomstig)
+
+**Doel:** De gebruiker krijgt hulp bij het samenstellen van een gestructureerde trainings- en voedingsweek, met de app als persoonlijk assistent.
+
+| ID | Status | Requirement |
+|----|--------|-------------|
+| E9-01 | — | De gebruiker kan een weekplan aanmaken door schema-dagen (E2-08/E2-11) te koppelen aan specifieke weekdagen (ma–zo). Meerdere schema's kunnen in hetzelfde weekplan worden gecombineerd. |
+| E9-02 | — | De app toont op het startscherm welke schema-dag vandaag gepland staat, inclusief een snelstartknop voor die dag. |
+| E9-03 | — | De weekplanner toont per dag de geplande training én een maaltijdadvies / meal-prep suggestie, afgestemd op de trainingsbelasting van die dag (bv. hogere eiwitinname op trainingsdagen). |
+| E9-04 | — | De gebruiker kan voorkeuren opgeven (bv. voedingspatroon, rusdag-voorkeur) op basis waarvan de app een weekplan voorstelt. |
+| E9-05 | — | Het weekplan is aanpasbaar per dag: training verplaatsen, overslaan of vervangen door een rustdag. |
+| E9-06 | — | Meal-prep suggesties zijn gebaseerd op de receptendatabase (E5-04) en macrodoelen (E8-03); ze zijn optioneel en werken alleen als die modules actief zijn. |
 
 ---
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Workout, type WorkoutSet } from '../db/index';
+import { db, type Workout, type WorkoutSet } from '../../../db/index';
 
 // --- 1RM formulas (E4-02, E8-01) ---
 
@@ -14,6 +14,10 @@ function calculate1RM(weight: number, reps: number, formula: OneRMFormula): numb
     case 'epley':
       return weight * (1 + reps / 30);
     case 'brzycki':
+      if (reps >= 37) {
+        // Brzycki is undefined at >=37 reps; fall back to Epley for a stable estimate.
+        return calculate1RM(weight, reps, 'epley');
+      }
       return weight * (36 / (37 - reps));
     case 'lombardi':
       return weight * Math.pow(reps, 0.1);
@@ -45,7 +49,7 @@ export type PeriodFilter = '4w' | '3m' | 'all';
 
 export function useCompletedWorkouts() {
   return useLiveQuery(
-    () => db.workouts.where('status').equals('completed').reverse().sortBy('startedAt'),
+    () => db.workouts.where('status').equals('completed').sortBy('startedAt'),
   ) ?? [];
 }
 

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useExercise, createExercise, updateExercise } from '../hooks/useExercises';
 import { getMuscleGroups } from '../db/muscles';
 import { MuscleChip } from '../components/MuscleChip';
-import { PageHeader } from '../components/PageHeader';
+import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

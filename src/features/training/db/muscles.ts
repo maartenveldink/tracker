@@ -1,4 +1,4 @@
-import type { MuscleGroup } from './index';
+import type { MuscleGroup } from '../../../db/index';
 
 /**
  * Standardised muscle group definitions (E1-03).

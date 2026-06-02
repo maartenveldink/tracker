@@ -1,15 +1,20 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { ExercisesPage } from './pages/ExercisesPage';
-import { ExerciseFormPage } from './pages/ExerciseFormPage';
-import { SchemasPage } from './pages/SchemasPage';
-import { SchemaFormPage } from './pages/SchemaFormPage';
-import { SchemaDetailPage } from './pages/SchemaDetailPage';
-import { WorkoutPage } from './pages/WorkoutPage';
-import { WorkoutSummaryPage } from './pages/WorkoutSummaryPage';
-import { StartWorkoutPage } from './pages/StartWorkoutPage';
-import { ProgressPage } from './pages/ProgressPage';
+import { ExercisesPage } from './features/training/pages/ExercisesPage';
+import { ExerciseFormPage } from './features/training/pages/ExerciseFormPage';
+import { SchemasPage } from './features/training/pages/SchemasPage';
+import { SchemaFormPage } from './features/training/pages/SchemaFormPage';
+import { SchemaDetailPage } from './features/training/pages/SchemaDetailPage';
+import { WorkoutPage } from './features/training/pages/WorkoutPage';
+import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage';
+import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
+import { ProgressPage } from './features/training/pages/ProgressPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { NutritionPage } from './features/nutrition/pages/NutritionPage';
+import { FoodsPage } from './features/nutrition/pages/FoodsPage';
+import { FoodFormPage } from './features/nutrition/pages/FoodFormPage';
+import { RecipesPage } from './features/nutrition/pages/RecipesPage';
+import { RecipeFormPage } from './features/nutrition/pages/RecipeFormPage';
 
 export function App() {
   return (
@@ -30,6 +35,13 @@ export function App() {
         <Route path="/schemas/:id/edit" element={<SchemaFormPage />} />
         <Route path="/start" element={<StartWorkoutPage />} />
         <Route path="/progress" element={<ProgressPage />} />
+        <Route path="/nutrition" element={<NutritionPage />} />
+        <Route path="/foods" element={<FoodsPage />} />
+        <Route path="/foods/new" element={<FoodFormPage />} />
+        <Route path="/foods/:id/edit" element={<FoodFormPage />} />
+        <Route path="/recipes" element={<RecipesPage />} />
+        <Route path="/recipes/new" element={<RecipeFormPage />} />
+        <Route path="/recipes/:id/edit" element={<RecipeFormPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/exercises" replace />} />
       </Route>

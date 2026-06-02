@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Exercise } from '../db/index';
+import { db, type Exercise } from '../../../db/index';
 
 export function useExercises() {
   return useLiveQuery(() => db.exercises.orderBy('name').toArray()) ?? [];

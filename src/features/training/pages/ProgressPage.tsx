@@ -18,8 +18,8 @@ import {
   type PeriodFilter,
   type OneRMFormula,
 } from '../hooks/useProgress';
-import { PageHeader } from '../components/PageHeader';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PageHeader } from '../../../components/PageHeader';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -229,7 +229,7 @@ function ExerciseDetail({
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {session.sets.map((s, i) => (
-                            <span key={i}>
+                            <span key={s.setNumber}>
                               {i > 0 && ', '}
                               {s.reps} × {s.weight} kg
                             </span>

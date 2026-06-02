@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Dumbbell, ClipboardList, Play, TrendingUp, Settings } from 'lucide-react';
+import { Dumbbell, ClipboardList, Play, TrendingUp, Apple, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/exercises', label: 'Oefeningen', icon: Dumbbell },
   { to: '/schemas', label: "Schema's", icon: ClipboardList },
   { to: '/start', label: 'Train', icon: Play },
+  { to: '/nutrition', label: 'Voeding', icon: Apple },
   { to: '/progress', label: 'Progressie', icon: TrendingUp },
   { to: '/settings', label: 'Instellingen', icon: Settings },
 ];

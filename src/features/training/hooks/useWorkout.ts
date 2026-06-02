@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type WorkoutExercise, type WorkoutSet } from '../db/index';
+import { db, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
 export function useWorkout(id: number | undefined) {
   return useLiveQuery(
@@ -8,22 +8,35 @@ export function useWorkout(id: number | undefined) {
   );
 }
 
+export interface ActiveWorkoutState {
+  isLoading: boolean;
+  workout: Workout | undefined;
+}
+
 export function useActiveWorkout() {
-  return useLiveQuery(
-    () => db.workouts.where('status').anyOf('active', 'paused').first(),
+  return useLiveQuery<ActiveWorkoutState>(
+    async () => {
+      const workout = await db.workouts.where('status').anyOf('active', 'paused').first();
+      return { isLoading: false, workout };
+    },
+    [],
   );
 }
 
-/** Start a workout from a schema or ad-hoc (E3-01). */
+/** Start a workout from a schema or ad-hoc (E3-01, E2-11). */
 export async function startWorkout(
   schemaId: number | null,
   schemaName: string | null,
   exercises: WorkoutExercise[],
+  schemaDayId: string | null = null,
+  schemaDayName: string | null = null,
 ): Promise<number> {
   const id = await db.workouts.add({
     schemaId,
     schemaName,
     exercises,
+    schemaDayId,
+    schemaDayName,
     status: 'active',
     startedAt: new Date(),
     pausedAt: null,

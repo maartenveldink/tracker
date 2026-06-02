@@ -12,7 +12,7 @@ import {
   completeWorkout,
 } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,18 +22,9 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, Check, SkipForward, Plus, FileText, StickyNote } from 'lucide-react';
-import type { Exercise } from '../db/index';
-
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
+import type { Exercise } from '../../../db/index';
 
 export function WorkoutPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +39,13 @@ export function WorkoutPage() {
   const [showFinish, setShowFinish] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<number | null>(null);
   const [workoutNotesOpen, setWorkoutNotesOpen] = useState(false);
+  const [exerciseNotesDrafts, setExerciseNotesDrafts] = useState<Record<number, string>>({});
+  const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
+
+  useEffect(() => {
+    setExerciseNotesDrafts({});
+    setWorkoutNotesDraft(null);
+  }, [workoutId]);
 
   const exerciseMap = useMemo(() => {
     const map = new Map<number, Exercise>();
@@ -140,7 +138,7 @@ export function WorkoutPage() {
   async function handleFinish() {
     if (!workoutId) return;
     await completeWorkout(workoutId);
-    navigate(`/workout/${workoutId}/summary`, { replace: true });
+    // Navigation handled exclusively by the useEffect watching workout.status === 'completed'
   }
 
   const isPaused = workout.status === 'paused';
@@ -153,8 +151,11 @@ export function WorkoutPage() {
           <div>
             <h1 className="text-sm font-semibold truncate">
               {workout.schemaName ?? 'Losse training'}
+              {workout.schemaDayName && (
+                <span className="font-normal text-muted-foreground"> - {workout.schemaDayName}</span>
+              )}
             </h1>
-            <span className="text-xs text-muted-foreground">{formatDuration(elapsed)}</span>
+            <span className="text-xs text-muted-foreground">{formatDurationClock(elapsed)}</span>
           </div>
           <div className="flex items-center gap-2">
             {/* Pause/Resume (E3-07) */}
@@ -198,7 +199,7 @@ export function WorkoutPage() {
           const totalSets = workoutExercise.sets.length;
 
           return (
-            <div key={workoutExercise.exerciseId} className="bg-card rounded-xl border border-border overflow-hidden">
+            <div key={exIdx} className="bg-card rounded-xl border border-border overflow-hidden">
               {/* Exercise header */}
               <div className="px-3 py-2 flex items-center justify-between border-b border-border">
                 <div className="flex-1 min-w-0">
@@ -235,8 +236,17 @@ export function WorkoutPage() {
               {expandedNotes === exIdx && (
                 <div className="px-3 py-2 border-b border-border">
                   <textarea
-                    value={workoutExercise.notes}
-                    onChange={e => updateExerciseNotes(workoutId, exIdx, e.target.value)}
+                    value={exerciseNotesDrafts[exIdx] ?? workoutExercise.notes}
+                    onChange={e => setExerciseNotesDrafts(prev => ({ ...prev, [exIdx]: e.target.value }))}
+                    onBlur={e => {
+                      const nextNotes = e.currentTarget.value;
+                      setExerciseNotesDrafts(prev => {
+                        const next = { ...prev };
+                        delete next[exIdx];
+                        return next;
+                      });
+                      void updateExerciseNotes(workoutId, exIdx, nextNotes);
+                    }}
                     placeholder="Notities voor deze oefening..."
                     rows={2}
                     className="flex w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
@@ -364,8 +374,13 @@ export function WorkoutPage() {
           </Button>
           {workoutNotesOpen && (
             <textarea
-              value={workout.notes}
-              onChange={e => updateWorkoutNotes(workoutId, e.target.value)}
+              value={workoutNotesDraft ?? workout.notes}
+              onChange={e => setWorkoutNotesDraft(e.target.value)}
+              onBlur={e => {
+                const nextNotes = e.currentTarget.value;
+                setWorkoutNotesDraft(null);
+                void updateWorkoutNotes(workoutId, nextNotes);
+              }}
               placeholder="Notities voor deze training..."
               rows={3}
               className="mt-2 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
