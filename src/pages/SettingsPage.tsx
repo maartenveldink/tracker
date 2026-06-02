@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Trash2, FlaskConical, CheckCircle2, Calculator, Eye, Target } from 'lucide-react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { Trash2, FlaskConical, CheckCircle2, Calculator, Eye, Target, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,9 @@ import {
 import { clearAllData, seedDemoData } from '@/features/training/db/seedDemoWorkouts';
 import { db } from '@/db/index';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
+import { exportAllData, downloadExport, hasExportableData } from '@/lib/exportData';
+import { validateExport, importData, type ImportMode, type ImportResult } from '@/lib/importData';
+import type { TrackerExport } from '@/lib/exportData';
 
 type Feedback = { type: 'success' | 'error'; message: string } | null;
 
@@ -29,6 +32,12 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Export/Import state
+  const [hasData, setHasData] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importPreview, setImportPreview] = useState<TrackerExport | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   // Macro goals local drafts (flush on blur)
   const [calDraft, setCalDraft] = useState('');
@@ -102,6 +111,64 @@ export function SettingsPage() {
       },
     });
   }
+
+  // Check whether there is data to export
+  useEffect(() => {
+    void hasExportableData().then(setHasData);
+  }, []);
+
+  const handleExport = async () => {
+    setLoading(true);
+    try {
+      const data = await exportAllData();
+      downloadExport(data);
+      flash('success', 'Export gedownload.');
+    } catch {
+      flash('error', 'Export mislukt.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const raw: unknown = JSON.parse(reader.result as string);
+        const validated = validateExport(raw);
+        setImportPreview(validated);
+      } catch (err) {
+        flash('error', err instanceof Error ? err.message : 'Ongeldig bestand.');
+      }
+    };
+    reader.onerror = () => flash('error', 'Bestand kon niet worden gelezen.');
+    reader.readAsText(file);
+  };
+
+  const handleImport = async (mode: ImportMode) => {
+    if (!importPreview) return;
+    setImportPreview(null);
+    setLoading(true);
+    try {
+      const result = await importData(importPreview, mode);
+      setImportResult(result);
+      // Refresh exportable-data check
+      void hasExportableData().then(setHasData);
+      if (mode === 'replace') {
+        macroInitialized.current = false;
+      }
+      flash('success', 'Import geslaagd.');
+    } catch {
+      flash('error', 'Import mislukt. Bestaande data is niet gewijzigd.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
@@ -271,6 +338,54 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* E8-07: Export */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4 text-primary" />
+            Data exporteren
+          </CardTitle>
+          <CardDescription>
+            Download al je data als JSON-bestand.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!hasData && (
+            <p className="text-sm text-muted-foreground mb-3">
+              Er is geen data om te exporteren.
+            </p>
+          )}
+          <Button onClick={() => void handleExport()} disabled={loading || !hasData} className="w-full">
+            Exporteer data
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* E8-08: Import */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Upload className="h-4 w-4 text-primary" />
+            Data importeren
+          </CardTitle>
+          <CardDescription>
+            Importeer een eerder geëxporteerd JSON-bestand.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => fileInputRef.current?.click()} disabled={loading} className="w-full">
+            Importeer data
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+        </CardContent>
+      </Card>
+
       {/* Demo data */}
       <Card>
         <CardHeader>
@@ -355,6 +470,74 @@ export function SettingsPage() {
               Annuleren
             </Button>
             <Button onClick={handleSeedDemo}>Laden</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import preview dialog */}
+      <Dialog open={importPreview !== null} onOpenChange={(open) => { if (!open) setImportPreview(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Data importeren</DialogTitle>
+            <DialogDescription>
+              Het bestand bevat de volgende data:
+            </DialogDescription>
+          </DialogHeader>
+          {importPreview && (
+            <ul className="text-sm space-y-1 px-1">
+              {importPreview.workouts.length > 0 && <li>{importPreview.workouts.length} trainingen</li>}
+              {importPreview.schemas.length > 0 && <li>{importPreview.schemas.length} schema&apos;s</li>}
+              {importPreview.exercises.length > 0 && <li>{importPreview.exercises.length} oefeningen</li>}
+              {importPreview.foods.length > 0 && <li>{importPreview.foods.length} voedingsmiddelen</li>}
+              {importPreview.recipes.length > 0 && <li>{importPreview.recipes.length} recepten</li>}
+              {importPreview.dailyLog.length > 0 && <li>{importPreview.dailyLog.length} daglog-items</li>}
+            </ul>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Kies een importmodus:
+          </p>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => void handleImport('replace')}
+            >
+              Vervangen (wis bestaande data)
+            </Button>
+            <Button
+              className="w-full"
+              onClick={() => void handleImport('merge')}
+            >
+              Samenvoegen (voeg toe aan bestaande data)
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setImportPreview(null)}>
+              Annuleren
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import result dialog */}
+      <Dialog open={importResult !== null} onOpenChange={(open) => { if (!open) setImportResult(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import voltooid</DialogTitle>
+            <DialogDescription>
+              De volgende data is geïmporteerd:
+            </DialogDescription>
+          </DialogHeader>
+          {importResult && (
+            <ul className="text-sm space-y-1 px-1">
+              {importResult.workouts > 0 && <li>{importResult.workouts} trainingen</li>}
+              {importResult.schemas > 0 && <li>{importResult.schemas} schema&apos;s</li>}
+              {importResult.exercises > 0 && <li>{importResult.exercises} oefeningen</li>}
+              {importResult.foods > 0 && <li>{importResult.foods} voedingsmiddelen</li>}
+              {importResult.recipes > 0 && <li>{importResult.recipes} recepten</li>}
+              {importResult.dailyLog > 0 && <li>{importResult.dailyLog} daglog-items</li>}
+            </ul>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setImportResult(null)}>Sluiten</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

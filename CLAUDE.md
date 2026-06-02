@@ -72,7 +72,7 @@ src/
 - **Epic 4** (E4-01 to E4-05, E4-06 gedeeltelijk): Training history per exercise with 1RM chart and session list; delete workout (edit not yet implemented)
 - **Epic 5** (E5-01, E5-04 to E5-08): Food database CRUD + recipes with auto-calculated macros; barcode scanner (E5-02/03) not yet implemented
 - **Epic 6** (E6-01 to E6-05): Daily nutrition log with macro totals and progress vs. goals; favourites (E6-06) not yet implemented
-- **Epic 8** (E8-05, E8-06): Settings — clear all data, load demo dataset; 1RM formula/muscle detail UI not yet implemented
+- **Epic 8** (E8-05, E8-06, E8-07, E8-08): Settings — clear all data, load demo dataset, JSON export/import; 1RM formula/muscle detail UI not yet implemented
 
 ## Not Yet Implemented
 

@@ -145,6 +145,8 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E8-04 | — | Instellingen worden lokaal opgeslagen en blijven behouden na het sluiten van de app. |
 | E8-05 | ✓ | De gebruiker kan alle data wissen (trainingen, schema's, zelfgemaakte oefeningen). De standaard oefeningen worden daarna automatisch opnieuw ingeladen. Actie vereist bevestiging. |
 | E8-06 | ✓ | De gebruiker kan een voorbeelddataset laden: een schema "Push A" en 13 bench press sessies verspreid over 3 maanden. Alleen beschikbaar als er nog geen trainingsdata aanwezig is. |
+| E8-07 | ✓ | De gebruiker kan alle data exporteren als JSON-bestand. Standaard seed-oefeningen worden niet meegeëxporteerd. Het bestand bevat een versienummer en timestamp. |
+| E8-08 | ✓ | De gebruiker kan een eerder geëxporteerd JSON-bestand importeren. Er zijn twee modi: "vervangen" (wist bestaande data) en "samenvoegen" (voegt toe). De import is atomair (bij fout wordt alles teruggerold). Na bestandsselectie ziet de gebruiker een preview met aantallen en kiest de importmodus. |
 
 ---
 
@@ -200,6 +202,27 @@ Alle beslissingen zijn vastgelegd. Geen openstaande punten.
 | OD-03 | Voedingsdatabase API voor barcode | Open Food Facts | Gratis, open, geen API-key vereist |
 | OD-04 | 1RM-formule | Gebruikerskeuze (Epley standaard) | Instelbaar via Epic 8 — Instellingen |
 | OD-05 | Spiergroepindeling | Gebruikerskeuze (globaal standaard) | Instelbaar via Epic 8 — Instellingen; standaard 8-10 groepen |
+
+---
+
+### Epic 10 — Voortgangs-dashboard
+
+**Doel:** Een overzichtspagina waarop de gebruiker zijn krachtontwikkeling (geschatte 1RM per oefening of als gemiddelde) visueel kan afzetten tegen andere metrieken — met name macro-inname — om verbanden te zien tussen voeding en prestatie. De pagina is mobile-first, minimalistisch en biedt genoeg interactie om zinvolle vergelijkingen te maken zonder te vervallen in data-overload.
+
+| ID | Status | Requirement |
+|----|--------|-------------|
+| E10-01 | — | De app bevat een dedicated dashboardpagina, bereikbaar via de bestaande bottomnav als extra tab (bv. "Dashboard"). De pagina vervangt geen bestaande pagina's maar vormt een eigen route. |
+| E10-02 | — | Het dashboard toont een gecombineerd lijndiagram met twee Y-assen: de linker-as toont de geschatte 1RM (kg) van een geselecteerde oefening; de rechter-as toont een geselecteerde voedingsmetriek (calorieën, eiwitten, koolhydraten of vetten) per dag. De X-as is de gedeelde tijdlijn. |
+| E10-03 | — | De gebruiker kan via een dropdown de oefening kiezen waarvoor de 1RM-lijn wordt getoond. De dropdown bevat alleen oefeningen waarvoor minimaal twee gelogde sessies beschikbaar zijn. Als geen oefening beschikbaar is, toont het systeem een melding: "Log minimaal twee sessies van dezelfde oefening om voortgang te zien." |
+| E10-04 | — | De gebruiker kan via een tweede dropdown de voedingsmetriek kiezen die op de tweede Y-as wordt weergegeven: calorieën, eiwitten, koolhydraten of vetten. Als er geen voedingsdata beschikbaar is, wordt de tweede Y-as verborgen en toont het systeem een placeholder: "Voeg macro-logs toe om ze hier te zien." |
+| E10-05 | — | Het diagram is filterbaar op tijdperiode: 4 weken, 3 maanden, alles. De standaard bij het openen van de pagina is 3 maanden. |
+| E10-06 | — | Voedingsdatapunten worden per dag geaggregeerd (dagsom). Trainingsdatapunten worden per sessie getoond. Op dagen zonder training ontbreekt het 1RM-datapunt; de lijn wordt onderbroken (geen interpolatie). Op dagen zonder voedingslog ontbreekt het voedingsdatapunt. |
+| E10-07 | — | Boven het diagram toont het dashboard drie samenvattingskaarten voor de geselecteerde periode en oefening: (1) begin-1RM vs. eind-1RM met absoluut en procentueel verschil; (2) gemiddelde dagelijkse inname van de geselecteerde voedingsmetriek; (3) aantal gelogde trainingssessies voor de geselecteerde oefening. |
+| E10-08 | — | De geselecteerde oefening en voedingsmetriek worden onthouden zolang de gebruiker op de dashboardpagina blijft. Bij het verlaten en terugkeren naar de pagina worden de laatste selecties hersteld (via lokale state of sessionStorage). |
+| E10-09 | — | Als er voor de geselecteerde periode minder dan twee trainingssessies beschikbaar zijn voor de gekozen oefening, toont het systeem in het diagram een melding in plaats van een lege grafiek: "Te weinig data voor deze periode — kies een langere periode of een andere oefening." |
+| E10-10 | — | De 1RM-berekening op het dashboard gebruikt dezelfde formule als ingesteld via E8-01 (Epley standaard). Wijzigt de gebruiker de formule in de instellingen, dan herschikt het dashboard de waarden direct zonder pagina-herlaad. |
+| E10-11 | — | Het diagram is touch-vriendelijk: een tik op een datapunt toont een tooltip met de exacte waarden (datum, 1RM in kg of voedingswaarde in g/kcal). Op desktop werkt hover. |
+| E10-12 | — | Het dashboard werkt volledig offline. Alle data wordt uitgelezen uit de lokale IndexedDB. Er worden geen externe verzoeken gedaan. |
 
 ---
 
