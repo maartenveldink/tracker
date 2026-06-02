@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
+  // Allow overriding the base path for GitHub Pages deployments.
+  // Set BASE_PATH=/<repo-name>/ in the CI environment.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [
     react(),
     VitePWA({

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { clearAllData, seedDemoData } from '@/features/training/db/seedDemoWorkouts';
 import { db } from '@/db/index';
+import { GoogleHealthCard } from '@/features/google-health/components/GoogleHealthCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
 import { exportAllData, downloadExport, hasExportableData } from '@/lib/exportData';
 import { validateExport, importData, type ImportMode, type ImportResult } from '@/lib/importData';
@@ -381,6 +382,9 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Epic 7: Google Health integration */}
+      <GoogleHealthCard />
 
       {/* E8-07: Export */}
       <Card>

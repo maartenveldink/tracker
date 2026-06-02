@@ -18,10 +18,14 @@ import { FoodsPage } from './features/nutrition/pages/FoodsPage';
 import { FoodFormPage } from './features/nutrition/pages/FoodFormPage';
 import { RecipesPage } from './features/nutrition/pages/RecipesPage';
 import { RecipeFormPage } from './features/nutrition/pages/RecipeFormPage';
+import { OAuthCallbackPage } from './features/google-health/pages/OAuthCallbackPage';
 
 export function App() {
   return (
     <Routes>
+      {/* OAuth callback — no nav layout, handles redirect from Google (E7-05) */}
+      <Route path="/oauth/google/callback" element={<OAuthCallbackPage />} />
+
       {/* Workout pages have their own minimal layout */}
       <Route path="/workout/:id" element={<WorkoutPage />} />
       <Route path="/workout/:id/edit" element={<WorkoutEditPage />} />

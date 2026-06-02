@@ -23,6 +23,8 @@ export async function clearAllData(): Promise<void> {
     await db.dailyLog.clear();
     await db.weekPlans.clear();
     await db.settings.put(SETTINGS_DEFAULTS);
+    // Note: Google Health tokens and health data are NOT cleared here — the user
+    // manages that via the dedicated "Ontkoppel Google Health" button (E7-10).
   });
   await seedDatabase();
 }

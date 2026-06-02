@@ -156,6 +156,37 @@ export interface WeekPlan {
   updatedAt: Date;
 }
 
+// --- Google Health Types (Epic 7) ---
+
+export interface GoogleHealthConnection {
+  id: 1; // singleton row
+  accountName: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number; // Unix timestamp in ms
+  connectedAt: Date;
+  lastSyncAt: Date | null;
+  lastSyncError: string | null; // E7-18: last API error message, null when healthy
+  consecutiveFailDays: number;  // E7-19: days without a successful sync
+}
+
+export interface SleepPhases {
+  lightMinutes: number;
+  deepMinutes: number;
+  remMinutes: number;
+  awakeMinutes: number;
+}
+
+export interface GoogleHealthDay {
+  id?: number;
+  date: string;                    // YYYY-MM-DD (wake-up date)
+  sleepMinutes: number | null;     // E7-12: total sleep duration
+  sleepPhases: SleepPhases | null; // E7-12: breakdown if available
+  steps: number | null;            // E7-14
+  restingHeartRate: number | null; // E7-15: min bpm of the day
+  syncedAt: Date;
+}
+
 // --- App Settings ---
 
 export interface AppSettings {
@@ -182,6 +213,8 @@ class TrackerDB extends Dexie {
   dailyLog!: EntityTable<DailyLogEntry, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
   weekPlans!: EntityTable<WeekPlan, 'id'>;
+  googleHealthConnection!: EntityTable<GoogleHealthConnection, 'id'>;
+  googleHealthData!: EntityTable<GoogleHealthDay, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -272,6 +305,20 @@ class TrackerDB extends Dexie {
       dailyLog: '++id, date, itemType, itemId',
       settings: 'id',
       weekPlans: '++id, name',
+    });
+
+    // Epic 7: Google Health integration — tokens + daily health data
+    this.version(7).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
     });
   }
 }
