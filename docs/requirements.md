@@ -149,6 +149,7 @@ Tracker is een personal fitness-applicatie die één gebruiker ondersteunt bij h
 | E5-06 | ✓ | Bij het loggen van een recept kan de gebruiker kiezen voor: het gehele recept, een fractie (bv. 1/4), of een specifieke hoeveelheid gram. |
 | E5-07 | ✓ | Voedingsmiddelen en recepten zijn doorzoekbaar op naam. |
 | E5-08 | ✓ | Voedingsmiddelen en recepten kunnen worden bewerkt of verwijderd. |
+| E5-09 | ✓ | Bij het aanmaken van een voedingsmiddel kan de gebruiker op naam zoeken in Open Food Facts. Selecteren van een resultaat vult naam, calorieën, eiwitten, koolhydraten en vetten automatisch in (waarden per 100 g); de gebruiker kan daarna nog aanpassen voor opslaan. |
 
 ---
 
@@ -233,7 +234,7 @@ Alle beslissingen zijn vastgelegd. Geen openstaande punten.
 |---|------------|-------|-------------|
 | OD-01 | Tech stack frontend | React 19 + Vite 6 + TypeScript + shadcn/ui | shadcn/ui (Radix UI + Tailwind CSS) als design system; vite-plugin-pwa voor PWA |
 | OD-02 | Lokale database | IndexedDB via Dexie.js | Geen backend nodig, werkt offline, schoon migratiepad naar native app later |
-| OD-03 | Voedingsdatabase API voor barcode | Open Food Facts | Gratis, open, geen API-key vereist |
+| OD-03 | Voedingsdatabase API | Open Food Facts | Gratis, open, geen API-key vereist; gebruikt voor zowel tekstzoeken (E5-09) als barcode-lookup (E5-02/E5-03) |
 | OD-04 | 1RM-formule | Gebruikerskeuze (Epley standaard) | Instelbaar via Epic 8 — Instellingen |
 | OD-05 | Spiergroepindeling | Gebruikerskeuze (globaal standaard) | Instelbaar via Epic 8 — Instellingen; standaard 8-10 groepen |
 
