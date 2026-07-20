@@ -106,6 +106,29 @@ export async function addWorkoutSet(
   });
 }
 
+/** Remove a set from a workout exercise, renumbering the remaining sets. */
+export async function removeWorkoutSet(
+  workoutId: number,
+  exerciseIndex: number,
+  setIndex: number,
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    if (!workout) return;
+
+    const exercises = [...workout.exercises];
+    const exercise = exercises[exerciseIndex];
+    if (!exercise) return;
+
+    const sets = exercise.sets
+      .filter((_, i) => i !== setIndex)
+      .map((set, i) => ({ ...set, setNumber: i + 1 }));
+
+    exercises[exerciseIndex] = { ...exercise, sets };
+    await db.workouts.update(workoutId, { exercises });
+  });
+}
+
 /** Add an ad-hoc exercise to the current workout. */
 export async function addWorkoutExercise(
   workoutId: number,

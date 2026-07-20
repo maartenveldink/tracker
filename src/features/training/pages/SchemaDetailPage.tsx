@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays } from '../hooks/useSchemas';
+import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useExercises } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
@@ -274,6 +274,16 @@ export function SchemaDetailPage() {
             <h2 className="text-sm font-medium text-muted-foreground mb-2">
               {sortedDays.length} dagen | {getAllSchemaExercises(schema).length} oefeningen totaal
             </h2>
+            {schema.rotation && schema.rotation.length > 0 && (
+              <p className="text-xs text-muted-foreground mb-2">
+                Ritme:{' '}
+                <span className="font-medium text-foreground">
+                  {getRotation(schema)
+                    .map(id => sortedDays.find(d => d.id === id)?.name ?? '?')
+                    .join(' → ')}
+                </span>
+              </p>
+            )}
             <Tabs defaultValue={sortedDays[0]?.id}>
               <TabsList className="w-full flex overflow-x-auto">
                 {sortedDays.map(day => (

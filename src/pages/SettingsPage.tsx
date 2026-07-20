@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, FlaskConical, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer } from 'lucide-react';
+import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -16,8 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { clearAllData, seedDemoData } from '@/features/training/db/seedDemoWorkouts';
-import { db } from '@/db/index';
+import { clearAllData } from '@/features/training/db/seedDemoWorkouts';
 import { GoogleHealthCard } from '@/features/google-health/components/GoogleHealthCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
 import { exportAllData, downloadExport, hasExportableData } from '@/lib/exportData';
@@ -30,7 +28,6 @@ export function SettingsPage() {
   const settings = useSettings();
 
   const [confirmClear, setConfirmClear] = useState(false);
-  const [confirmSeed, setConfirmSeed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,28 +76,6 @@ export function SettingsPage() {
       flash('success', 'Alle data gewist. Oefeningen zijn opnieuw ingeladen.');
     } catch {
       flash('error', 'Er ging iets mis bij het wissen.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSeedDemo = async () => {
-    setConfirmSeed(false);
-    setLoading(true);
-    try {
-      const [workoutCount, schemaCount] = await Promise.all([
-        db.workouts.count(),
-        db.schemas.count(),
-      ]);
-      if (workoutCount > 0 || schemaCount > 0) {
-        flash('error', 'Er is al trainingsdata aanwezig. Wis eerst alle data.');
-        setLoading(false);
-        return;
-      }
-      await seedDemoData();
-      flash('success', 'Demodata geladen: schema "Push A" + 13 bench press sessies.');
-    } catch {
-      flash('error', 'Er ging iets mis bij het laden van demodata.');
     } finally {
       setLoading(false);
     }
@@ -258,6 +233,47 @@ export function SettingsPage() {
               checked={settings.muscleDetailLevel === 'detailed'}
               onCheckedChange={(checked) =>
                 void updateSettings({ muscleDetailLevel: checked ? 'detailed' : 'global' })
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feature modules — hide optional features from the main navigation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Puzzle className="h-4 w-4 text-primary" />
+            Modules
+          </CardTitle>
+          <CardDescription>
+            Schakel extra modules in of uit. Uitgeschakelde modules verdwijnen uit de navigatie.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="feature-nutrition" className="cursor-pointer flex items-center gap-2">
+              <Apple className="h-4 w-4 text-muted-foreground" />
+              Voeding
+            </Label>
+            <Switch
+              id="feature-nutrition"
+              checked={settings.features.nutrition}
+              onCheckedChange={(checked) =>
+                void updateSettings({ features: { ...settings.features, nutrition: checked } })
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="feature-planner" className="cursor-pointer flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              Planner
+            </Label>
+            <Switch
+              id="feature-planner"
+              checked={settings.features.planner}
+              onCheckedChange={(checked) =>
+                void updateSettings({ features: { ...settings.features, planner: checked } })
               }
             />
           </div>
@@ -434,30 +450,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Demo data */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FlaskConical className="h-4 w-4 text-primary" />
-            Demodata
-          </CardTitle>
-          <CardDescription>
-            Laad een voorbeeldschema en 13 bench press sessies om de app te verkennen.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => setConfirmSeed(true)}
-            disabled={loading}
-            className="w-full"
-          >
-            Laad demodata
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
       {/* Danger zone */}
       <Card className="border-destructive/40">
         <CardHeader>
@@ -499,25 +491,6 @@ export function SettingsPage() {
             <Button variant="destructive" onClick={handleClear}>
               Ja, alles wissen
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm: seed */}
-      <Dialog open={confirmSeed} onOpenChange={setConfirmSeed}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Demodata laden?</DialogTitle>
-            <DialogDescription>
-              Dit voegt een schema "Push A" en 13 bench press sessies toe. Werkt alleen als er
-              nog geen trainingsdata aanwezig is.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmSeed(false)}>
-              Annuleren
-            </Button>
-            <Button onClick={handleSeedDemo}>Laden</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -37,16 +37,32 @@ export function getSortedDays(schema: TrainingSchema): SchemaDay[] {
   return [...schema.days!].sort((a, b) => a.order - b.order);
 }
 
+/**
+ * Returns the effective repetition rhythm as an ordered list of day IDs.
+ * Falls back to plain day order when no custom rotation is set. Any rotation
+ * entries pointing at days that no longer exist are dropped.
+ */
+export function getRotation(schema: TrainingSchema): string[] {
+  const sortedDays = getSortedDays(schema);
+  if (sortedDays.length === 0) return [];
+  const validIds = new Set(sortedDays.map(d => d.id));
+  const rotation = (schema.rotation ?? []).filter(id => validIds.has(id));
+  return rotation.length > 0 ? rotation : sortedDays.map(d => d.id);
+}
+
 export async function createSchema(
   name: string,
   exercises: SchemaExercise[] = [],
   days?: SchemaDay[],
+  rotation?: string[],
 ): Promise<number> {
   const now = new Date();
+  const isMulti = Boolean(days && days.length > 0);
   const id = await db.schemas.add({
     name,
-    exercises: days && days.length > 0 ? [] : exercises,
+    exercises: isMulti ? [] : exercises,
     days,
+    rotation: isMulti ? rotation : undefined,
     createdAt: now,
     updatedAt: now,
   });
@@ -55,7 +71,7 @@ export async function createSchema(
 
 export async function updateSchema(
   id: number,
-  data: Partial<Pick<TrainingSchema, 'name' | 'exercises' | 'days'>>,
+  data: Partial<Pick<TrainingSchema, 'name' | 'exercises' | 'days' | 'rotation'>>,
 ): Promise<void> {
   await db.schemas.update(id, { ...data, updatedAt: new Date() });
 }
@@ -69,17 +85,23 @@ export async function copySchema(id: number): Promise<number> {
   if (!original) throw new Error('Schema niet gevonden');
 
   const now = new Date();
-  // Deep-copy days with new IDs to avoid conflicts
-  const copiedDays = original.days?.map(d => ({
-    ...d,
-    id: crypto.randomUUID(),
-    exercises: [...d.exercises],
-  }));
+  // Deep-copy days with new IDs to avoid conflicts, keeping a map old->new
+  const idMap = new Map<string, string>();
+  const copiedDays = original.days?.map(d => {
+    const newDayId = crypto.randomUUID();
+    idMap.set(d.id, newDayId);
+    return { ...d, id: newDayId, exercises: [...d.exercises] };
+  });
+  // Remap the rotation onto the copied day IDs
+  const copiedRotation = original.rotation
+    ?.map(id => idMap.get(id))
+    .filter((id): id is string => id !== undefined);
 
   const newId = await db.schemas.add({
     name: `${original.name} (kopie)`,
     exercises: [...original.exercises],
     days: copiedDays,
+    rotation: copiedRotation && copiedRotation.length > 0 ? copiedRotation : undefined,
     createdAt: now,
     updatedAt: now,
   });

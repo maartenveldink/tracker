@@ -7,6 +7,7 @@ const DEFAULTS: AppSettings = {
   muscleDetailLevel: 'global',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
+  features: { nutrition: false, planner: false },
 };
 
 /**
@@ -21,7 +22,26 @@ export async function initSettings(): Promise<void> {
 }
 
 export function useSettings(): AppSettings {
-  return useLiveQuery(() => db.settings.get(1)) ?? DEFAULTS;
+  const row = useLiveQuery(() => db.settings.get(1));
+  if (!row) return DEFAULTS;
+  // Merge defaults so rows saved before a field was introduced stay valid
+  return {
+    ...DEFAULTS,
+    ...row,
+    features: { ...DEFAULTS.features, ...row.features },
+  };
+}
+
+/**
+ * Returns whether an optional feature is enabled, or `undefined` while settings
+ * are still loading from IndexedDB (so route guards don't redirect prematurely).
+ */
+export function useFeatureEnabled(
+  feature: keyof AppSettings['features'],
+): boolean | undefined {
+  const row = useLiveQuery(() => db.settings.get(1));
+  if (row === undefined) return undefined; // still loading
+  return { ...DEFAULTS.features, ...row.features }[feature];
 }
 
 export async function updateSettings(patch: Partial<Omit<AppSettings, 'id'>>): Promise<void> {

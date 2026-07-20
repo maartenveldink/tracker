@@ -10,8 +10,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      registerType: 'prompt',
+      // Registration is handled by the ReloadPrompt component via the React hook,
+      // so the plugin should not inject its own auto-registration script.
+      injectRegister: false,
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Tracker - Fitness Logger',
         short_name: 'Tracker',

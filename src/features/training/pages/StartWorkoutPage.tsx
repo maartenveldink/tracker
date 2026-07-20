@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSchemas, isMultiDay, getSortedDays } from '../hooks/useSchemas';
+import { useSchemas, isMultiDay, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
 import { useCompletedWorkouts } from '../hooks/useProgress';
 import { PageHeader } from '../../../components/PageHeader';
@@ -12,16 +12,18 @@ import { Zap, Play, Calendar, AlertTriangle } from 'lucide-react';
 import type { WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
- * Determines the default day for a multi-day schema (E2-11).
+ * Determines the default day for a multi-day schema (E2-11), following the
+ * schema's repetition rhythm (rotation).
  * 1. Active/paused workout for this schema -> that day
- * 2. Last completed workout -> next day in sequence (wraps around)
- * 3. No workouts -> first day
+ * 2. Otherwise -> next step in the rhythm, based on how many sessions were done
+ * 3. Fallback -> first day
  */
 function getDefaultDayId(
   schema: TrainingSchema,
   sortedDays: SchemaDay[],
+  rotation: string[],
   activeWorkout: Workout | undefined,
-  lastCompletedWorkout: Workout | undefined,
+  completedCount: number,
 ): string {
   if (sortedDays.length === 0) return '';
 
@@ -30,16 +32,14 @@ function getDefaultDayId(
     return activeWorkout.schemaDayId;
   }
 
-  // Rule 2: last completed workout -> next day
-  if (lastCompletedWorkout && lastCompletedWorkout.schemaDayId) {
-    const lastDayIndex = sortedDays.findIndex(d => d.id === lastCompletedWorkout.schemaDayId);
-    if (lastDayIndex >= 0) {
-      const nextIndex = (lastDayIndex + 1) % sortedDays.length;
-      return sortedDays[nextIndex]!.id;
-    }
+  // Rule 2: next step in the rhythm. The number of completed sessions for this
+  // schema is the position in the cycle (wraps around via modulo).
+  if (rotation.length > 0) {
+    const nextIndex = completedCount % rotation.length;
+    return rotation[nextIndex] ?? sortedDays[0]!.id;
   }
 
-  // Rule 3: no previous workouts -> first day
+  // Rule 3: fallback
   return sortedDays[0]!.id;
 }
 
@@ -87,16 +87,13 @@ export function StartWorkoutPage() {
   // CT-06: recent usage warning
   const [recentWarningSchemaId, setRecentWarningSchemaId] = useState<number | null>(null);
 
-  // Last completed workout per multi-day schema — derived from already-loaded completedWorkouts
-  // (avoids N+1 queries, one per schema)
-  const lastCompletedBySchema = useMemo(() => {
-    const map = new Map<number, Workout>();
+  // Completed multi-day sessions per schema — the position in the rhythm cycle.
+  // Derived from already-loaded completedWorkouts (avoids N+1 queries).
+  const completedCountBySchema = useMemo(() => {
+    const map = new Map<number, number>();
     for (const w of completedWorkouts) {
       if (w.schemaId === null || !w.schemaDayId) continue;
-      const existing = map.get(w.schemaId);
-      if (!existing || w.startedAt > existing.startedAt) {
-        map.set(w.schemaId, w);
-      }
+      map.set(w.schemaId, (map.get(w.schemaId) ?? 0) + 1);
     }
     return map;
   }, [completedWorkouts]);
@@ -209,8 +206,9 @@ export function StartWorkoutPage() {
     }
 
     const sortedDays = getSortedDays(schema);
-    const lastCompleted = lastCompletedBySchema.get(schema.id!);
-    const defaultDayId = getDefaultDayId(schema, sortedDays, activeWorkout, lastCompleted);
+    const rotation = getRotation(schema);
+    const completedCount = completedCountBySchema.get(schema.id!) ?? 0;
+    const defaultDayId = getDefaultDayId(schema, sortedDays, rotation, activeWorkout, completedCount);
 
     setExpandedSchemaId(schema.id!);
     setSelectedDayId(defaultDayId);

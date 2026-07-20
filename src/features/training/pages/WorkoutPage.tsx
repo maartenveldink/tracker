@@ -4,6 +4,7 @@ import {
   useWorkout,
   updateWorkoutSet,
   addWorkoutSet,
+  removeWorkoutSet,
   addWorkoutExercise,
   updateExerciseNotes,
   updateWorkoutNotes,
@@ -25,7 +26,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, FileText, StickyNote, History, CheckCircle2, RotateCcw, X as XIcon } from 'lucide-react';
+import { Pause, Play, Check, SkipForward, Plus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, X as XIcon } from 'lucide-react';
 import type { Exercise, Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
@@ -157,6 +158,39 @@ function RestTimerBar({
         >
           <XIcon className="h-3 w-3" />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- Quick reps bar: tap a number to fill the active set's reps ---
+
+const QUICK_REP_VALUES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+function QuickRepsBar({
+  selected,
+  onSelect,
+}: {
+  selected: number | null;
+  onSelect: (reps: number) => void;
+}) {
+  return (
+    <div className="px-3 py-1.5 border-b border-border bg-muted/20">
+      <div className="grid grid-cols-6 gap-1">
+        {QUICK_REP_VALUES.map(n => (
+          <Button
+            key={n}
+            variant={selected === n ? 'default' : 'secondary'}
+            size="sm"
+            className={cn(
+              'h-7 text-xs px-0',
+              selected === n && 'bg-primary text-primary-foreground',
+            )}
+            onClick={() => onSelect(n)}
+          >
+            {n}
+          </Button>
+        ))}
       </div>
     </div>
   );
@@ -307,6 +341,15 @@ export function WorkoutPage() {
       completed: nowCompleting,
       skipped: false,
     });
+    // Carry the entered weight over to the next set if it has none yet
+    if (nowCompleting) {
+      const exercise = workout?.exercises[exerciseIndex];
+      const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
+      const nextSet = exercise?.sets[setIndex + 1];
+      if (currentWeight !== null && nextSet && nextSet.weight === null) {
+        await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: currentWeight });
+      }
+    }
     // RT-01/RT-08: Start or restart timer when marking as completed
     if (nowCompleting) {
       setRestTimer({
@@ -567,10 +610,11 @@ export function WorkoutPage() {
               {/* Sets table (E3-02, E3-03, E3-04, SL-03, SL-04, SL-05, SL-06) */}
               <div className="divide-y divide-border/50">
                 {/* Table header */}
-                <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem_2.5rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="grid grid-cols-[1.5rem_1fr_1fr_2.25rem_2.25rem_2rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
                   <span className="text-center">#</span>
                   <span className="text-center">kg</span>
                   <span className="text-center">reps</span>
+                  <span></span>
                   <span></span>
                   <span></span>
                 </div>
@@ -580,10 +624,10 @@ export function WorkoutPage() {
                   const isActiveSet = setIdx === activeSetIdx;
 
                   return (
+                    <div key={set.setNumber}>
                     <div
-                      key={set.setNumber}
                       className={cn(
-                        'grid grid-cols-[2rem_1fr_1fr_2.5rem_2.5rem] gap-1 px-3 py-1.5 items-center',
+                        'grid grid-cols-[1.5rem_1fr_1fr_2.25rem_2.25rem_2rem] gap-1 px-3 py-1.5 items-center',
                         set.completed && 'bg-primary/10',
                         set.skipped && 'bg-secondary/50 opacity-50',
                         isActiveSet && !set.completed && !set.skipped && 'bg-primary/5 border-l-2 border-primary',
@@ -671,6 +715,24 @@ export function WorkoutPage() {
                       >
                         <SkipForward className="h-4 w-4" />
                       </Button>
+                      {/* Delete set */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeWorkoutSet(workoutId, exIdx, setIdx)}
+                        aria-label="Set verwijderen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {/* Quick reps bar under the active set */}
+                    {isActiveSet && !set.completed && !set.skipped && (
+                      <QuickRepsBar
+                        selected={set.actualReps}
+                        onSelect={(reps) => handleRepsChange(exIdx, setIdx, String(reps))}
+                      />
+                    )}
                     </div>
                   );
                 })}

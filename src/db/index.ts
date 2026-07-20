@@ -40,6 +40,12 @@ export interface TrainingSchema {
   exercises: SchemaExercise[];
   /** Multi-day schemas store exercises per day. When set, `exercises` is ignored. */
   days?: SchemaDay[];
+  /**
+   * Optional repetition rhythm for multi-day schemas: an ordered list of day IDs
+   * that defines the training cycle (e.g. [A, B, A, C]). A day ID may appear more
+   * than once. When undefined/empty, days rotate in plain `order` sequence.
+   */
+  rotation?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -200,6 +206,11 @@ export interface AppSettings {
     fat: number | null;
   };
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
+  /** Optional feature modules, hidden from the main navigation when disabled. */
+  features: {
+    nutrition: boolean;
+    planner: boolean;
+  };
 }
 
 // --- Database ---
@@ -263,6 +274,7 @@ class TrackerDB extends Dexie {
         muscleDetailLevel: 'global',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
+        features: { nutrition: false, planner: false },
       };
 
       // Migrate macroGoals from localStorage

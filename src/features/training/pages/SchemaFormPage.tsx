@@ -15,7 +15,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronUp, ChevronDown, X, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Pencil, Trash2 } from 'lucide-react';
 import type { SchemaExercise, SchemaDay } from '../../../db/index';
 
 interface DayState {
@@ -38,6 +38,8 @@ export function SchemaFormPage() {
   const [exercises, setExercises] = useState<SchemaExercise[]>([]);
   // Multi-day mode: days with their own exercises
   const [days, setDays] = useState<DayState[]>([]);
+  // Multi-day repetition rhythm: ordered list of day IDs (e.g. A, B, A, C)
+  const [rotation, setRotation] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>('single');
   const [showPicker, setShowPicker] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
@@ -59,10 +61,13 @@ export function SchemaFormPage() {
         setDays(sorted);
         setActiveTab(sorted[0]!.id);
         setExercises([]);
+        const validIds = new Set(sorted.map(d => d.id));
+        setRotation((existing.rotation ?? []).filter(id => validIds.has(id)));
       } else {
         setExercises(existing.exercises);
         setDays([]);
         setActiveTab('single');
+        setRotation([]);
       }
     }
   }, [existing]);
@@ -109,6 +114,8 @@ export function SchemaFormPage() {
   }
 
   function removeDay(dayId: string) {
+    // Drop any rhythm steps that reference the removed day
+    setRotation(prev => prev.filter(id => id !== dayId));
     setDays(prev => {
       const filtered = prev.filter(d => d.id !== dayId).map((d, i) => ({ ...d, order: i }));
       if (filtered.length === 0) {
@@ -118,12 +125,14 @@ export function SchemaFormPage() {
           setExercises(removedDay.exercises);
         }
         setActiveTab('single');
+        setRotation([]);
         return [];
       }
       if (filtered.length === 1) {
         // Only one day left: revert to single-day
         setExercises(filtered[0]!.exercises);
         setActiveTab('single');
+        setRotation([]);
         return [];
       }
       // If active tab was the removed day, switch to first
@@ -164,6 +173,32 @@ export function SchemaFormPage() {
     }
     setEditingDayId(null);
     setEditingDayName('');
+  }
+
+  // --- Repetition rhythm (rotation) management ---
+
+  function dayName(dayId: string): string {
+    return days.find(d => d.id === dayId)?.name ?? '?';
+  }
+
+  function addRotationStep(dayId: string) {
+    setRotation(prev => [...prev, dayId]);
+  }
+
+  function removeRotationStep(index: number) {
+    setRotation(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function moveRotationStep(index: number, direction: 'left' | 'right') {
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= rotation.length) return;
+    setRotation(prev => {
+      const updated = [...prev];
+      const temp = updated[index]!;
+      updated[index] = updated[newIndex]!;
+      updated[newIndex] = temp;
+      return updated;
+    });
   }
 
   // --- Exercise management ---
@@ -247,15 +282,23 @@ export function SchemaFormPage() {
     e.preventDefault();
     if (!name.trim()) return;
 
+    // Only persist a custom rotation when it differs from plain day order
+    const cleanRotation = rotation.filter(id => days.some(d => d.id === id));
+
     const schemaData = isMultiDay
-      ? { name: name.trim(), exercises: [] as SchemaExercise[], days: days as SchemaDay[] }
-      : { name: name.trim(), exercises, days: undefined };
+      ? {
+          name: name.trim(),
+          exercises: [] as SchemaExercise[],
+          days: days as SchemaDay[],
+          rotation: cleanRotation.length > 0 ? cleanRotation : undefined,
+        }
+      : { name: name.trim(), exercises, days: undefined, rotation: undefined };
 
     if (isEditing && schemaId) {
       await updateSchema(schemaId, schemaData);
       navigate(`/schemas/${schemaId}`);
     } else {
-      const newId = await createSchema(schemaData.name, schemaData.exercises, schemaData.days);
+      const newId = await createSchema(schemaData.name, schemaData.exercises, schemaData.days, schemaData.rotation);
       navigate(`/schemas/${newId}`);
     }
   }
@@ -374,6 +417,7 @@ export function SchemaFormPage() {
           </div>
 
           {isMultiDay ? (
+            <>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full flex overflow-x-auto">
                 {days.map(day => (
@@ -457,6 +501,96 @@ export function SchemaFormPage() {
                 </TabsContent>
               ))}
             </Tabs>
+
+            {/* Repetition rhythm (E2): define the training cycle, e.g. A, B, A, C */}
+            <div className="mt-5 space-y-2">
+              <div>
+                <Label className="block">Herhalingsritme</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Bepaal in welke volgorde de dagen elkaar opvolgen. Laat leeg voor de
+                  standaardvolgorde ({days.map(d => d.name).join(' → ')}).
+                </p>
+              </div>
+
+              {/* Current sequence */}
+              {rotation.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {rotation.map((dayId, i) => (
+                    <div
+                      key={`${dayId}-${i}`}
+                      className="flex items-center gap-0.5 rounded-full bg-primary/10 border border-primary/30 pl-2.5 pr-1 py-0.5"
+                    >
+                      <span className="text-xs font-medium">
+                        {i + 1}. {dayName(dayId)}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground"
+                        onClick={() => moveRotationStep(i, 'left')}
+                        disabled={i === 0}
+                        aria-label="Stap naar links"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground"
+                        onClick={() => moveRotationStep(i, 'right')}
+                        disabled={i === rotation.length - 1}
+                        aria-label="Stap naar rechts"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeRotationStep(i)}
+                        aria-label="Stap verwijderen"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-muted-foreground"
+                    onClick={() => setRotation([])}
+                  >
+                    Wissen
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground/70 italic">
+                  Nog geen eigen ritme — dagen volgen elkaar op volgorde op.
+                </p>
+              )}
+
+              {/* Add-step buttons: one per day */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {days.map(day => (
+                  <Button
+                    key={day.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs border-dashed"
+                    onClick={() => addRotationStep(day.id)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    {day.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            </>
           ) : (
             <>
               {renderExerciseList(exercises, exercises.length)}

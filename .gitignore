@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 out/
+*.tsbuildinfo
+
+# Scratch
+tmp/
 
 # IDE
 .idea/
