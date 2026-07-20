@@ -40,7 +40,7 @@ function FeatureRoute({
 }) {
   const enabled = useFeatureEnabled(feature);
   if (enabled === undefined) return null; // settings still loading
-  if (!enabled) return <Navigate to="/exercises" replace />;
+  if (!enabled) return <Navigate to="/start" replace />;
   return children;
 }
 
@@ -58,7 +58,7 @@ export function App() {
 
         {/* Standard pages with nav layout */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/exercises" replace />} />
+          <Route path="/" element={<Navigate to="/start" replace />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/new" element={<ExerciseFormPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
@@ -84,7 +84,7 @@ export function App() {
           <Route path="/planner/:id/edit" element={<FeatureRoute feature="planner"><WeekPlanFormPage /></FeatureRoute>} />
 
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/exercises" replace />} />
+          <Route path="*" element={<Navigate to="/start" replace />} />
         </Route>
       </Routes>
       <SchemaImportHandler />
