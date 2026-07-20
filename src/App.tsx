@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ReloadPrompt } from './components/ReloadPrompt';
+import { SchemaImportHandler } from './components/SchemaImportHandler';
 import { useFeatureEnabled } from './hooks/useSettings';
 import type { AppSettings } from './db/index';
 
@@ -86,6 +87,7 @@ export function App() {
           <Route path="*" element={<Navigate to="/exercises" replace />} />
         </Route>
       </Routes>
+      <SchemaImportHandler />
       <ReloadPrompt />
     </Suspense>
   );

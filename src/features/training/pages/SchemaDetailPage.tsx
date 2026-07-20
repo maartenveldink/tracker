@@ -11,7 +11,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, AlertTriangle, Lightbulb } from 'lucide-react';
+import { Pencil, AlertTriangle, Lightbulb, Share2, Copy, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { buildSharedSchema, encodeSchemaShareUrl } from '../lib/schemaShare';
 import type { Exercise, SchemaExercise } from '../../../db/index';
 
 interface MuscleStats {
@@ -211,12 +220,41 @@ export function SchemaDetailPage() {
 
   const [analysisTab, setAnalysisTab] = useState<string>('totaal');
 
+  // Schema sharing via QR/link
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   if (!schema) {
     return (
       <div>
         <PageHeader title="Schema laden..." backTo="/schemas" />
       </div>
     );
+  }
+
+  async function openShare() {
+    if (!schema) return;
+    const names = new Map<number, string>();
+    exerciseMap.forEach((ex, id) => names.set(id, ex.name));
+    const shared = buildSharedSchema(schema, names);
+    const url = encodeSchemaShareUrl(shared, import.meta.env.BASE_URL);
+    const { default: QRCode } = await import('qrcode');
+    const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 1 });
+    setShareUrl(url);
+    setQrDataUrl(dataUrl);
+    setCopied(false);
+  }
+
+  async function copyShareUrl() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard may be unavailable; the link stays selectable in the input
+    }
   }
 
   function renderExerciseList(exercises: SchemaExercise[]) {
@@ -256,14 +294,25 @@ export function SchemaDetailPage() {
         title={schema.name}
         backTo="/schemas"
         actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => navigate(`/schemas/${schema.id}/edit`)}
-          >
-            <Pencil className="h-4 w-4" />
-            Bewerken
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={openShare}
+              aria-label="Schema delen"
+            >
+              <Share2 className="h-4 w-4" />
+              Deel
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate(`/schemas/${schema.id}/edit`)}
+            >
+              <Pencil className="h-4 w-4" />
+              Bewerken
+            </Button>
+          </div>
         }
       />
 
@@ -348,6 +397,41 @@ export function SchemaDetailPage() {
       ) : (
         <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} />
       )}
+
+      {/* Share via QR / link */}
+      <Dialog open={shareUrl !== null} onOpenChange={(open) => { if (!open) { setShareUrl(null); setQrDataUrl(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schema delen</DialogTitle>
+            <DialogDescription>
+              Scan de QR-code met de camera van je andere apparaat, of kopieer de link.
+              Het schema wordt daar toegevoegd.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            {qrDataUrl && (
+              <img
+                src={qrDataUrl}
+                alt="QR-code om dit schema te importeren"
+                className="rounded-lg bg-white p-2"
+                width={240}
+                height={240}
+              />
+            )}
+            <div className="flex w-full items-center gap-2">
+              <Input
+                readOnly
+                value={shareUrl ?? ''}
+                onFocus={e => e.currentTarget.select()}
+                className="text-xs"
+              />
+              <Button variant="secondary" size="icon" onClick={copyShareUrl} aria-label="Link kopiëren">
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
