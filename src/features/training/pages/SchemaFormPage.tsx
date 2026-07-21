@@ -187,6 +187,18 @@ export function SchemaFormPage() {
   const [pickerDayId, setPickerDayId] = useState<string | null>(null);
   // Editing day name
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
+  // Which exercise cards are expanded (by exerciseId). Added exercises start collapsed
+  // so more fit on screen; the header toggles expansion.
+  const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set());
+
+  function toggleExpanded(exerciseId: number) {
+    setExpandedExercises(prev => {
+      const next = new Set(prev);
+      if (next.has(exerciseId)) next.delete(exerciseId);
+      else next.add(exerciseId);
+      return next;
+    });
+  }
   const [editingDayName, setEditingDayName] = useState('');
   const initialized = useRef(false);
 
@@ -541,14 +553,45 @@ export function SchemaFormPage() {
   function renderExerciseList(exs: SchemaExercise[], totalLength: number) {
     return (
       <div className="space-y-2">
-        {exs.map((ex, i) => (
+        {exs.map((ex, i) => {
+          const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
+          const effectiveWeight = ex.startWeight ?? suggestion;
+          const isAutoWeight = ex.startWeight == null;
+          const inheritedRest = resolveRestSeconds({
+            exercise: exerciseById.get(ex.exerciseId),
+            settings,
+          });
+          const effectiveRest = ex.restSeconds ?? inheritedRest;
+          const isAutoRest = ex.restSeconds == null;
+          const isExpanded = expandedExercises.has(ex.exerciseId);
+          const summary =
+            `${ex.sets} × ${formatReps(ex.repsPerSet, ex.repsMax)} · rust ${formatRest(effectiveRest)}` +
+            (effectiveWeight != null ? ` · ${effectiveWeight} kg` : '');
+          return (
           <Card key={`${ex.exerciseId}-${i}`} className="shadow-none">
             <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-muted-foreground text-xs w-5 text-center">{i + 1}</span>
-                <span className="text-sm font-medium flex-1 truncate">
-                  {exerciseMap.get(ex.exerciseId) ?? 'Onbekend'}
-                </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(ex.exerciseId)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="text-muted-foreground text-xs w-4 text-center shrink-0">{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium truncate">
+                      {exerciseMap.get(ex.exerciseId) ?? 'Onbekend'}
+                    </span>
+                    {!isExpanded && (
+                      <span className="block text-xs text-muted-foreground truncate">{summary}</span>
+                    )}
+                  </span>
+                </button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -582,17 +625,7 @@ export function SchemaFormPage() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              {(() => {
-                const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
-                const effectiveWeight = ex.startWeight ?? suggestion;
-                const isAutoWeight = ex.startWeight == null;
-                const inheritedRest = resolveRestSeconds({
-                  exercise: exerciseById.get(ex.exerciseId),
-                  settings,
-                });
-                const effectiveRest = ex.restSeconds ?? inheritedRest;
-                const isAutoRest = ex.restSeconds == null;
-                return (
+              {isExpanded && (
                   <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
                     <StepperRow
                       label="Sets"
@@ -641,11 +674,11 @@ export function SchemaFormPage() {
                       caption={isAutoRest ? 'standaard' : 'handmatig aangepast'}
                     />
                   </div>
-                );
-              })()}
+              )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
     );
   }
