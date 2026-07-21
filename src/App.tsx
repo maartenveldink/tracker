@@ -17,6 +17,7 @@ import { WorkoutEditPage } from './features/training/pages/WorkoutEditPage';
 import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage';
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DashboardPage } from './pages/DashboardPage';
 
 // Heavy / optional pages — lazy-loaded so recharts and the nutrition/planner
 // modules stay out of the initial bundle.
@@ -58,7 +59,7 @@ export function App() {
 
         {/* Standard pages with nav layout */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/start" replace />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/new" element={<ExerciseFormPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />

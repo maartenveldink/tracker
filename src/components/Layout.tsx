@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Dumbbell, ClipboardList, Play, TrendingUp, Apple, CalendarDays, Settings } from 'lucide-react';
+import { Home, Dumbbell, ClipboardList, Play, TrendingUp, Apple, CalendarDays, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '../hooks/useSettings';
 
 const navItems = [
+  { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/exercises', label: 'Oefeningen', icon: Dumbbell },
   { to: '/schemas', label: "Schema's", icon: ClipboardList },
   { to: '/start', label: 'Train', icon: Play },
@@ -29,6 +30,7 @@ export function Layout() {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               cn(
                 'flex-1 py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors',

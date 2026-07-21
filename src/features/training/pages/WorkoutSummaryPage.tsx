@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
+import { calculateStreak } from '../lib/metrics';
 import { useSettings } from '../../../hooks/useSettings';
 import { getMuscleGroupById } from '../db/muscles';
 import { PageHeader } from '../../../components/PageHeader';
@@ -25,71 +26,6 @@ function formatDate(date: Date): string {
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-}
-
-// MF-05: Calculate training streak (consecutive ISO weeks with at least 1 workout)
-function calculateStreak(completedWorkouts: Workout[]): number {
-  if (completedWorkouts.length === 0) return 0;
-
-  // Get ISO week number for a date
-  function getISOWeek(date: Date): string {
-    const d = new Date(date.getTime());
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-    return `${d.getFullYear()}-W${weekNum}`;
-  }
-
-  // Collect unique ISO weeks with workouts
-  const weeksWithWorkouts = new Set<string>();
-  for (const w of completedWorkouts) {
-    weeksWithWorkouts.add(getISOWeek(w.startedAt));
-  }
-
-  // Sort weeks descending
-  const sortedWeeks = Array.from(weeksWithWorkouts).sort().reverse();
-  if (sortedWeeks.length === 0) return 0;
-
-  // Check if the most recent week is the current week or last week
-  const currentWeek = getISOWeek(new Date());
-  const mostRecent = sortedWeeks[0]!;
-  if (mostRecent !== currentWeek) {
-    // Check if it's last week (allow 1-week gap for "current" streak)
-    const lastWeekDate = new Date();
-    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
-    const lastWeek = getISOWeek(lastWeekDate);
-    if (mostRecent !== lastWeek) return 0;
-  }
-
-  // Count consecutive weeks
-  let streak = 1;
-  for (let i = 1; i < sortedWeeks.length; i++) {
-    const current = sortedWeeks[i];
-    const previous = sortedWeeks[i - 1];
-    if (!current || !previous) break;
-
-    // Parse weeks and check if they're consecutive
-    const [currYear, currWeekStr] = current.split('-W');
-    const [prevYear, prevWeekStr] = previous.split('-W');
-    if (!currYear || !currWeekStr || !prevYear || !prevWeekStr) break;
-    const currWeek = parseInt(currWeekStr);
-    const prevWeek = parseInt(prevWeekStr);
-    const cy = parseInt(currYear);
-    const py = parseInt(prevYear);
-
-    const isConsecutive =
-      (cy === py && prevWeek - currWeek === 1) ||
-      (py - cy === 1 && currWeek >= 52 && prevWeek === 1);
-
-    if (isConsecutive) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
 }
 
 export function WorkoutSummaryPage() {
