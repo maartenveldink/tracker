@@ -7,7 +7,9 @@ import { createSchema } from '../hooks/useSchemas';
 interface SharedExercise {
   n: string; // exercise name
   s: number; // sets
-  r: number; // reps per set
+  r: number; // reps per set (lower bound / target)
+  rm?: number; // optional upper bound for a rep range
+  w?: number; // optional start weight (kg)
 }
 
 interface SharedDay {
@@ -51,6 +53,8 @@ export function buildSharedSchema(
     n: exerciseNameById.get(e.exerciseId) ?? 'Onbekend',
     s: e.sets,
     r: e.repsPerSet,
+    ...(e.repsMax != null ? { rm: e.repsMax } : {}),
+    ...(e.startWeight != null ? { w: e.startWeight } : {}),
   });
 
   if (schema.days && schema.days.length > 0) {
@@ -143,6 +147,8 @@ export async function importSharedSchema(shared: SharedSchema): Promise<number> 
         exerciseId: await resolveId(e.n),
         sets: e.s,
         repsPerSet: e.r,
+        ...(e.rm != null ? { repsMax: e.rm } : {}),
+        ...(e.w != null ? { startWeight: e.w } : {}),
         order: i,
       });
     }

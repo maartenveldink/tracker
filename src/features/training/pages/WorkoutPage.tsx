@@ -14,6 +14,7 @@ import {
   completeWorkout,
 } from '../hooks/useWorkout';
 import { useExercises, updateExercise } from '../hooks/useExercises';
+import { formatReps } from '../lib/reps';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -774,7 +775,7 @@ export function WorkoutPage() {
                           value={set.weight ?? ''}
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
-                          placeholder="-"
+                          placeholder={set.plannedWeight != null ? String(set.plannedWeight) : '-'}
                           className="h-7 text-center text-sm px-0.5 min-w-0"
                         />
                         <Button
@@ -801,7 +802,7 @@ export function WorkoutPage() {
                           value={set.actualReps ?? ''}
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
-                          placeholder={set.plannedReps?.toString() ?? '-'}
+                          placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : '-'}
                           className="h-7 text-center text-sm px-0.5 min-w-0"
                         />
                         <Button

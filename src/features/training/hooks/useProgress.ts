@@ -24,6 +24,28 @@ export function calculate1RM(weight: number, reps: number, formula: OneRMFormula
   }
 }
 
+/**
+ * Inverse of `calculate1RM`: estimates the weight liftable for `reps` reps,
+ * given a known 1RM and formula. Used to suggest a schema start weight.
+ */
+export function estimateWeightForReps(oneRM: number, reps: number, formula: OneRMFormula): number {
+  if (oneRM <= 0 || reps <= 0) return 0;
+  if (reps === 1) return oneRM;
+
+  switch (formula) {
+    case 'epley':
+      return oneRM / (1 + reps / 30);
+    case 'brzycki':
+      if (reps >= 37) {
+        // Brzycki is undefined at >=37 reps; fall back to Epley.
+        return estimateWeightForReps(oneRM, reps, 'epley');
+      }
+      return (oneRM * (37 - reps)) / 36;
+    case 'lombardi':
+      return oneRM / Math.pow(reps, 0.1);
+  }
+}
+
 // --- Types ---
 
 export interface SessionSet {
@@ -153,6 +175,37 @@ export function useExercisesWithLastSession(): ExerciseWithLastSession[] {
       .map(([id, lastSessionAt]): ExerciseWithLastSession => ({ id, lastSessionAt }))
       .sort((a, b) => b.lastSessionAt.getTime() - a.lastSessionAt.getTime());
   }, [workouts]);
+}
+
+/**
+ * Maps each exercise id to its most recently registered 1RM (best set of the
+ * latest completed session containing that exercise). Reactive.
+ */
+export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<number, number> {
+  const workouts = useCompletedWorkouts();
+
+  return useMemo(() => {
+    const latestDate = new Map<number, Date>();
+    const latest1RM = new Map<number, number>();
+
+    for (const w of workouts) {
+      for (const ex of w.exercises) {
+        const completed = ex.sets.filter(isCompletedSet);
+        if (completed.length === 0) continue;
+
+        const best = Math.max(
+          ...completed.map(s => calculate1RM(s.weight!, s.actualReps!, formula)),
+        );
+        const prev = latestDate.get(ex.exerciseId);
+        if (!prev || w.startedAt > prev) {
+          latestDate.set(ex.exerciseId, w.startedAt);
+          latest1RM.set(ex.exerciseId, best);
+        }
+      }
+    }
+
+    return latest1RM;
+  }, [workouts, formula]);
 }
 
 /** Delete an entire workout (E4-06). */

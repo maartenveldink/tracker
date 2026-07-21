@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout, updateWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
+import { formatReps } from '../lib/reps';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,6 +156,8 @@ export function WorkoutEditPage() {
         exerciseId: exercise.exerciseId,
         setNumber: exercise.sets.length + 1,
         plannedReps: lastSet?.plannedReps ?? null,
+        ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
+        ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
         actualReps: null,
         weight: lastSet?.weight ?? null,
         completed: false,
@@ -411,7 +414,7 @@ export function WorkoutEditPage() {
                           step="0.5"
                           value={set.weight ?? ''}
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
-                          placeholder="-"
+                          placeholder={set.plannedWeight != null ? String(set.plannedWeight) : '-'}
                           className={cn(
                             'h-7 text-center text-sm px-1.5',
                             weightError && 'border-destructive',
@@ -421,7 +424,7 @@ export function WorkoutEditPage() {
                           type="number"
                           value={set.actualReps ?? ''}
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
-                          placeholder={set.plannedReps?.toString() ?? '-'}
+                          placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : '-'}
                           className={cn(
                             'h-7 text-center text-sm px-1.5',
                             repsError && 'border-destructive',

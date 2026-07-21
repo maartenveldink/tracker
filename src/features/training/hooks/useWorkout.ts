@@ -91,6 +91,8 @@ export async function addWorkoutSet(
       exerciseId: exercise.exerciseId,
       setNumber: exercise.sets.length + 1,
       plannedReps: lastSet?.plannedReps ?? null,
+      ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
+      ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
       actualReps: null,
       weight: lastSet?.weight ?? null,
       completed: false,

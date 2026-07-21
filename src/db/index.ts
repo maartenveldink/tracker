@@ -23,8 +23,21 @@ export interface Exercise {
 
 export interface SchemaExercise {
   exerciseId: number;
-  sets: number;
+  /** Lower bound / target reps per set. */
   repsPerSet: number;
+  sets: number;
+  /**
+   * Optional upper bound for a rep range. When set and greater than
+   * `repsPerSet`, the exercise prescribes a range (e.g. 8–12 reps).
+   * Undefined means a fixed rep count of `repsPerSet`.
+   */
+  repsMax?: number;
+  /**
+   * Optional starting weight (kg) used the first time this schema is trained.
+   * Defaults to a suggestion derived from the latest registered 1RM and the
+   * lower bound of the rep range; can be manually overridden.
+   */
+  startWeight?: number;
   order: number;
 }
 
@@ -56,6 +69,10 @@ export interface WorkoutSet {
   exerciseId: number;
   setNumber: number;
   plannedReps: number | null;
+  /** Optional upper bound when the schema prescribed a rep range (e.g. 8–12). */
+  plannedRepsMax?: number;
+  /** Optional planned weight (kg) seeded from the schema's start weight. */
+  plannedWeight?: number;
   actualReps: number | null;
   weight: number | null;
   completed: boolean;

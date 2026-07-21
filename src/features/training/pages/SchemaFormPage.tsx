@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSchema, createSchema, updateSchema } from '../hooks/useSchemas';
 import { useExercises } from '../hooks/useExercises';
+import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/useProgress';
+import { useSettings } from '../../../hooks/useSettings';
+import { formatReps } from '../lib/reps';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +18,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import type { SchemaExercise, SchemaDay } from '../../../db/index';
 
 interface DayState {
@@ -64,13 +67,101 @@ function clearDraft(): void {
   }
 }
 
+function roundToStep(value: number, step = 2.5): number {
+  return Math.round(value / step) * step;
+}
+
+/**
+ * Keyboard-free stepper row: label (+ optional caption) on the left, a
+ * `– value +` control group on the right. One field per line so the schema
+ * form stays legible on narrow screens.
+ */
+function StepperRow({
+  label,
+  value,
+  onDec,
+  onInc,
+  decDisabled,
+  caption,
+  onReset,
+}: {
+  label: string;
+  value: React.ReactNode;
+  onDec: () => void;
+  onInc: () => void;
+  decDisabled?: boolean;
+  caption?: React.ReactNode;
+  onReset?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium">{label}</span>
+          {onReset && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground"
+              onClick={onReset}
+              aria-label={`${label} terug naar suggestie`}
+            >
+              <RotateCcw className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        {caption && <p className="text-xs leading-tight text-muted-foreground">{caption}</p>}
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          onClick={onDec}
+          disabled={decDisabled}
+          aria-label={`${label} verlagen`}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <span className="w-16 text-center text-sm font-semibold tabular-nums select-none">
+          {value}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          onClick={onInc}
+          aria-label={`${label} verhogen`}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function SchemaFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined;
   const schemaId = id ? Number(id) : undefined;
   const existing = useSchema(schemaId);
   const allExercises = useExercises();
+  const settings = useSettings();
+  const latestOneRM = useLatestOneRMByExercise(settings.oneRMFormula);
   const navigate = useNavigate();
+
+  /** Suggested start weight from the latest 1RM and the rep-range lower bound. */
+  const suggestStartWeight = useCallback(
+    (exerciseId: number, repsMin: number): number | null => {
+      const oneRM = latestOneRM.get(exerciseId);
+      if (!oneRM || oneRM <= 0) return null;
+      return roundToStep(estimateWeightForReps(oneRM, repsMin, settings.oneRMFormula));
+    },
+    [latestOneRM, settings.oneRMFormula],
+  );
 
   // Restore a saved draft once (new schema only), before the first render
   const draftRef = useRef<SchemaDraft | null | undefined>(undefined);
@@ -319,9 +410,52 @@ export function SchemaFormPage() {
     });
   }
 
-  function updateExerciseField(index: number, field: 'sets' | 'repsPerSet', value: number) {
+  function stepSets(index: number, delta: number) {
     setCurrentExercises(prev =>
-      prev.map((e, i) => (i === index ? { ...e, [field]: Math.max(1, value) } : e))
+      prev.map((e, i) => (i === index ? { ...e, sets: Math.max(1, e.sets + delta) } : e))
+    );
+  }
+
+  function stepReps(index: number, delta: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => {
+        if (i !== index) return e;
+        const repsPerSet = Math.max(1, e.repsPerSet + delta);
+        // Keep the range valid: drop the max if it no longer exceeds the min.
+        const repsMax = e.repsMax != null && e.repsMax <= repsPerSet ? undefined : e.repsMax;
+        return { ...e, repsPerSet, repsMax };
+      })
+    );
+  }
+
+  function stepRepsMax(index: number, delta: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => {
+        if (i !== index) return e;
+        if (delta > 0) {
+          const base = e.repsMax ?? e.repsPerSet;
+          return { ...e, repsMax: base + 1 };
+        }
+        if (e.repsMax == null) return e;
+        const next = e.repsMax - 1;
+        return { ...e, repsMax: next > e.repsPerSet ? next : undefined };
+      })
+    );
+  }
+
+  function stepStartWeight(index: number, delta: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => {
+        if (i !== index) return e;
+        const base = e.startWeight ?? suggestStartWeight(e.exerciseId, e.repsPerSet) ?? 0;
+        return { ...e, startWeight: Math.max(0, roundToStep(base + delta)) };
+      })
+    );
+  }
+
+  function resetStartWeight(index: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => (i === index ? { ...e, startWeight: undefined } : e))
     );
   }
 
@@ -339,14 +473,23 @@ export function SchemaFormPage() {
     // Only persist a custom rotation when it differs from plain day order
     const cleanRotation = rotation.filter(id => days.some(d => d.id === id));
 
+    // Snapshot the suggested start weight so a freshly-started workout has a
+    // concrete seed even when the user never touched the auto value.
+    const snapshotWeights = (exs: SchemaExercise[]): SchemaExercise[] =>
+      exs.map(e => {
+        if (e.startWeight != null) return e;
+        const s = suggestStartWeight(e.exerciseId, e.repsPerSet);
+        return s != null ? { ...e, startWeight: s } : e;
+      });
+
     const schemaData = isMultiDay
       ? {
           name: name.trim(),
           exercises: [] as SchemaExercise[],
-          days: days as SchemaDay[],
+          days: days.map(d => ({ ...d, exercises: snapshotWeights(d.exercises) })) as SchemaDay[],
           rotation: cleanRotation.length > 0 ? cleanRotation : undefined,
         }
-      : { name: name.trim(), exercises, days: undefined, rotation: undefined };
+      : { name: name.trim(), exercises: snapshotWeights(exercises), days: undefined, rotation: undefined };
 
     if (isEditing && schemaId) {
       await updateSchema(schemaId, schemaData);
@@ -413,28 +556,52 @@ export function SchemaFormPage() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex gap-3 ml-7">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Sets</Label>
-                  <Input
-                    type="number"
-                    value={ex.sets}
-                    onChange={e => updateExerciseField(i, 'sets', parseInt(e.target.value) || 1)}
-                    min={1}
-                    className="h-8 text-center"
-                  />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Reps</Label>
-                  <Input
-                    type="number"
-                    value={ex.repsPerSet}
-                    onChange={e => updateExerciseField(i, 'repsPerSet', parseInt(e.target.value) || 1)}
-                    min={1}
-                    className="h-8 text-center"
-                  />
-                </div>
-              </div>
+              {(() => {
+                const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
+                const effectiveWeight = ex.startWeight ?? suggestion;
+                const isAutoWeight = ex.startWeight == null;
+                return (
+                  <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
+                    <StepperRow
+                      label="Sets"
+                      value={ex.sets}
+                      decDisabled={ex.sets <= 1}
+                      onDec={() => stepSets(i, -1)}
+                      onInc={() => stepSets(i, 1)}
+                    />
+                    <StepperRow
+                      label="Reps"
+                      value={ex.repsPerSet}
+                      decDisabled={ex.repsPerSet <= 1}
+                      onDec={() => stepReps(i, -1)}
+                      onInc={() => stepReps(i, 1)}
+                    />
+                    <StepperRow
+                      label="Max reps"
+                      value={ex.repsMax ?? '—'}
+                      caption={ex.repsMax == null ? 'geen bovengrens' : `range ${formatReps(ex.repsPerSet, ex.repsMax)}`}
+                      decDisabled={ex.repsMax == null}
+                      onDec={() => stepRepsMax(i, -1)}
+                      onInc={() => stepRepsMax(i, 1)}
+                    />
+                    <StepperRow
+                      label="Startgewicht"
+                      value={effectiveWeight != null ? `${effectiveWeight} kg` : '—'}
+                      decDisabled={(effectiveWeight ?? 0) <= 0}
+                      onDec={() => stepStartWeight(i, -2.5)}
+                      onInc={() => stepStartWeight(i, 2.5)}
+                      onReset={!isAutoWeight && suggestion != null ? () => resetStartWeight(i) : undefined}
+                      caption={
+                        isAutoWeight
+                          ? suggestion != null
+                            ? `auto o.b.v. 1RM · ${ex.repsPerSet} reps`
+                            : 'geen 1RM-historie'
+                          : 'handmatig aangepast'
+                      }
+                    />
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         ))}

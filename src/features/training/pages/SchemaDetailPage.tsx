@@ -5,6 +5,7 @@ import { useExercises } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
+import { formatReps } from '../lib/reps';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -277,8 +278,11 @@ export function SchemaDetailPage() {
                     ))}
                   </div>
                 </div>
-                <span className="text-muted-foreground text-xs whitespace-nowrap">
-                  {se.sets}x{se.repsPerSet}
+                <span className="text-muted-foreground text-xs whitespace-nowrap text-right">
+                  {se.sets}x{formatReps(se.repsPerSet, se.repsMax)}
+                  {se.startWeight != null && (
+                    <span className="block text-[10px]">{se.startWeight} kg</span>
+                  )}
                 </span>
               </CardContent>
             </Card>
