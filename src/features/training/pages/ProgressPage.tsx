@@ -34,6 +34,7 @@ import { BodyWeightSection } from '../components/BodyWeightSection';
 import { RecordsBoard } from '../components/RecordsBoard';
 import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap';
 import { VolumeTrendChart } from '../components/VolumeTrendChart';
+import { WorkoutHistory } from '../components/WorkoutHistory';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: '4w', label: '4 weken' },
@@ -532,7 +533,14 @@ function ComparisonView() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type ProgressMode = 'single' | 'compare' | 'volume' | 'records' | 'consistency' | 'bodyweight';
+type ProgressMode =
+  | 'single'
+  | 'compare'
+  | 'volume'
+  | 'records'
+  | 'consistency'
+  | 'bodyweight'
+  | 'history';
 
 const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
   { value: 'single', label: 'Per oefening' },
@@ -541,6 +549,7 @@ const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
   { value: 'records', label: 'Records' },
   { value: 'consistency', label: 'Consistentie' },
   { value: 'bodyweight', label: 'Gewicht' },
+  { value: 'history', label: 'Trainingen' },
 ];
 
 export function ProgressPage() {
@@ -597,6 +606,7 @@ export function ProgressPage() {
       )}
       {mode === 'consistency' && <ConsistencyHeatmap />}
       {mode === 'bodyweight' && <BodyWeightSection />}
+      {mode === 'history' && <WorkoutHistory />}
     </div>
   );
 }
