@@ -24,6 +24,8 @@ export interface Exercise {
    * bilateral (heavier, both limbs at once) gets extra rest. Undefined = unknown.
    */
   laterality?: 'bilateral' | 'unilateral';
+  /** Optional movement type: compound (multi-joint) or isolation. Undefined = unknown. */
+  movementType?: 'compound' | 'isolation';
 }
 
 export interface SchemaExercise {
@@ -442,6 +444,28 @@ class TrackerDB extends Dexie {
         if (s.restTimerSound === undefined) s.restTimerSound = true;
       });
     });
+
+    // Exercise movement type (compound / isolation)
+    this.version(11).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
+    }).upgrade(async tx => {
+      // Backfill movementType on the seeded default exercises by name
+      await tx.table('exercises').toCollection().modify(e => {
+        if (e.isDefault && e.movementType === undefined) {
+          e.movementType = COMPOUND_DEFAULT_EXERCISES.has(e.name) ? 'compound' : 'isolation';
+        }
+      });
+    });
   }
 }
 
@@ -452,6 +476,28 @@ class TrackerDB extends Dexie {
  */
 export const UNILATERAL_DEFAULT_EXERCISES = new Set<string>([
   'Bulgarian Split Squat',
+]);
+
+/**
+ * Names of seeded default exercises that are compound (multi-joint) movements.
+ * Everything else in the default library is treated as isolation.
+ * Used by the v11 backfill migration and by the seed.
+ */
+export const COMPOUND_DEFAULT_EXERCISES = new Set<string>([
+  'Barbell Back Squat',
+  'Barbell Bench Press',
+  'Conventional Deadlift',
+  'Overhead Press',
+  'Barbell Row',
+  'Incline Dumbbell Press',
+  'Dips',
+  'Pull-up',
+  'Lat Pulldown',
+  'Seated Cable Row',
+  'Romanian Deadlift',
+  'Leg Press',
+  'Bulgarian Split Squat',
+  'Hip Thrust',
 ]);
 
 export const db = new TrackerDB();

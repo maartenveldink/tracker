@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { useExercise, createExercise, updateExercise } from '../hooks/useExercises';
 import { getMuscleGroups } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
@@ -9,6 +10,83 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clampRest, formatRest, lateralityDefaultRest } from '../lib/restTime';
+
+const LATERALITY_OPTIONS = [
+  { value: '', label: 'Onbekend' },
+  { value: 'bilateral', label: 'Bilateraal' },
+  { value: 'unilateral', label: 'Unilateraal' },
+] as const;
+
+const MOVEMENT_OPTIONS = [
+  { value: '', label: 'Onbekend' },
+  { value: 'compound', label: 'Compound' },
+  { value: 'isolation', label: 'Isolatie' },
+] as const;
+
+/** Small inline "+" that opens the native picker to add a muscle group. */
+function MusclePicker({
+  available,
+  onSelect,
+}: {
+  available: { id: string; name: string }[];
+  onSelect: (id: string) => void;
+}) {
+  if (available.length === 0) return null;
+  return (
+    <div className="relative inline-flex">
+      <Button type="button" variant="outline" size="icon" className="h-7 w-7 rounded-full" tabIndex={-1}>
+        <Plus className="h-4 w-4" />
+      </Button>
+      <select
+        aria-label="Spiergroep toevoegen"
+        value=""
+        onChange={e => {
+          onSelect(e.target.value);
+          e.currentTarget.value = '';
+        }}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      >
+        <option value="" disabled>
+          Kies spiergroep
+        </option>
+        {available.map(m => (
+          <option key={m.id} value={m.id}>
+            {m.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** A labelled button that cycles through a small set of options on tap. */
+function CycleField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  const idx = options.findIndex(o => o.value === value);
+  const current = options[idx >= 0 ? idx : 0]!;
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full justify-center"
+        onClick={() => onChange(options[(Math.max(0, idx) + 1) % options.length]!.value)}
+      >
+        {current.label}
+      </Button>
+    </div>
+  );
+}
 
 export function ExerciseFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +100,7 @@ export function ExerciseFormPage() {
   const [primaryMuscles, setPrimaryMuscles] = useState<string[]>([]);
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
   const [laterality, setLaterality] = useState<'' | 'bilateral' | 'unilateral'>('');
+  const [movementType, setMovementType] = useState<'' | 'compound' | 'isolation'>('');
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
 
   const settings = useSettings();
@@ -36,6 +115,7 @@ export function ExerciseFormPage() {
       setPrimaryMuscles(existing.primaryMuscles);
       setSecondaryMuscles(existing.secondaryMuscles);
       setLaterality(existing.laterality ?? '');
+      setMovementType(existing.movementType ?? '');
       setRestSeconds(existing.restTimerSeconds ?? null);
     }
   }, [existing]);
@@ -71,6 +151,7 @@ export function ExerciseFormPage() {
       primaryMuscles,
       secondaryMuscles,
       laterality: laterality === '' ? undefined : laterality,
+      movementType: movementType === '' ? undefined : movementType,
       restTimerSeconds: restSeconds ?? undefined,
     };
 
@@ -118,7 +199,7 @@ export function ExerciseFormPage() {
             id="exercise-description"
             value={description}
             onChange={e => setDescription(e.target.value)}
-            rows={2}
+            rows={5}
             className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             placeholder="Optionele beschrijving..."
           />
@@ -127,62 +208,45 @@ export function ExerciseFormPage() {
         {/* Primary muscles */}
         <div className="space-y-2">
           <Label>Primaire spiergroepen</Label>
-          <div className="flex flex-wrap gap-1 min-h-[28px]">
+          <div className="flex flex-wrap items-center gap-1 min-h-[28px]">
             {primaryMuscles.map(m => (
               <MuscleChip key={m} muscleId={m} type="primary" onRemove={() => removeMuscle('primary', m)} />
             ))}
+            <MusclePicker available={availablePrimary} onSelect={id => addMuscle('primary', id)} />
           </div>
-          <select
-            value=""
-            onChange={e => addMuscle('primary', e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">+ Spiergroep toevoegen</option>
-            {availablePrimary.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
         </div>
 
         {/* Secondary muscles */}
         <div className="space-y-2">
           <Label>Secundaire spiergroepen</Label>
-          <div className="flex flex-wrap gap-1 min-h-[28px]">
+          <div className="flex flex-wrap items-center gap-1 min-h-[28px]">
             {secondaryMuscles.map(m => (
               <MuscleChip key={m} muscleId={m} type="secondary" onRemove={() => removeMuscle('secondary', m)} />
             ))}
+            <MusclePicker available={availableSecondary} onSelect={id => addMuscle('secondary', id)} />
           </div>
-          <select
-            value=""
-            onChange={e => addMuscle('secondary', e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">+ Spiergroep toevoegen</option>
-            {availableSecondary.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
         </div>
 
-        {/* E1-06: laterality */}
-        <div className="space-y-2">
-          <Label htmlFor="exercise-laterality">Type belasting</Label>
-          <select
-            id="exercise-laterality"
+        {/* E1-06 laterality + movement type as compact toggles */}
+        <div className="grid grid-cols-2 gap-3">
+          <CycleField
+            label="Belasting"
             value={laterality}
-            onChange={e => setLaterality(e.target.value as '' | 'bilateral' | 'unilateral')}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">Onbekend</option>
-            <option value="bilateral">Bilateraal (beide tegelijk)</option>
-            <option value="unilateral">Unilateraal (één per keer)</option>
-          </select>
+            options={LATERALITY_OPTIONS}
+            onChange={v => setLaterality(v as '' | 'bilateral' | 'unilateral')}
+          />
+          <CycleField
+            label="Type"
+            value={movementType}
+            options={MOVEMENT_OPTIONS}
+            onChange={v => setMovementType(v as '' | 'compound' | 'isolation')}
+          />
         </div>
 
         {/* E1-07: per-exercise default rest */}
         <div className="space-y-2">
           <Label>Standaard rust tussen sets</Label>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -193,11 +257,11 @@ export function ExerciseFormPage() {
             >
               -
             </Button>
-            <div className="flex-1 text-center font-medium">
+            <div className="w-14 text-center font-medium tabular-nums">
               {restSeconds !== null ? (
                 formatRest(restSeconds)
               ) : (
-                <span className="text-muted-foreground">{formatRest(inheritedRest)} (standaard)</span>
+                <span className="text-muted-foreground">{formatRest(inheritedRest)}</span>
               )}
             </div>
             <Button
@@ -210,18 +274,20 @@ export function ExerciseFormPage() {
             >
               +
             </Button>
+            {restSeconds !== null ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-8 px-2 text-xs text-muted-foreground"
+                onClick={() => setRestSeconds(null)}
+              >
+                Reset
+              </Button>
+            ) : (
+              <span className="ml-1 text-xs text-muted-foreground">standaard</span>
+            )}
           </div>
-          {restSeconds !== null && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground"
-              onClick={() => setRestSeconds(null)}
-            >
-              Gebruik standaard
-            </Button>
-          )}
         </div>
 
         <Button type="submit" className="w-full">
