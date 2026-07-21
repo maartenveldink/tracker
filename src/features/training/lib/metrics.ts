@@ -140,13 +140,24 @@ export function recentPRs(workouts: Workout[], formula: OneRMFormula, sinceDays 
 
 // --- Consistency ---
 
+/** Local YYYY-MM-DD string for a date (not UTC). */
+export function localDateKey(d: Date): string {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 /** Set of local YYYY-MM-DD dates on which a workout was started. */
 export function trainingDaysSet(workouts: Workout[]): Set<string> {
   const days = new Set<string>();
-  for (const w of workouts) {
-    const d = w.startedAt;
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    days.add(local);
-  }
+  for (const w of workouts) days.add(localDateKey(w.startedAt));
   return days;
+}
+
+/** Map of local YYYY-MM-DD date → number of workouts started that day. */
+export function trainingDayCounts(workouts: Workout[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const w of workouts) {
+    const key = localDateKey(w.startedAt);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
 }
