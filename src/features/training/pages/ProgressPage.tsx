@@ -31,6 +31,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { BodyWeightSection } from '../components/BodyWeightSection';
+import { RecordsBoard } from '../components/RecordsBoard';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: '4w', label: '4 weken' },
@@ -529,11 +530,12 @@ function ComparisonView() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type ProgressMode = 'single' | 'compare' | 'bodyweight';
+type ProgressMode = 'single' | 'compare' | 'records' | 'bodyweight';
 
 const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
   { value: 'single', label: 'Per oefening' },
   { value: 'compare', label: 'Vergelijken' },
+  { value: 'records', label: 'Records' },
   { value: 'bodyweight', label: 'Gewicht' },
 ];
 
@@ -585,6 +587,9 @@ export function ProgressPage() {
 
       {mode === 'single' && <ExerciseList onSelect={setSelectedId} />}
       {mode === 'compare' && <ComparisonView />}
+      {mode === 'records' && (
+        <RecordsBoard onSelect={id => { setSelectedId(id); setMode('single'); }} />
+      )}
       {mode === 'bodyweight' && <BodyWeightSection />}
     </div>
   );
