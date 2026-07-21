@@ -25,6 +25,45 @@ interface DayState {
   order: number;
 }
 
+// --- Draft persistence for a new schema (survives navigating away) ---
+
+const DRAFT_KEY = 'tracker:schemaDraft';
+
+interface SchemaDraft {
+  name: string;
+  exercises: SchemaExercise[];
+  days: DayState[];
+  rotation: string[];
+}
+
+function loadDraft(): SchemaDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as SchemaDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(draft: SchemaDraft): void {
+  // Don't persist a completely empty form
+  const isEmpty = !draft.name.trim() && draft.exercises.length === 0 && draft.days.length === 0;
+  try {
+    if (isEmpty) localStorage.removeItem(DRAFT_KEY);
+    else localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // storage may be unavailable; ignore
+  }
+}
+
+function clearDraft(): void {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function SchemaFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined;
@@ -33,14 +72,23 @@ export function SchemaFormPage() {
   const allExercises = useExercises();
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
+  // Restore a saved draft once (new schema only), before the first render
+  const draftRef = useRef<SchemaDraft | null | undefined>(undefined);
+  if (draftRef.current === undefined) {
+    draftRef.current = isEditing ? null : loadDraft();
+  }
+  const draft = draftRef.current;
+
+  const [name, setName] = useState(draft?.name ?? '');
   // Single-day mode: exercises stored flat
-  const [exercises, setExercises] = useState<SchemaExercise[]>([]);
+  const [exercises, setExercises] = useState<SchemaExercise[]>(draft?.exercises ?? []);
   // Multi-day mode: days with their own exercises
-  const [days, setDays] = useState<DayState[]>([]);
+  const [days, setDays] = useState<DayState[]>(draft?.days ?? []);
   // Multi-day repetition rhythm: ordered list of day IDs (e.g. A, B, A, C)
-  const [rotation, setRotation] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<string>('single');
+  const [rotation, setRotation] = useState<string[]>(draft?.rotation ?? []);
+  const [activeTab, setActiveTab] = useState<string>(
+    draft?.days && draft.days.length > 0 ? draft.days[0]!.id : 'single',
+  );
   const [showPicker, setShowPicker] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
   // Which day ID is currently active for exercise picker (null = single-day mode)
@@ -71,6 +119,12 @@ export function SchemaFormPage() {
       }
     }
   }, [existing]);
+
+  // Auto-save the draft while creating a new schema
+  useEffect(() => {
+    if (isEditing) return;
+    saveDraft({ name, exercises, days, rotation });
+  }, [isEditing, name, exercises, days, rotation]);
 
   const exerciseMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -299,8 +353,18 @@ export function SchemaFormPage() {
       navigate(`/schemas/${schemaId}`);
     } else {
       const newId = await createSchema(schemaData.name, schemaData.exercises, schemaData.days, schemaData.rotation);
+      clearDraft();
       navigate(`/schemas/${newId}`);
     }
+  }
+
+  function discardDraft() {
+    setName('');
+    setExercises([]);
+    setDays([]);
+    setRotation([]);
+    setActiveTab('single');
+    clearDraft();
   }
 
   // --- Render helpers ---
@@ -644,6 +708,17 @@ export function SchemaFormPage() {
         <Button type="submit" className="w-full">
           {isEditing ? 'Opslaan' : 'Aanmaken'}
         </Button>
+
+        {!isEditing && (name.trim() || exercises.length > 0 || days.length > 0) && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={discardDraft}
+          >
+            Concept wissen
+          </Button>
+        )}
       </form>
     </div>
   );

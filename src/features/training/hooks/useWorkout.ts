@@ -129,6 +129,23 @@ export async function removeWorkoutSet(
   });
 }
 
+/** Remove an entire exercise from the workout, reindexing the remaining order. */
+export async function removeWorkoutExercise(
+  workoutId: number,
+  exerciseIndex: number,
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    if (!workout) return;
+
+    const exercises = workout.exercises
+      .filter((_, i) => i !== exerciseIndex)
+      .map((ex, i) => ({ ...ex, order: i }));
+
+    await db.workouts.update(workoutId, { exercises });
+  });
+}
+
 /** Add an ad-hoc exercise to the current workout. */
 export async function addWorkoutExercise(
   workoutId: number,

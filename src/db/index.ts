@@ -17,6 +17,8 @@ export interface Exercise {
   secondaryMuscles: string[]; // MuscleGroup ids
   isDefault: boolean;         // true = from seed data
   createdAt: Date;
+  /** Optional per-exercise default rest time (seconds). Falls back to the global setting. */
+  restTimerSeconds?: number;
 }
 
 export interface SchemaExercise {

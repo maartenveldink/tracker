@@ -5,6 +5,7 @@ import {
   updateWorkoutSet,
   addWorkoutSet,
   removeWorkoutSet,
+  removeWorkoutExercise,
   addWorkoutExercise,
   updateExerciseNotes,
   updateWorkoutNotes,
@@ -12,7 +13,7 @@ import {
   resumeWorkout,
   completeWorkout,
 } from '../hooks/useWorkout';
-import { useExercises } from '../hooks/useExercises';
+import { useExercises, updateExercise } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -26,7 +27,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, X as XIcon } from 'lucide-react';
+import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon } from 'lucide-react';
 import type { Exercise, Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
@@ -196,6 +197,61 @@ function QuickRepsBar({
   );
 }
 
+// --- Per-exercise rest control ---
+
+function formatSecs(s: number): string {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function RestControlBar({
+  seconds,
+  isDefault,
+  onAdjust,
+  onSaveDefault,
+}: {
+  seconds: number;
+  isDefault: boolean;
+  onAdjust: (delta: number) => void;
+  onSaveDefault: () => void;
+}) {
+  return (
+    <div className="px-3 py-1.5 border-b border-border bg-muted/20 flex items-center gap-2">
+      <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="text-[11px] text-muted-foreground">Rust</span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 text-muted-foreground"
+        onClick={() => onAdjust(-15)}
+        aria-label="Rust verlagen"
+      >
+        <Minus className="h-3 w-3" />
+      </Button>
+      <span className="text-xs font-mono font-medium min-w-[2.5rem] text-center">{formatSecs(seconds)}</span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 text-muted-foreground"
+        onClick={() => onAdjust(15)}
+        aria-label="Rust verhogen"
+      >
+        <Plus className="h-3 w-3" />
+      </Button>
+      <div className="flex-1" />
+      {!isDefault && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-[11px] text-primary"
+          onClick={onSaveDefault}
+        >
+          Als standaard
+        </Button>
+      )}
+    </div>
+  );
+}
+
 // --- Helper: truncate exercise name for nav pills ---
 function truncateName(name: string, max: number = 12): string {
   if (name.length <= max) return name;
@@ -224,6 +280,11 @@ export function WorkoutPage() {
 
   // RT-01: Rest timer state
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
+
+  // Per-exercise rest override for this session (exerciseId -> seconds)
+  const [exerciseRest, setExerciseRest] = useState<Record<number, number>>({});
+  // Confirm dialog for deleting a whole exercise
+  const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
 
   // NAV-01: refs for scrolling to exercises
   const exerciseRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -333,33 +394,69 @@ export function WorkoutPage() {
     !exerciseSearch || e.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
   );
 
-  // RT-08: Start/restart rest timer on set complete
-  async function handleSetComplete(exerciseIndex: number, setIndex: number, currentlyCompleted: boolean) {
+  // Effective rest time for an exercise: session override -> saved default -> global
+  function getRest(exerciseId: number): number {
+    const override = exerciseRest[exerciseId];
+    if (override !== undefined) return override;
+    return exerciseMap.get(exerciseId)?.restTimerSeconds ?? settings.restTimerSeconds;
+  }
+
+  // Tapping a rep count completes the set immediately and starts the rest timer
+  async function handleQuickReps(exerciseIndex: number, setIndex: number, reps: number) {
     if (!workoutId) return;
-    const nowCompleting = !currentlyCompleted;
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
-      completed: nowCompleting,
+      actualReps: reps,
+      completed: true,
       skipped: false,
     });
     // Carry the entered weight over to the next set if it has none yet
-    if (nowCompleting) {
-      const exercise = workout?.exercises[exerciseIndex];
-      const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
-      const nextSet = exercise?.sets[setIndex + 1];
-      if (currentWeight !== null && nextSet && nextSet.weight === null) {
-        await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: currentWeight });
-      }
+    const exercise = workout?.exercises[exerciseIndex];
+    const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
+    const nextSet = exercise?.sets[setIndex + 1];
+    if (currentWeight !== null && nextSet && nextSet.weight === null) {
+      await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: currentWeight });
     }
-    // RT-01/RT-08: Start or restart timer when marking as completed
-    if (nowCompleting) {
-      setRestTimer({
-        exerciseIdx: exerciseIndex,
-        setIdx: setIndex,
-        remaining: settings.restTimerSeconds,
-        total: settings.restTimerSeconds,
-        startedAt: Date.now(),
-      });
-    }
+    // Start the rest timer using this exercise's rest time
+    const rest = getRest(exercise?.exerciseId ?? -1);
+    setRestTimer({
+      exerciseIdx: exerciseIndex,
+      setIdx: setIndex,
+      remaining: rest,
+      total: rest,
+      startedAt: Date.now(),
+    });
+  }
+
+  // Undo completion of a set (the prominent complete button was removed)
+  async function handleUncomplete(exerciseIndex: number, setIndex: number) {
+    if (!workoutId) return;
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { completed: false });
+  }
+
+  // Adjust this exercise's rest time for the session (15s steps, 15–600)
+  function adjustRest(exerciseId: number, delta: number) {
+    setExerciseRest(prev => {
+      const current = prev[exerciseId] ?? getRest(exerciseId);
+      const next = Math.min(600, Math.max(15, current + delta));
+      return { ...prev, [exerciseId]: next };
+    });
+  }
+
+  // Persist the current rest time as this exercise's default
+  async function saveRestAsDefault(exerciseId: number) {
+    await updateExercise(exerciseId, { restTimerSeconds: getRest(exerciseId) });
+    // Clear the session override so it now reads from the saved default
+    setExerciseRest(prev => {
+      const next = { ...prev };
+      delete next[exerciseId];
+      return next;
+    });
+  }
+
+  async function handleDeleteExercise() {
+    if (!workoutId || deleteExerciseIdx === null) return;
+    await removeWorkoutExercise(workoutId, deleteExerciseIdx);
+    setDeleteExerciseIdx(null);
   }
 
   async function handleSetSkip(exerciseIndex: number, setIndex: number, currentlySkipped: boolean) {
@@ -561,8 +658,25 @@ export function WorkoutPage() {
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => setDeleteExerciseIdx(exIdx)}
+                    aria-label="Oefening verwijderen"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
+
+              {/* Rest time control for this exercise */}
+              <RestControlBar
+                seconds={getRest(workoutExercise.exerciseId)}
+                isDefault={exerciseRest[workoutExercise.exerciseId] === undefined}
+                onAdjust={(delta) => adjustRest(workoutExercise.exerciseId, delta)}
+                onSaveDefault={() => saveRestAsDefault(workoutExercise.exerciseId)}
+              />
 
               {/* Previous session reference (E3-10) */}
               {prevSession ? (
@@ -610,11 +724,10 @@ export function WorkoutPage() {
               {/* Sets table (E3-02, E3-03, E3-04, SL-03, SL-04, SL-05, SL-06) */}
               <div className="divide-y divide-border/50">
                 {/* Table header */}
-                <div className="grid grid-cols-[1.5rem_1fr_1fr_2.25rem_2.25rem_2rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="grid grid-cols-[1.75rem_1fr_1fr_2.25rem_2rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
                   <span className="text-center">#</span>
                   <span className="text-center">kg</span>
                   <span className="text-center">reps</span>
-                  <span></span>
                   <span></span>
                   <span></span>
                 </div>
@@ -627,13 +740,24 @@ export function WorkoutPage() {
                     <div key={set.setNumber}>
                     <div
                       className={cn(
-                        'grid grid-cols-[1.5rem_1fr_1fr_2.25rem_2.25rem_2rem] gap-1 px-3 py-1.5 items-center',
+                        'grid grid-cols-[1.75rem_1fr_1fr_2.25rem_2rem] gap-1 px-3 py-1.5 items-center',
                         set.completed && 'bg-primary/10',
                         set.skipped && 'bg-secondary/50 opacity-50',
                         isActiveSet && !set.completed && !set.skipped && 'bg-primary/5 border-l-2 border-primary',
                       )}
                     >
-                      <span className="text-xs text-muted-foreground text-center">{set.setNumber}</span>
+                      {/* Status: green check (tap to undo) when completed, else set number */}
+                      {set.completed ? (
+                        <button
+                          onClick={() => handleUncomplete(exIdx, setIdx)}
+                          aria-label="Markeer als niet voltooid"
+                          className="flex items-center justify-center"
+                        >
+                          <Check className="h-4 w-4 text-green-500" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground text-center">{set.setNumber}</span>
+                      )}
                       {/* SL-03: kg input with +/- buttons */}
                       <div className="flex items-center gap-0.5">
                         <Button
@@ -689,19 +813,6 @@ export function WorkoutPage() {
                           +
                         </Button>
                       </div>
-                      {/* Complete button (E3-03) */}
-                      <Button
-                        variant={set.completed ? 'default' : 'secondary'}
-                        size="icon"
-                        className={cn(
-                          'h-7 w-7',
-                          set.completed && 'bg-primary text-primary-foreground',
-                        )}
-                        onClick={() => handleSetComplete(exIdx, setIdx, set.completed)}
-                        aria-label={set.completed ? 'Markeer als niet voltooid' : 'Markeer als voltooid'}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
                       {/* Skip button (E3-05) */}
                       <Button
                         variant="secondary"
@@ -726,11 +837,11 @@ export function WorkoutPage() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    {/* Quick reps bar under the active set */}
+                    {/* Quick reps bar under the active set — tapping completes the set */}
                     {isActiveSet && !set.completed && !set.skipped && (
                       <QuickRepsBar
                         selected={set.actualReps}
-                        onSelect={(reps) => handleRepsChange(exIdx, setIdx, String(reps))}
+                        onSelect={(reps) => handleQuickReps(exIdx, setIdx, reps)}
                       />
                     )}
                     </div>
@@ -826,6 +937,21 @@ export function WorkoutPage() {
         confirmLabel="Afronden"
         onConfirm={handleFinish}
         onCancel={() => setShowFinish(false)}
+      />
+
+      {/* Delete-exercise confirmation */}
+      <ConfirmDialog
+        open={deleteExerciseIdx !== null}
+        title="Oefening verwijderen"
+        message={
+          deleteExerciseIdx !== null
+            ? `Wil je "${exerciseMap.get(workout.exercises[deleteExerciseIdx]?.exerciseId ?? -1)?.name ?? 'deze oefening'}" uit de training verwijderen? De gelogde sets gaan verloren.`
+            : ''
+        }
+        confirmLabel="Verwijderen"
+        variant="danger"
+        onConfirm={handleDeleteExercise}
+        onCancel={() => setDeleteExerciseIdx(null)}
       />
     </div>
   );

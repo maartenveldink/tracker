@@ -10,7 +10,8 @@ import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight, ArrowRight } from 'lucide-react';
+import { X, Clock, Layers, Weight, ArrowRight, Share2 } from 'lucide-react';
+import { shareText } from '../../../lib/share';
 import type { Exercise, Workout } from '../../../db/index';
 
 function formatDate(date: Date): string {
@@ -235,19 +236,44 @@ export function WorkoutSummaryPage() {
     ? Math.round(volumeComparison.current - volumeComparison.previous)
     : null;
 
+  async function shareSummary() {
+    if (!workout) return;
+    const title = `${workout.schemaName ?? 'Losse training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
+    const lines: string[] = [
+      `🏋️ ${title} — ${formatDate(workout.startedAt)}`,
+      `⏱️ ${formatDurationLong(duration)} · ${totalSetsCompleted} sets · ${Math.round(totalVolume)} kg volume`,
+      '',
+    ];
+    for (const we of workout.exercises) {
+      const exercise = exerciseMap.get(we.exerciseId);
+      const done = we.sets.filter(s => s.completed);
+      if (done.length === 0) continue;
+      const setsText = done.map(s => `${s.weight ?? 0}×${s.actualReps ?? 0}`).join(', ');
+      const pr = prExercises.has(we.exerciseId) ? ' 🏆' : '';
+      lines.push(`• ${exercise?.name ?? 'Onbekend'}: ${setsText}${pr}`);
+    }
+    await shareText(lines.join('\n'), title);
+  }
+
   return (
     <div className="min-h-screen">
       <PageHeader
         title="Samenvatting"
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/start')}
-          >
-            <X className="h-4 w-4" />
-            Sluiten
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={shareSummary}>
+              <Share2 className="h-4 w-4" />
+              Deel
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/start')}
+            >
+              <X className="h-4 w-4" />
+              Sluiten
+            </Button>
+          </div>
         }
       />
 

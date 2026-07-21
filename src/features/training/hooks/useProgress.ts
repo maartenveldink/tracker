@@ -53,23 +53,31 @@ export function useCompletedWorkouts() {
   ) ?? [];
 }
 
+/** Pure: builds the session history for one exercise from a list of workouts. */
+export function computeExerciseSessions(
+  workouts: Workout[],
+  exerciseId: number | undefined,
+  formula: OneRMFormula = 'epley',
+): ExerciseSession[] {
+  if (!exerciseId || !workouts.length) return [];
+
+  return workouts
+    .filter(w => w.exercises.some(e => e.exerciseId === exerciseId))
+    .map(w => workoutToSession(w, exerciseId, formula))
+    .filter((s): s is ExerciseSession => s !== null)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
 export function useProgress(
   exerciseId: number | undefined,
   formula: OneRMFormula = 'epley',
 ) {
   const workouts = useCompletedWorkouts();
 
-  const sessions = useMemo<ExerciseSession[]>(() => {
-    if (!exerciseId || !workouts.length) return [];
-
-    return workouts
-      .filter(w =>
-        w.exercises.some(e => e.exerciseId === exerciseId),
-      )
-      .map(w => workoutToSession(w, exerciseId, formula))
-      .filter((s): s is ExerciseSession => s !== null)
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [workouts, exerciseId, formula]);
+  const sessions = useMemo<ExerciseSession[]>(
+    () => computeExerciseSessions(workouts, exerciseId, formula),
+    [workouts, exerciseId, formula],
+  );
 
   return sessions;
 }
