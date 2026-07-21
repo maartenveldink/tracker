@@ -81,6 +81,35 @@ function formatRefDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// E3-12: short beep via WebAudio when the rest timer ends.
+function playRestBeep(): void {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.36);
+    osc.onended = () => void ctx.close();
+  } catch {
+    // Audio unavailable — ignore
+  }
+}
+
+// E3-16: ask for notification permission on a user gesture so a background
+// alert can fire when the timer ends while the app is not focused.
+function requestNotifyPermission(): void {
+  if ('Notification' in window && Notification.permission === 'default') {
+    void Notification.requestPermission();
+  }
+}
+
 function PreviousSessionBar({ reference, currentSetCount }: {
   reference: PreviousSessionRef;
   currentSetCount: number;
@@ -342,6 +371,8 @@ export function WorkoutPage() {
   // RT-01: Rest timer countdown effect
   // Re-runs only when a new timer starts (unique startedAt). Functional updates
   // handle the countdown without needing `remaining` in deps.
+  const restAlertFiredRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!restTimer) return;
 
@@ -349,7 +380,14 @@ export function WorkoutPage() {
       setRestTimer(prev => {
         if (!prev) return null;
         const next = prev.remaining - 1;
-        if (next <= 0) return null;
+        if (next <= 0) {
+          // E3-12: fire the alert once per timer (guard against StrictMode re-runs)
+          if (restAlertFiredRef.current !== prev.startedAt) {
+            restAlertFiredRef.current = prev.startedAt;
+            fireRestAlert();
+          }
+          return null;
+        }
         return { ...prev, remaining: next };
       });
     }, 1000);
@@ -409,9 +447,21 @@ export function WorkoutPage() {
     });
   }
 
+  // E3-12/16: alert the user when the rest timer ends
+  function fireRestAlert() {
+    if (settings.restTimerVibrate && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([200, 100, 200]);
+    }
+    if (settings.restTimerSound) playRestBeep();
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification('Rust voorbij', { body: 'Tijd voor je volgende set.' });
+    }
+  }
+
   // Tapping a rep count completes the set immediately and starts the rest timer
   async function handleQuickReps(exerciseIndex: number, setIndex: number, reps: number) {
     if (!workoutId) return;
+    requestNotifyPermission();
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
       actualReps: reps,
       completed: true,
@@ -438,6 +488,7 @@ export function WorkoutPage() {
   // E3-19: fill weight + reps from the previous session's matching set and complete it
   async function handleSameAsPrevious(exerciseIndex: number, setIndex: number, prev: PreviousSetRef) {
     if (!workoutId) return;
+    requestNotifyPermission();
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
       weight: prev.weight,
       actualReps: prev.reps,

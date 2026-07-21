@@ -248,6 +248,10 @@ export interface AppSettings {
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
   /** E8-09: extra rest (seconds) added on top of the global default for bilateral exercises. */
   bilateralRestExtraSeconds: number;
+  /** E3-12: vibrate when the rest timer ends. */
+  restTimerVibrate: boolean;
+  /** E3-12: play a sound when the rest timer ends. */
+  restTimerSound: boolean;
   /** Optional feature modules, hidden from the main navigation when disabled. */
   features: {
     nutrition: boolean;
@@ -318,6 +322,8 @@ class TrackerDB extends Dexie {
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
         bilateralRestExtraSeconds: 60,
+        restTimerVibrate: true,
+        restTimerSound: true,
         features: { nutrition: false, planner: false },
       };
 
@@ -415,6 +421,26 @@ class TrackerDB extends Dexie {
       googleHealthConnection: 'id',
       googleHealthData: '++id, date',
       bodyWeights: '++id, date',
+    });
+
+    // Rest timer alerts: vibrate + sound toggles
+    this.version(10).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
+    }).upgrade(async tx => {
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.restTimerVibrate === undefined) s.restTimerVibrate = true;
+        if (s.restTimerSound === undefined) s.restTimerSound = true;
+      });
     });
   }
 }

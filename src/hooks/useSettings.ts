@@ -8,6 +8,8 @@ const DEFAULTS: AppSettings = {
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
   bilateralRestExtraSeconds: 60,
+  restTimerVibrate: true,
+  restTimerSound: true,
   features: { nutrition: false, planner: false },
 };
 

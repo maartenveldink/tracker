@@ -362,6 +362,30 @@ export function SettingsPage() {
               </Button>
             </div>
           </div>
+
+          {/* E3-12: rest timer end alerts */}
+          <div className="mt-4 space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="rest-vibrate" className="cursor-pointer">
+                Trillen bij einde rust
+              </Label>
+              <Switch
+                id="rest-vibrate"
+                checked={settings.restTimerVibrate}
+                onCheckedChange={(checked) => void updateSettings({ restTimerVibrate: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="rest-sound" className="cursor-pointer">
+                Geluid bij einde rust
+              </Label>
+              <Switch
+                id="rest-sound"
+                checked={settings.restTimerSound}
+                onCheckedChange={(checked) => void updateSettings({ restTimerSound: checked })}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
