@@ -9,7 +9,7 @@ import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { clampRest, formatRest, lateralityDefaultRest } from '../lib/restTime';
+import { clampRest, formatRest, movementDefaultRest } from '../lib/restTime';
 
 const LATERALITY_OPTIONS = [
   { value: '', label: 'Onbekend' },
@@ -168,7 +168,11 @@ export function ExerciseFormPage() {
   const availableSecondary = muscleGroups.filter(m => !secondaryMuscles.includes(m.id));
 
   // Inherited rest time shown as placeholder when no per-exercise override is set.
-  const inheritedRest = lateralityDefaultRest(laterality === '' ? undefined : laterality, settings);
+  const inheritedRest = movementDefaultRest(
+    laterality === '' ? undefined : laterality,
+    movementType === '' ? undefined : movementType,
+    settings,
+  );
 
   function stepRest(delta: number) {
     setRestSeconds(prev => clampRest((prev ?? inheritedRest) + delta));

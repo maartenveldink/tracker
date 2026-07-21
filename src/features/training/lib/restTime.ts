@@ -4,7 +4,15 @@ export const REST_STEP = 15;
 export const REST_MIN = 15;
 export const REST_MAX = 600;
 
-type RestSettings = Pick<AppSettings, 'restTimerSeconds' | 'bilateralRestExtraSeconds'>;
+/** Default rest (seconds) per laterality × movement-type combination. */
+export const DEFAULT_REST_MATRIX = {
+  bilateralCompound: 180,
+  unilateralCompound: 90,
+  bilateralIsolation: 60,
+  unilateralIsolation: 15,
+} as const;
+
+type RestSettings = Pick<AppSettings, 'restTimerSeconds' | 'restDefaults'>;
 
 /** Formats seconds as `M:SS` (e.g. 90 → "1:30"). */
 export function formatRest(seconds: number): string {
@@ -19,32 +27,35 @@ export function clampRest(seconds: number): number {
 }
 
 /**
- * Laterality-derived default rest (LAT-04): a bilateral exercise gets the
- * configurable extra added on top of the global default (capped at REST_MAX);
- * unilateral or unknown falls back to the global default.
+ * Default rest derived from the exercise's laterality and movement type
+ * (bilateral/unilateral × compound/isolation). When either is unknown, falls
+ * back to the global default rest.
  */
-export function lateralityDefaultRest(
+export function movementDefaultRest(
   laterality: Exercise['laterality'],
+  movementType: Exercise['movementType'],
   settings: RestSettings,
 ): number {
-  if (laterality === 'bilateral') {
-    return Math.min(REST_MAX, settings.restTimerSeconds + settings.bilateralRestExtraSeconds);
+  if (!laterality || !movementType) return settings.restTimerSeconds;
+  const m = settings.restDefaults;
+  if (movementType === 'compound') {
+    return laterality === 'bilateral' ? m.bilateralCompound : m.unilateralCompound;
   }
-  return settings.restTimerSeconds;
+  return laterality === 'bilateral' ? m.bilateralIsolation : m.unilateralIsolation;
 }
 
 /**
- * Effective rest time between sets, resolved from specific to general (E3-15):
- * 1) schema-exercise override, 2) per-exercise default, 3) laterality default,
- * 4) global setting. The first value that is set wins.
+ * Effective rest time between sets, resolved from specific to general:
+ * 1) schema-exercise override, 2) per-exercise default, 3) laterality/movement
+ * default, 4) global setting. The first value that is set wins.
  */
 export function resolveRestSeconds(args: {
   schemaRestSeconds?: number;
-  exercise?: Pick<Exercise, 'restTimerSeconds' | 'laterality'>;
+  exercise?: Pick<Exercise, 'restTimerSeconds' | 'laterality' | 'movementType'>;
   settings: RestSettings;
 }): number {
   const { schemaRestSeconds, exercise, settings } = args;
   if (schemaRestSeconds !== undefined) return schemaRestSeconds;
   if (exercise?.restTimerSeconds !== undefined) return exercise.restTimerSeconds;
-  return lateralityDefaultRest(exercise?.laterality, settings);
+  return movementDefaultRest(exercise?.laterality, exercise?.movementType, settings);
 }

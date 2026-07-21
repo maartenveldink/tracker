@@ -324,43 +324,56 @@ export function SettingsPage() {
             </Button>
           </div>
 
-          {/* E8-09: extra rest for bilateral exercises */}
-          <div className="mt-4 space-y-1 border-t pt-4">
-            <p className="text-sm font-medium">Extra rust bij bilaterale oefeningen</p>
-            <p className="text-xs text-muted-foreground">
-              Wordt bij de standaardrust opgeteld voor bilaterale oefeningen zonder eigen rusttijd (0 - 10 min, stappen van 15s).
-            </p>
-            <div className="flex items-center gap-3 pt-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                disabled={settings.bilateralRestExtraSeconds <= 0}
-                onClick={() =>
-                  void updateSettings({
-                    bilateralRestExtraSeconds: Math.max(0, settings.bilateralRestExtraSeconds - 15),
-                  })
-                }
-              >
-                -
-              </Button>
-              <div className="flex-1 text-center font-medium">
-                +{Math.floor(settings.bilateralRestExtraSeconds / 60)}:{String(settings.bilateralRestExtraSeconds % 60).padStart(2, '0')}
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                disabled={settings.bilateralRestExtraSeconds >= 600}
-                onClick={() =>
-                  void updateSettings({
-                    bilateralRestExtraSeconds: Math.min(600, settings.bilateralRestExtraSeconds + 15),
-                  })
-                }
-              >
-                +
-              </Button>
+          {/* Rest defaults per laterality × movement type */}
+          <div className="mt-4 space-y-3 border-t pt-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Standaard rust per type oefening</p>
+              <p className="text-xs text-muted-foreground">
+                Voorgestelde rust op basis van belasting en type, wanneer een oefening geen eigen rusttijd heeft (15s - 10 min, stappen van 15s).
+              </p>
             </div>
+            {([
+              { key: 'bilateralCompound', label: 'Bilateraal · compound' },
+              { key: 'unilateralCompound', label: 'Unilateraal · compound' },
+              { key: 'bilateralIsolation', label: 'Bilateraal · isolatie' },
+              { key: 'unilateralIsolation', label: 'Unilateraal · isolatie' },
+            ] as const).map(({ key, label }) => {
+              const value = settings.restDefaults[key];
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <span className="flex-1 text-sm">{label}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    disabled={value <= 15}
+                    onClick={() =>
+                      void updateSettings({
+                        restDefaults: { ...settings.restDefaults, [key]: Math.max(15, value - 15) },
+                      })
+                    }
+                  >
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-medium tabular-nums">
+                    {Math.floor(value / 60)}:{String(value % 60).padStart(2, '0')}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    disabled={value >= 600}
+                    onClick={() =>
+                      void updateSettings({
+                        restDefaults: { ...settings.restDefaults, [key]: Math.min(600, value + 15) },
+                      })
+                    }
+                  >
+                    +
+                  </Button>
+                </div>
+              );
+            })}
           </div>
 
           {/* E3-12: rest timer end alerts */}

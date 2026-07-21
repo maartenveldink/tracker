@@ -248,8 +248,13 @@ export interface AppSettings {
     fat: number | null;
   };
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
-  /** E8-09: extra rest (seconds) added on top of the global default for bilateral exercises. */
-  bilateralRestExtraSeconds: number;
+  /** Default rest (seconds) per laterality × movement-type combination. */
+  restDefaults: {
+    bilateralCompound: number;
+    unilateralCompound: number;
+    bilateralIsolation: number;
+    unilateralIsolation: number;
+  };
   /** E3-12: vibrate when the rest timer ends. */
   restTimerVibrate: boolean;
   /** E3-12: play a sound when the rest timer ends. */
@@ -323,7 +328,12 @@ class TrackerDB extends Dexie {
         muscleDetailLevel: 'global',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
-        bilateralRestExtraSeconds: 60,
+        restDefaults: {
+          bilateralCompound: 180,
+          unilateralCompound: 90,
+          bilateralIsolation: 60,
+          unilateralIsolation: 15,
+        },
         restTimerVibrate: true,
         restTimerSound: true,
         features: { nutrition: false, planner: false },
@@ -463,6 +473,32 @@ class TrackerDB extends Dexie {
       await tx.table('exercises').toCollection().modify(e => {
         if (e.isDefault && e.movementType === undefined) {
           e.movementType = COMPOUND_DEFAULT_EXERCISES.has(e.name) ? 'compound' : 'isolation';
+        }
+      });
+    });
+
+    // Laterality × movement-type rest defaults (replaces the bilateral offset)
+    this.version(12).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
+    }).upgrade(async tx => {
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.restDefaults === undefined) {
+          s.restDefaults = {
+            bilateralCompound: 180,
+            unilateralCompound: 90,
+            bilateralIsolation: 60,
+            unilateralIsolation: 15,
+          };
         }
       });
     });

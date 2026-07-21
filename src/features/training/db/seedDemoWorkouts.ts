@@ -7,7 +7,12 @@ const SETTINGS_DEFAULTS: AppSettings = {
   muscleDetailLevel: 'global',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
-  bilateralRestExtraSeconds: 60,
+  restDefaults: {
+    bilateralCompound: 180,
+    unilateralCompound: 90,
+    bilateralIsolation: 60,
+    unilateralIsolation: 15,
+  },
   restTimerVibrate: true,
   restTimerSound: true,
   features: { nutrition: false, planner: false },
