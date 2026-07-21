@@ -551,6 +551,7 @@ export function SettingsPage() {
               {importPreview.foods.length > 0 && <li>{importPreview.foods.length} voedingsmiddelen</li>}
               {importPreview.recipes.length > 0 && <li>{importPreview.recipes.length} recepten</li>}
               {importPreview.dailyLog.length > 0 && <li>{importPreview.dailyLog.length} daglog-items</li>}
+              {(importPreview.bodyWeights?.length ?? 0) > 0 && <li>{importPreview.bodyWeights!.length} gewicht-metingen</li>}
             </ul>
           )}
           <p className="text-sm text-muted-foreground">
@@ -594,6 +595,7 @@ export function SettingsPage() {
               {importResult.foods > 0 && <li>{importResult.foods} voedingsmiddelen</li>}
               {importResult.recipes > 0 && <li>{importResult.recipes} recepten</li>}
               {importResult.dailyLog > 0 && <li>{importResult.dailyLog} daglog-items</li>}
+              {importResult.bodyWeights > 0 && <li>{importResult.bodyWeights} gewicht-metingen</li>}
             </ul>
           )}
           <DialogFooter>

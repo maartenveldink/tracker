@@ -116,6 +116,14 @@ export interface Workout {
   notes: string;
 }
 
+export interface BodyWeightEntry {
+  id?: number;
+  date: string;        // YYYY-MM-DD
+  weightKg: number;
+  note?: string;
+  createdAt: Date;
+}
+
 // --- Nutrition Types ---
 
 export interface Macros {
@@ -260,6 +268,7 @@ class TrackerDB extends Dexie {
   weekPlans!: EntityTable<WeekPlan, 'id'>;
   googleHealthConnection!: EntityTable<GoogleHealthConnection, 'id'>;
   googleHealthData!: EntityTable<GoogleHealthDay, 'id'>;
+  bodyWeights!: EntityTable<BodyWeightEntry, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -391,6 +400,21 @@ class TrackerDB extends Dexie {
           e.laterality = UNILATERAL_DEFAULT_EXERCISES.has(e.name) ? 'unilateral' : 'bilateral';
         }
       });
+    });
+
+    // Bodyweight tracking: log body weight over time
+    this.version(9).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
     });
   }
 }

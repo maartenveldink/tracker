@@ -6,6 +6,7 @@ import {
   type Food,
   type Recipe,
   type DailyLogEntry,
+  type BodyWeightEntry,
 } from '@/db/index';
 import { EXPORT_VERSION, type TrackerExport } from './exportData';
 import { seedDatabase } from '@/features/training/db/seed';
@@ -62,6 +63,7 @@ export interface ImportResult {
   foods: number;
   recipes: number;
   dailyLog: number;
+  bodyWeights: number;
 }
 
 /**
@@ -86,6 +88,9 @@ export async function importData(
   data: TrackerExport,
   mode: ImportMode,
 ): Promise<ImportResult> {
+  // bodyWeights is optional for backward compatibility with older exports.
+  const bodyWeights = data.bodyWeights ?? [];
+
   const result: ImportResult = {
     exercises: data.exercises.length,
     schemas: data.schemas.length,
@@ -93,11 +98,12 @@ export async function importData(
     foods: data.foods.length,
     recipes: data.recipes.length,
     dailyLog: data.dailyLog.length,
+    bodyWeights: bodyWeights.length,
   };
 
   await db.transaction(
     'rw',
-    [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.settings, db.weekPlans],
+    [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.bodyWeights, db.settings, db.weekPlans],
     async () => {
       if (mode === 'replace') {
         // Wipe all tables
@@ -108,6 +114,7 @@ export async function importData(
         await db.recipes.clear();
         await db.dailyLog.clear();
         await db.weekPlans.clear();
+        await db.bodyWeights.clear();
 
         // Insert with original IDs preserved (bulkPut accepts explicit keys)
         await db.exercises.bulkPut(data.exercises as Exercise[]);
@@ -116,6 +123,7 @@ export async function importData(
         await db.foods.bulkPut(data.foods as Food[]);
         await db.recipes.bulkPut(data.recipes as Recipe[]);
         await db.dailyLog.bulkPut(data.dailyLog as DailyLogEntry[]);
+        await db.bodyWeights.bulkPut(bodyWeights as BodyWeightEntry[]);
 
         // Restore settings if present, otherwise keep defaults
         if (data.settings) {
@@ -218,6 +226,11 @@ export async function importData(
               : (recipeIdMap.get(entry.itemId) ?? entry.itemId),
           }));
           await db.dailyLog.bulkAdd(remappedLog as DailyLogEntry[]);
+        }
+
+        // Step 7: add body weights (no foreign keys; strip IDs for fresh keys)
+        if (bodyWeights.length > 0) {
+          await db.bodyWeights.bulkAdd(bodyWeights.map(stripId) as BodyWeightEntry[]);
         }
 
         // In merge mode we do not overwrite settings

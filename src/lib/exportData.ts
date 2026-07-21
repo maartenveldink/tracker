@@ -6,6 +6,7 @@ import {
   type Food,
   type Recipe,
   type DailyLogEntry,
+  type BodyWeightEntry,
   type AppSettings,
 } from '@/db/index';
 
@@ -20,6 +21,7 @@ export interface TrackerExport {
   foods: Food[];
   recipes: Recipe[];
   dailyLog: DailyLogEntry[];
+  bodyWeights: BodyWeightEntry[];
   settings: AppSettings | undefined;
 }
 
@@ -28,7 +30,7 @@ export interface TrackerExport {
  * Default (seed) exercises are excluded — only user-created exercises are exported.
  */
 export async function exportAllData(): Promise<TrackerExport> {
-  const [allExercises, schemas, workouts, foods, recipes, dailyLog, settings] =
+  const [allExercises, schemas, workouts, foods, recipes, dailyLog, bodyWeights, settings] =
     await Promise.all([
       db.exercises.toArray(),
       db.schemas.toArray(),
@@ -36,6 +38,7 @@ export async function exportAllData(): Promise<TrackerExport> {
       db.foods.toArray(),
       db.recipes.toArray(),
       db.dailyLog.toArray(),
+      db.bodyWeights.toArray(),
       db.settings.get(1),
     ]);
 
@@ -51,6 +54,7 @@ export async function exportAllData(): Promise<TrackerExport> {
     foods,
     recipes,
     dailyLog,
+    bodyWeights,
     settings,
   };
 }
@@ -59,15 +63,16 @@ export async function exportAllData(): Promise<TrackerExport> {
  * Returns true when the database has no meaningful user data to export.
  */
 export async function hasExportableData(): Promise<boolean> {
-  const [workoutCount, schemaCount, foodCount, recipeCount, dailyLogCount] =
+  const [workoutCount, schemaCount, foodCount, recipeCount, dailyLogCount, bodyWeightCount] =
     await Promise.all([
       db.workouts.count(),
       db.schemas.count(),
       db.foods.count(),
       db.recipes.count(),
       db.dailyLog.count(),
+      db.bodyWeights.count(),
     ]);
-  return workoutCount + schemaCount + foodCount + recipeCount + dailyLogCount > 0;
+  return workoutCount + schemaCount + foodCount + recipeCount + dailyLogCount + bodyWeightCount > 0;
 }
 
 /**

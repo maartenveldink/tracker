@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { BodyWeightSection } from '../components/BodyWeightSection';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: '4w', label: '4 weken' },
@@ -528,7 +529,13 @@ function ComparisonView() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type ProgressMode = 'single' | 'compare';
+type ProgressMode = 'single' | 'compare' | 'bodyweight';
+
+const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
+  { value: 'single', label: 'Per oefening' },
+  { value: 'compare', label: 'Vergelijken' },
+  { value: 'bodyweight', label: 'Gewicht' },
+];
 
 export function ProgressPage() {
   const exercises = useExercises();
@@ -559,34 +566,26 @@ export function ProgressPage() {
       <PageHeader title="Progressie" />
 
       {/* Mode switcher */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 overflow-x-auto">
         <div className="inline-flex rounded-lg border border-border p-0.5 bg-secondary/50">
-          <button
-            onClick={() => setMode('single')}
-            className={cn(
-              'px-3 py-1 rounded-md text-xs font-medium transition-colors',
-              mode === 'single' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
-            )}
-          >
-            Per oefening
-          </button>
-          <button
-            onClick={() => setMode('compare')}
-            className={cn(
-              'px-3 py-1 rounded-md text-xs font-medium transition-colors',
-              mode === 'compare' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
-            )}
-          >
-            Vergelijken
-          </button>
+          {MODE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setMode(opt.value)}
+              className={cn(
+                'px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap',
+                mode === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {mode === 'single' ? (
-        <ExerciseList onSelect={setSelectedId} />
-      ) : (
-        <ComparisonView />
-      )}
+      {mode === 'single' && <ExerciseList onSelect={setSelectedId} />}
+      {mode === 'compare' && <ComparisonView />}
+      {mode === 'bodyweight' && <BodyWeightSection />}
     </div>
   );
 }
