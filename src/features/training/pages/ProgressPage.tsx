@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { BodyWeightSection } from '../components/BodyWeightSection';
 import { RecordsBoard } from '../components/RecordsBoard';
 import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap';
+import { VolumeTrendChart } from '../components/VolumeTrendChart';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: '4w', label: '4 weken' },
@@ -531,11 +532,12 @@ function ComparisonView() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type ProgressMode = 'single' | 'compare' | 'records' | 'consistency' | 'bodyweight';
+type ProgressMode = 'single' | 'compare' | 'volume' | 'records' | 'consistency' | 'bodyweight';
 
 const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
   { value: 'single', label: 'Per oefening' },
   { value: 'compare', label: 'Vergelijken' },
+  { value: 'volume', label: 'Volume' },
   { value: 'records', label: 'Records' },
   { value: 'consistency', label: 'Consistentie' },
   { value: 'bodyweight', label: 'Gewicht' },
@@ -589,6 +591,7 @@ export function ProgressPage() {
 
       {mode === 'single' && <ExerciseList onSelect={setSelectedId} />}
       {mode === 'compare' && <ComparisonView />}
+      {mode === 'volume' && <VolumeTrendChart />}
       {mode === 'records' && (
         <RecordsBoard onSelect={id => { setSelectedId(id); setMode('single'); }} />
       )}

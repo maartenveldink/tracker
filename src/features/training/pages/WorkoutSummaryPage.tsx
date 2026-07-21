@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
-import { calculateStreak } from '../lib/metrics';
+import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
 import { useSettings } from '../../../hooks/useSettings';
 import { getMuscleGroupById } from '../db/muscles';
 import { PageHeader } from '../../../components/PageHeader';
@@ -44,28 +44,10 @@ export function WorkoutSummaryPage() {
   }, [allExercises]);
 
   // Volume per muscle group (E3-08)
-  const muscleVolume = useMemo(() => {
-    if (!workout) return new Map<string, number>();
-
-    const volumeMap = new Map<string, number>();
-    for (const we of workout.exercises) {
-      const exercise = exerciseMap.get(we.exerciseId);
-      if (!exercise) continue;
-
-      for (const set of we.sets) {
-        if (!set.completed || !set.weight || !set.actualReps) continue;
-        const volume = set.weight * set.actualReps;
-
-        for (const muscleId of exercise.primaryMuscles) {
-          volumeMap.set(muscleId, (volumeMap.get(muscleId) ?? 0) + volume);
-        }
-        for (const muscleId of exercise.secondaryMuscles) {
-          volumeMap.set(muscleId, (volumeMap.get(muscleId) ?? 0) + volume * 0.5);
-        }
-      }
-    }
-    return volumeMap;
-  }, [workout, exerciseMap]);
+  const muscleVolume = useMemo(
+    () => (workout ? volumePerMuscleGroup([workout], exerciseMap) : new Map<string, number>()),
+    [workout, exerciseMap],
+  );
 
   // MF-03: PR detection per exercise
   const prExercises = useMemo(() => {

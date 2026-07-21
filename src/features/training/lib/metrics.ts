@@ -1,4 +1,4 @@
-import type { Workout, WorkoutSet } from '../../../db/index';
+import type { Workout, WorkoutSet, Exercise } from '../../../db/index';
 import { calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 
 // --- Week helpers ---
@@ -91,6 +91,55 @@ export function statsForWeek(workouts: Workout[], ref: Date = new Date()): WeekS
     sessions: inWeek.length,
     volume: inWeek.reduce((sum, w) => sum + workoutVolume(w), 0),
   };
+}
+
+export interface WeekVolumePoint {
+  week: string;
+  date: Date;   // earliest workout date in the week (for sorting/labels)
+  volume: number;
+}
+
+/** Total training volume per ISO week, oldest first. */
+export function weeklyVolumeSeries(workouts: Workout[]): WeekVolumePoint[] {
+  const map = new Map<string, { date: Date; volume: number }>();
+  for (const w of workouts) {
+    const key = getISOWeek(w.startedAt);
+    const vol = workoutVolume(w);
+    const cur = map.get(key);
+    if (cur) {
+      cur.volume += vol;
+      if (w.startedAt < cur.date) cur.date = w.startedAt;
+    } else {
+      map.set(key, { date: w.startedAt, volume: vol });
+    }
+  }
+  return Array.from(map.entries())
+    .map(([week, v]) => ({ week, date: v.date, volume: v.volume }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+/**
+ * Volume per muscle group across the given workouts. Primary muscles get full
+ * credit, secondary muscles half (matching the workout summary breakdown).
+ */
+export function volumePerMuscleGroup(
+  workouts: Workout[],
+  exerciseMap: Map<number, Exercise>,
+): Map<string, number> {
+  const vol = new Map<string, number>();
+  for (const w of workouts) {
+    for (const we of w.exercises) {
+      const ex = exerciseMap.get(we.exerciseId);
+      if (!ex) continue;
+      for (const set of we.sets) {
+        if (!isCompletedSet(set)) continue;
+        const v = set.weight! * set.actualReps!;
+        for (const m of ex.primaryMuscles) vol.set(m, (vol.get(m) ?? 0) + v);
+        for (const m of ex.secondaryMuscles) vol.set(m, (vol.get(m) ?? 0) + v * 0.5);
+      }
+    }
+  }
+  return vol;
 }
 
 // --- Personal records ---
