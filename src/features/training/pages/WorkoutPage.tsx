@@ -15,6 +15,7 @@ import {
 } from '../hooks/useWorkout';
 import { useExercises, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
+import { resolveRestSeconds } from '../lib/restTime';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -395,11 +396,17 @@ export function WorkoutPage() {
     !exerciseSearch || e.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
   );
 
-  // Effective rest time for an exercise: session override -> saved default -> global
+  // Effective rest time (E3-15): session override -> schema exercise -> per-exercise
+  // default -> laterality default -> global.
   function getRest(exerciseId: number): number {
     const override = exerciseRest[exerciseId];
     if (override !== undefined) return override;
-    return exerciseMap.get(exerciseId)?.restTimerSeconds ?? settings.restTimerSeconds;
+    const schemaRestSeconds = workout?.exercises.find(e => e.exerciseId === exerciseId)?.restSeconds;
+    return resolveRestSeconds({
+      schemaRestSeconds,
+      exercise: exerciseMap.get(exerciseId),
+      settings,
+    });
   }
 
   // Tapping a rep count completes the set immediately and starts the rest timer

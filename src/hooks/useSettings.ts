@@ -7,6 +7,7 @@ const DEFAULTS: AppSettings = {
   muscleDetailLevel: 'global',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
+  bilateralRestExtraSeconds: 60,
   features: { nutrition: false, planner: false },
 };
 

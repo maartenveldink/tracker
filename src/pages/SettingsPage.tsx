@@ -323,6 +323,45 @@ export function SettingsPage() {
               +
             </Button>
           </div>
+
+          {/* E8-09: extra rest for bilateral exercises */}
+          <div className="mt-4 space-y-1 border-t pt-4">
+            <p className="text-sm font-medium">Extra rust bij bilaterale oefeningen</p>
+            <p className="text-xs text-muted-foreground">
+              Wordt bij de standaardrust opgeteld voor bilaterale oefeningen zonder eigen rusttijd (0 - 10 min, stappen van 15s).
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                disabled={settings.bilateralRestExtraSeconds <= 0}
+                onClick={() =>
+                  void updateSettings({
+                    bilateralRestExtraSeconds: Math.max(0, settings.bilateralRestExtraSeconds - 15),
+                  })
+                }
+              >
+                -
+              </Button>
+              <div className="flex-1 text-center font-medium">
+                +{Math.floor(settings.bilateralRestExtraSeconds / 60)}:{String(settings.bilateralRestExtraSeconds % 60).padStart(2, '0')}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                disabled={settings.bilateralRestExtraSeconds >= 600}
+                onClick={() =>
+                  void updateSettings({
+                    bilateralRestExtraSeconds: Math.min(600, settings.bilateralRestExtraSeconds + 15),
+                  })
+                }
+              >
+                +
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

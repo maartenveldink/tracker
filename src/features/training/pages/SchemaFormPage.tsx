@@ -5,6 +5,7 @@ import { useExercises } from '../hooks/useExercises';
 import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
+import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2 } from 'lucide-react';
-import type { SchemaExercise, SchemaDay } from '../../../db/index';
+import type { SchemaExercise, SchemaDay, Exercise } from '../../../db/index';
 
 interface DayState {
   id: string;
@@ -220,6 +221,12 @@ export function SchemaFormPage() {
   const exerciseMap = useMemo(() => {
     const map = new Map<number, string>();
     allExercises.forEach(e => map.set(e.id!, e.name));
+    return map;
+  }, [allExercises]);
+
+  const exerciseById = useMemo(() => {
+    const map = new Map<number, Exercise>();
+    allExercises.forEach(e => map.set(e.id!, e));
     return map;
   }, [allExercises]);
 
@@ -459,6 +466,25 @@ export function SchemaFormPage() {
     );
   }
 
+  function stepRest(index: number, delta: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => {
+        if (i !== index) return e;
+        const base = e.restSeconds ?? resolveRestSeconds({
+          exercise: exerciseById.get(e.exerciseId),
+          settings,
+        });
+        return { ...e, restSeconds: clampRest(base + delta) };
+      })
+    );
+  }
+
+  function resetRest(index: number) {
+    setCurrentExercises(prev =>
+      prev.map((e, i) => (i === index ? { ...e, restSeconds: undefined } : e))
+    );
+  }
+
   function openPicker(dayId: string | null) {
     setPickerDayId(dayId);
     setShowPicker(true);
@@ -560,6 +586,12 @@ export function SchemaFormPage() {
                 const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
                 const effectiveWeight = ex.startWeight ?? suggestion;
                 const isAutoWeight = ex.startWeight == null;
+                const inheritedRest = resolveRestSeconds({
+                  exercise: exerciseById.get(ex.exerciseId),
+                  settings,
+                });
+                const effectiveRest = ex.restSeconds ?? inheritedRest;
+                const isAutoRest = ex.restSeconds == null;
                 return (
                   <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
                     <StepperRow
@@ -598,6 +630,15 @@ export function SchemaFormPage() {
                             : 'geen 1RM-historie'
                           : 'handmatig aangepast'
                       }
+                    />
+                    <StepperRow
+                      label="Rust"
+                      value={formatRest(effectiveRest)}
+                      decDisabled={effectiveRest <= 15}
+                      onDec={() => stepRest(i, -15)}
+                      onInc={() => stepRest(i, 15)}
+                      onReset={!isAutoRest ? () => resetRest(i) : undefined}
+                      caption={isAutoRest ? 'standaard' : 'handmatig aangepast'}
                     />
                   </div>
                 );

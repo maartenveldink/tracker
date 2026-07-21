@@ -1,4 +1,4 @@
-import { db, type Exercise } from '../../../db/index';
+import { db, type Exercise, UNILATERAL_DEFAULT_EXERCISES } from '../../../db/index';
 
 /**
  * Seed data: 25 common exercises with muscle group mappings (E1-02).
@@ -195,8 +195,10 @@ export async function seedDatabase(): Promise<void> {
   if (count > 0) return; // Already seeded
 
   const now = new Date();
-  const exercises = DEFAULT_EXERCISES.map(e => ({
+  const exercises = DEFAULT_EXERCISES.map((e): Omit<Exercise, 'id'> => ({
     ...e,
+    // LAT-03: laterality from the shared mapping (unilateral set + bilateral fallback)
+    laterality: UNILATERAL_DEFAULT_EXERCISES.has(e.name) ? 'unilateral' : 'bilateral',
     createdAt: now,
   }));
 

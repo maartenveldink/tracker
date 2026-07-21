@@ -19,6 +19,11 @@ export interface Exercise {
   createdAt: Date;
   /** Optional per-exercise default rest time (seconds). Falls back to the global setting. */
   restTimerSeconds?: number;
+  /**
+   * Optional laterality of the movement. Drives a smarter default rest time:
+   * bilateral (heavier, both limbs at once) gets extra rest. Undefined = unknown.
+   */
+  laterality?: 'bilateral' | 'unilateral';
 }
 
 export interface SchemaExercise {
@@ -38,6 +43,12 @@ export interface SchemaExercise {
    * lower bound of the rep range; can be manually overridden.
    */
   startWeight?: number;
+  /**
+   * Optional rest time (seconds) between sets for this exercise within this
+   * schema. Undefined means it inherits from the exercise/laterality/global
+   * default (see rest resolution order in the workout page).
+   */
+  restSeconds?: number;
   order: number;
 }
 
@@ -84,6 +95,8 @@ export interface WorkoutExercise {
   order: number;
   sets: WorkoutSet[];
   notes: string;
+  /** Optional rest (seconds) snapshotted from the schema exercise when the workout started. */
+  restSeconds?: number;
 }
 
 export type WorkoutStatus = 'active' | 'paused' | 'completed';
@@ -225,6 +238,8 @@ export interface AppSettings {
     fat: number | null;
   };
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
+  /** E8-09: extra rest (seconds) added on top of the global default for bilateral exercises. */
+  bilateralRestExtraSeconds: number;
   /** Optional feature modules, hidden from the main navigation when disabled. */
   features: {
     nutrition: boolean;
@@ -293,6 +308,7 @@ class TrackerDB extends Dexie {
         muscleDetailLevel: 'global',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
+        bilateralRestExtraSeconds: 60,
         features: { nutrition: false, planner: false },
       };
 
@@ -351,7 +367,41 @@ class TrackerDB extends Dexie {
       googleHealthConnection: 'id',
       googleHealthData: '++id, date',
     });
+
+    // Rest-time refinement: laterality-based default rest + configurable bilateral offset
+    this.version(8).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+    }).upgrade(async tx => {
+      // E8-09: add the configurable bilateral rest offset
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.bilateralRestExtraSeconds === undefined) s.bilateralRestExtraSeconds = 60;
+      });
+      // MIG-02: backfill laterality on the seeded default exercises by name
+      await tx.table('exercises').toCollection().modify(e => {
+        if (e.isDefault && e.laterality === undefined) {
+          e.laterality = UNILATERAL_DEFAULT_EXERCISES.has(e.name) ? 'unilateral' : 'bilateral';
+        }
+      });
+    });
   }
 }
+
+/**
+ * Names of seeded default exercises that train one limb at a time. Everything
+ * else in the default library is a bilateral barbell/cable/machine movement.
+ * Used by the v8 backfill migration (MIG-02).
+ */
+export const UNILATERAL_DEFAULT_EXERCISES = new Set<string>([
+  'Bulgarian Split Squat',
+]);
 
 export const db = new TrackerDB();
