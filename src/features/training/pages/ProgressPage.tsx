@@ -581,15 +581,17 @@ export function ProgressPage() {
       <PageHeader title="Progressie" />
 
       {/* Mode switcher */}
-      <div className="px-4 pt-3 overflow-x-auto">
-        <div className="inline-flex rounded-lg border border-border p-0.5 bg-secondary/50">
+      <div className="px-4 py-3 overflow-x-auto">
+        <div className="inline-flex gap-1 rounded-xl border border-border p-1 bg-secondary/50">
           {MODE_OPTIONS.map(opt => (
             <button
               key={opt.value}
               onClick={() => setMode(opt.value)}
               className={cn(
-                'px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap',
-                mode === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                mode === opt.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {opt.label}
