@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSchemas, isMultiDay, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
-import { useCompletedWorkouts } from '../hooks/useProgress';
+import { useCompletedWorkouts, computeExerciseSessions } from '../hooks/useProgress';
+import { useSettings } from '../../../hooks/useSettings';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -81,7 +82,26 @@ export function StartWorkoutPage() {
   const activeWorkoutState = useActiveWorkout();
   const activeWorkout = activeWorkoutState?.workout;
   const completedWorkouts = useCompletedWorkouts();
+  const settings = useSettings();
   const navigate = useNavigate();
+
+  // E3-38: seed each set's planned weight from the most recent session of the
+  // same exercise, so returning users start from what they last lifted. The
+  // schema start weight only applies the first time (no history yet).
+  function seedHistoryWeights(exercises: WorkoutExercise[]): WorkoutExercise[] {
+    return exercises.map(we => {
+      const sessions = computeExerciseSessions(completedWorkouts, we.exerciseId, settings.oneRMFormula);
+      const last = sessions[sessions.length - 1];
+      if (!last) return we;
+      return {
+        ...we,
+        sets: we.sets.map((s, i) => {
+          const hist = last.sets[i];
+          return hist ? { ...s, plannedWeight: hist.weight } : s;
+        }),
+      };
+    });
+  }
 
   // Expanded schema card (for day selection on multi-day schemas)
   const [expandedSchemaId, setExpandedSchemaId] = useState<number | null>(null);
@@ -166,7 +186,7 @@ export function StartWorkoutPage() {
     }
     setRecentWarningSchemaId(null);
 
-    const exercises = buildWorkoutExercises(schema.exercises);
+    const exercises = seedHistoryWeights(buildWorkoutExercises(schema.exercises));
     const workoutId = await startWorkout(schema.id!, schema.name, exercises);
     navigate(`/workout/${workoutId}`);
   }
@@ -183,7 +203,7 @@ export function StartWorkoutPage() {
     const day = sortedDays.find(d => d.id === dayId);
     if (!day) return;
 
-    const exercises = buildWorkoutExercises(day.exercises);
+    const exercises = seedHistoryWeights(buildWorkoutExercises(day.exercises));
     const workoutId = await startWorkout(
       schema.id!,
       schema.name,

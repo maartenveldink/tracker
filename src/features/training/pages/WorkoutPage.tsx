@@ -435,6 +435,32 @@ export function WorkoutPage() {
     });
   }
 
+  // E3-19: fill weight + reps from the previous session's matching set and complete it
+  async function handleSameAsPrevious(exerciseIndex: number, setIndex: number, prev: PreviousSetRef) {
+    if (!workoutId) return;
+    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
+      weight: prev.weight,
+      actualReps: prev.reps,
+      completed: true,
+      skipped: false,
+    });
+    // Carry the weight over to the next set if it has none yet
+    const exercise = workout?.exercises[exerciseIndex];
+    const nextSet = exercise?.sets[setIndex + 1];
+    if (nextSet && nextSet.weight === null) {
+      await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: prev.weight });
+    }
+    // Start the rest timer, matching quick-reps completion
+    const rest = getRest(exercise?.exerciseId ?? -1);
+    setRestTimer({
+      exerciseIdx: exerciseIndex,
+      setIdx: setIndex,
+      remaining: rest,
+      total: rest,
+      startedAt: Date.now(),
+    });
+  }
+
   // Undo completion of a set (the prominent complete button was removed)
   async function handleUncomplete(exerciseIndex: number, setIndex: number) {
     if (!workoutId) return;
@@ -743,6 +769,8 @@ export function WorkoutPage() {
                 {workoutExercise.sets.map((set, setIdx) => {
                   // SL-06: highlight the active (first incomplete) set
                   const isActiveSet = setIdx === activeSetIdx;
+                  // E3-18: previous session's matching set, for prefill hints
+                  const prevSet = prevSession?.sets[setIdx];
 
                   return (
                     <div key={set.setNumber}>
@@ -782,7 +810,7 @@ export function WorkoutPage() {
                           value={set.weight ?? ''}
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
-                          placeholder={set.plannedWeight != null ? String(set.plannedWeight) : '-'}
+                          placeholder={set.plannedWeight != null ? String(set.plannedWeight) : prevSet ? String(prevSet.weight) : '-'}
                           className="h-7 text-center text-sm px-0.5 min-w-0"
                         />
                         <Button
@@ -809,7 +837,7 @@ export function WorkoutPage() {
                           value={set.actualReps ?? ''}
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
-                          placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : '-'}
+                          placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : prevSet ? String(prevSet.reps) : '-'}
                           className="h-7 text-center text-sm px-0.5 min-w-0"
                         />
                         <Button
@@ -845,6 +873,19 @@ export function WorkoutPage() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+                    {/* E3-19: one-tap "same as previous" for the active set */}
+                    {isActiveSet && !set.completed && !set.skipped && prevSet && (
+                      <div className="px-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSameAsPrevious(exIdx, setIdx, prevSet)}
+                          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-accent"
+                        >
+                          <History className="h-3 w-3" />
+                          Zelfde als vorige: {prevSet.weight}kg × {prevSet.reps}
+                        </button>
+                      </div>
+                    )}
                     {/* Quick reps bar under the active set — tapping completes the set */}
                     {isActiveSet && !set.completed && !set.skipped && (
                       <QuickRepsBar
