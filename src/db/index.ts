@@ -246,10 +246,15 @@ export interface GoogleHealthDay {
 
 // --- App Settings ---
 
+/** Sizing/spacing of the live-workout set controls (buttons + inputs). */
+export type WorkoutDensity = 'compact' | 'comfortable' | 'spacious';
+
 export interface AppSettings {
   id: 1; // singleton row
   oneRMFormula: 'epley' | 'brzycki' | 'lombardi';
   muscleDetailLevel: 'global' | 'detailed';
+  /** How large/roomy the workout set controls are rendered. */
+  workoutDensity: WorkoutDensity;
   macroGoals: {
     calories: number | null;
     protein: number | null;
@@ -335,6 +340,7 @@ class TrackerDB extends Dexie {
         id: 1,
         oneRMFormula: 'epley',
         muscleDetailLevel: 'global',
+        workoutDensity: 'comfortable',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
         restDefaults: {

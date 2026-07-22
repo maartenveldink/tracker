@@ -5,6 +5,7 @@ const DEFAULTS: AppSettings = {
   id: 1,
   oneRMFormula: 'epley',
   muscleDetailLevel: 'global',
+  workoutDensity: 'comfortable',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
   restDefaults: {

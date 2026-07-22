@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays } from 'lucide-react';
+import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays, Rows3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -236,6 +236,55 @@ export function SettingsPage() {
               }
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Workout density — size/spacing of the live-workout set controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Rows3 className="h-4 w-4 text-primary" />
+            Weergave training
+          </CardTitle>
+          <CardDescription>
+            Kies hoe groot de knoppen en velden tijdens een training zijn.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={settings.workoutDensity}
+            onValueChange={(value: 'compact' | 'comfortable' | 'spacious') =>
+              void updateSettings({ workoutDensity: value })
+            }
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="compact" id="density-compact" />
+              <Label htmlFor="density-compact" className="flex-1 cursor-pointer">
+                <span className="font-medium">Compact</span>
+                <span className="block text-xs text-muted-foreground">
+                  Kleine knoppen, meer sets in beeld
+                </span>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="comfortable" id="density-comfortable" />
+              <Label htmlFor="density-comfortable" className="flex-1 cursor-pointer">
+                <span className="font-medium">Comfortabel</span>
+                <span className="block text-xs text-muted-foreground">
+                  Ruimere knoppen en velden — standaard
+                </span>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="spacious" id="density-spacious" />
+              <Label htmlFor="density-spacious" className="flex-1 cursor-pointer">
+                <span className="font-medium">Ruim</span>
+                <span className="block text-xs text-muted-foreground">
+                  Grote knoppen, makkelijk te raken
+                </span>
+              </Label>
+            </div>
+          </RadioGroup>
         </CardContent>
       </Card>
 

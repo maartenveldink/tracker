@@ -33,7 +33,43 @@ import {
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
-import type { Equipment, Exercise, Workout } from '../../../db/index';
+import type { Equipment, Exercise, Workout, WorkoutDensity } from '../../../db/index';
+
+// --- Set-control sizing (Settings → "Weergave training") ---
+// Class strings are written out in full so Tailwind's JIT keeps them.
+const DENSITY: Record<WorkoutDensity, {
+  grid: string;    // grid-template-columns shared by the header + set rows
+  rowPad: string;  // vertical padding of a set row
+  stepper: string; // +/- buttons flanking the inputs
+  input: string;   // weight/reps inputs
+  action: string;  // skip/delete buttons
+  quickRep: string; // quick-reps bar buttons
+}> = {
+  compact: {
+    grid: 'grid-cols-[1.75rem_1fr_1fr_2.25rem_2rem]',
+    rowPad: 'py-1.5',
+    stepper: 'h-6 w-6',
+    input: 'h-7',
+    action: 'h-7 w-7',
+    quickRep: 'h-7',
+  },
+  comfortable: {
+    grid: 'grid-cols-[2rem_1fr_1fr_2.5rem_2.5rem]',
+    rowPad: 'py-2.5',
+    stepper: 'h-8 w-8',
+    input: 'h-9',
+    action: 'h-9 w-9',
+    quickRep: 'h-9',
+  },
+  spacious: {
+    grid: 'grid-cols-[2.25rem_1fr_1fr_2.75rem_2.75rem]',
+    rowPad: 'py-3.5',
+    stepper: 'h-10 w-10',
+    input: 'h-11',
+    action: 'h-11 w-11',
+    quickRep: 'h-11',
+  },
+};
 
 // --- Previous session reference (E3-10) ---
 
@@ -205,9 +241,11 @@ const QUICK_REP_VALUES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 function QuickRepsBar({
   selected,
   onSelect,
+  btnClass,
 }: {
   selected: number | null;
   onSelect: (reps: number) => void;
+  btnClass: string;
 }) {
   return (
     <div className="px-3 py-1.5 border-b border-border bg-muted/20">
@@ -218,7 +256,8 @@ function QuickRepsBar({
             variant={selected === n ? 'default' : 'secondary'}
             size="sm"
             className={cn(
-              'h-7 text-xs px-0',
+              btnClass,
+              'text-xs px-0',
               selected === n && 'bg-primary text-primary-foreground',
             )}
             onClick={() => onSelect(n)}
@@ -301,6 +340,7 @@ export function WorkoutPage() {
   const allExercises = useExercises();
   const completedWorkouts = useCompletedWorkouts();
   const settings = useSettings();
+  const density = DENSITY[settings.workoutDensity];
   const navigate = useNavigate();
 
   const [elapsed, setElapsed] = useState(0);
@@ -925,7 +965,7 @@ export function WorkoutPage() {
               {/* Sets table (E3-02, E3-03, E3-04, SL-03, SL-04, SL-05, SL-06) */}
               <div className="divide-y divide-border/50">
                 {/* Table header */}
-                <div className="grid grid-cols-[1.75rem_1fr_1fr_2.25rem_2rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className={cn('grid gap-1 px-3 py-1.5 text-xs text-muted-foreground', density.grid)}>
                   <span className="text-center">#</span>
                   <span className="text-center">kg</span>
                   <span className="text-center">reps</span>
@@ -943,7 +983,9 @@ export function WorkoutPage() {
                     <div key={set.setNumber}>
                     <div
                       className={cn(
-                        'grid grid-cols-[1.75rem_1fr_1fr_2.25rem_2rem] gap-1 px-3 py-1.5 items-center',
+                        'grid gap-1 px-3 items-center',
+                        density.grid,
+                        density.rowPad,
                         set.completed && 'bg-primary/10',
                         set.skipped && 'bg-secondary/50 opacity-50',
                         isActiveSet && !set.completed && !set.skipped && 'bg-primary/5 border-l-2 border-primary',
@@ -966,7 +1008,7 @@ export function WorkoutPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -1, exercise?.equipment)}
                         >
@@ -980,14 +1022,15 @@ export function WorkoutPage() {
                           onFocus={e => e.target.select()}
                           placeholder={set.plannedWeight != null ? String(set.plannedWeight) : prevSet ? String(prevSet.weight) : '-'}
                           className={cn(
-                            'h-7 text-center text-sm px-0.5 min-w-0',
+                            density.input,
+                            'text-center text-sm px-0.5 min-w-0',
                             weightErrorKey === `${exIdx}-${setIdx}` && 'border-destructive focus-visible:ring-destructive',
                           )}
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 1, exercise?.equipment)}
                         >
@@ -999,7 +1042,7 @@ export function WorkoutPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleRepsStep(exIdx, setIdx, set.actualReps, -1)}
                         >
@@ -1030,12 +1073,12 @@ export function WorkoutPage() {
                             }
                           }}
                           placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : prevSet ? String(prevSet.reps) : '-'}
-                          className="h-7 text-center text-sm px-0.5 min-w-0"
+                          className={cn(density.input, 'text-center text-sm px-0.5 min-w-0')}
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleRepsStep(exIdx, setIdx, set.actualReps, 1)}
                         >
@@ -1047,7 +1090,7 @@ export function WorkoutPage() {
                         variant="secondary"
                         size="icon"
                         className={cn(
-                          'h-7 w-7',
+                          density.action,
                           set.skipped && 'text-amber-400',
                         )}
                         onClick={() => handleSetSkip(exIdx, setIdx, set.skipped)}
@@ -1059,7 +1102,7 @@ export function WorkoutPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        className={cn(density.action, 'text-muted-foreground hover:text-destructive')}
                         onClick={() => removeWorkoutSet(workoutId, exIdx, setIdx)}
                         aria-label="Set verwijderen"
                       >
@@ -1092,6 +1135,7 @@ export function WorkoutPage() {
                       <QuickRepsBar
                         selected={set.actualReps}
                         onSelect={(reps) => handleQuickReps(exIdx, setIdx, reps)}
+                        btnClass={density.quickRep}
                       />
                     )}
                     </div>
