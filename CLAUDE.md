@@ -28,30 +28,28 @@ npx tsc --noEmit # Type-check only
 
 ```
 src/
-  db/             # Dexie database, types, seed data, muscle definitions
-    index.ts      # DB class, all entity types (Exercise, TrainingSchema, Workout, etc.)
+  db/
+    index.ts      # Dexie DB class (versioned migrations) + all entity types
     muscles.ts    # Standardised muscle group definitions (global + detailed)
-    seed.ts       # 25 default exercises with muscle group mappings
-  hooks/          # Data access hooks and CRUD operations
-    useExercises.ts
-    useSchemas.ts
-    useWorkout.ts
-  components/     # Shared UI components
-    Layout.tsx    # Bottom nav + outlet
-    PageHeader.tsx
-    ConfirmDialog.tsx
-    MuscleChip.tsx
-  pages/          # Route-level page components
-    ExercisesPage.tsx      # Epic 1: exercise list with search/filter
-    ExerciseFormPage.tsx   # Epic 1: create/edit exercise
-    SchemasPage.tsx        # Epic 2: schema list
-    SchemaFormPage.tsx     # Epic 2: create/edit schema with exercise ordering
-    SchemaDetailPage.tsx   # Epic 2: schema detail with muscle coverage analysis
-    StartWorkoutPage.tsx   # Epic 3: start from schema or ad-hoc
-    WorkoutPage.tsx        # Epic 3: live training logging (minimal UI)
-    WorkoutSummaryPage.tsx # Epic 3: post-workout summary
-  App.tsx         # Route definitions
-  main.tsx        # Entry point (seeds DB, renders app)
+  hooks/
+    useSettings.ts # App settings (singleton row), defaults, feature flags
+  components/     # App-wide shared UI (Layout bottom nav, PageHeader, ConfirmDialog, ...)
+  pages/          # Top-level (non-feature) pages
+    DashboardPage.tsx # Home landing: streak, week stats, recent PRs, quick weigh-in, resume
+    SettingsPage.tsx  # Settings (1RM formula, muscle detail, macro goals, rest timer + defaults, flags, data tools)
+  lib/            # Cross-cutting utils (dateUtils, exportData, importData, share, utils)
+  features/
+    training/     # Exercises, schemas, live workout, progress & metrics
+      db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
+      hooks/      # useExercises, useSchemas, useWorkout, useProgress, useBodyWeight
+      lib/        # restTime (rest resolution + matrix), metrics (streak/volume/PRs/heatmap), reps, schemaShare
+      pages/      # Exercise*, Schema*, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
+      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, VolumeTrendChart, WorkoutHistory
+    nutrition/    # Foods, recipes, daily macro log (optional module)
+    planner/      # Weekly planner (optional module)
+    google-health/# Google Health OAuth + sleep/steps/HR sync (optional module)
+  App.tsx         # Routes (Dashboard is "/"), lazy-loads heavy/optional pages
+  main.tsx        # Entry point (seeds DB, inits settings, renders app)
   index.css       # Tailwind directives
 ```
 
@@ -64,19 +62,25 @@ src/
 - **Naming:** PascalCase for components, camelCase for hooks/functions, kebab-case for files would be fine but currently PascalCase for pages/components
 - **No external state management:** Dexie live queries replace Redux/Zustand
 
-## Implemented Epics (MVP)
+## Implemented Epics
 
-- **Epic 1** (E1-01 to E1-05): Exercise & muscle database — CRUD, search, filter, seed data
-- **Epic 2** (E2-01 to E2-11): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas with day management and smart default selection
-- **Epic 3** (E3-01 to E3-09): Live workout logging — start from schema/ad-hoc, set logging, pause/resume, summary
-- **Epic 4** (E4-01 to E4-05, E4-06 gedeeltelijk): Training history per exercise with 1RM chart and session list; delete workout (edit not yet implemented)
-- **Epic 5** (E5-01, E5-04 to E5-09): Food database CRUD + recipes with auto-calculated macros; Open Food Facts text search on new food form (E5-09); barcode scanner (E5-02/03) not yet implemented
-- **Epic 6** (E6-01 to E6-05): Daily nutrition log with macro totals and progress vs. goals; favourites (E6-06) not yet implemented
-- **Epic 8** (E8-05, E8-06, E8-07, E8-08): Settings — clear all data, load demo dataset, JSON export/import; 1RM formula/muscle detail UI not yet implemented
+- **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest.
+- **Epic 2** (E2-01 to E2-12): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas; collapsible exercise cards; rest-per-set; QR/link sharing.
+- **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema/ad-hoc, set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references.
+- **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, and a **Workout history overview** with delete.
+- **Dashboard**: Home landing aggregating streak, this-week sessions/volume, recent PRs, quick weigh-in, and resume-active-workout — powered by a shared `metrics` lib.
+- **Epic 5** (E5-01, E5-04 to E5-09): Food database CRUD + recipes with auto-calculated macros; Open Food Facts text search (E5-09). Optional module (feature flag).
+- **Epic 6** (E6-01 to E6-05): Daily nutrition log with macro totals and progress vs. goals. Optional module.
+- **Epic 7**: Google Health integration (OAuth + PKCE, sleep/steps/HR sync). Optional module.
+- **Epic 8** (E8-01 to E8-09): Settings — 1RM formula, muscle detail level, macro goals, rest timer + alert toggles + laterality×movement-type rest-defaults matrix, feature flags; clear data, load demo, JSON export/import.
+- **Epic 9**: Weekly planner (assign schema days to weekdays). Optional module.
+
+## Rest-time resolution
+
+Effective rest between sets resolves specific→general (see `features/training/lib/restTime.ts`):
+`SchemaExercise.restSeconds` → `Exercise.restTimerSeconds` → laterality×movement-type matrix (`AppSettings.restDefaults`, only when both known) → global `AppSettings.restTimerSeconds`. See `docs/refinement.rest-time.md`.
 
 ## Not Yet Implemented
 
-- Epic 5 (partial): Barcode scanner (E5-02, E5-03), favourites (E6-06)
-- Epic 7: Fitbit integration
-- Epic 8 (partial): 1RM formula choice (E8-01), muscle detail level (E8-02), macro goals settings UI (E8-03)
-- Epic 9: Weekly planner + meal-prep suggestions
+- Nutrition (partial): Barcode scanner (E5-02, E5-03), favourites (E6-06)
+- Planner (partial): meal-prep suggestions (Epic 9)
