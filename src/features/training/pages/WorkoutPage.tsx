@@ -32,7 +32,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
+import { Pause, Play, Check, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
 import type { Equipment, Exercise, Workout, WorkoutDensity } from '../../../db/index';
 
 // --- Set-control sizing (Settings → "Weergave training") ---
@@ -652,14 +652,6 @@ export function WorkoutPage() {
     setDeleteExerciseIdx(null);
   }
 
-  async function handleSetSkip(exerciseIndex: number, setIndex: number, currentlySkipped: boolean) {
-    if (!workoutId) return;
-    await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
-      skipped: !currentlySkipped,
-      completed: false,
-    });
-  }
-
   async function handleWeightChange(exerciseIndex: number, setIndex: number, value: string) {
     if (!workoutId) return;
     const weight = value === '' ? null : parseFloat(value);
@@ -1101,19 +1093,6 @@ export function WorkoutPage() {
                           +
                         </Button>
                       </div>
-                      {/* Skip button (E3-05) */}
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className={cn(
-                          density.action,
-                          set.skipped && 'text-amber-400',
-                        )}
-                        onClick={() => handleSetSkip(exIdx, setIdx, set.skipped)}
-                        aria-label={set.skipped ? 'Set herstellen' : 'Set overslaan'}
-                      >
-                        <SkipForward className="h-4 w-4" />
-                      </Button>
                       {/* Delete set */}
                       <Button
                         variant="ghost"

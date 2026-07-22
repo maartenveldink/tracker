@@ -1,17 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { formatDurationLong } from '../../../lib/utils';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
-import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
+import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useProgress';
 import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
 import { PageHeader } from '../../../components/PageHeader';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon } from 'lucide-react';
+import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
 import type { Exercise, Workout } from '../../../db/index';
 
@@ -149,6 +150,7 @@ export function WorkoutSummaryPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const closeTo = (location.state as { from?: string } | null)?.from ?? '/start';
+  const [showDelete, setShowDelete] = useState(false);
 
   const exerciseMap = useMemo(() => {
     const map = new Map<number, Exercise>();
@@ -308,6 +310,13 @@ export function WorkoutSummaryPage() {
     await shareImage(blob, 'training.png', title);
   }
 
+  async function handleDelete() {
+    if (workoutId === undefined) return;
+    await deleteWorkout(workoutId);
+    setShowDelete(false);
+    navigate(closeTo);
+  }
+
   return (
     <div className="min-h-screen">
       <PageHeader
@@ -321,6 +330,15 @@ export function WorkoutSummaryPage() {
             <Button variant="ghost" size="sm" onClick={shareSummaryImage}>
               <ImageIcon className="h-4 w-4" />
               Afbeelding
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => setShowDelete(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Verwijder
             </Button>
             <Button
               variant="ghost"
@@ -473,6 +491,16 @@ export function WorkoutSummaryPage() {
           Volgende sessie starten
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={showDelete}
+        title="Training verwijderen?"
+        message="Weet je zeker dat je deze training wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
+        confirmLabel="Verwijderen"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDelete(false)}
+      />
     </div>
   );
 }
