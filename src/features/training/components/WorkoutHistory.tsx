@@ -56,7 +56,7 @@ export function WorkoutHistory() {
                 className="min-w-0 flex-1 text-left"
               >
                 <p className="text-sm font-medium truncate">
-                  {w.schemaName ?? 'Losse training'}
+                  {w.schemaName ?? 'Vrije training'}
                   {w.schemaDayName ? ` — ${w.schemaDayName}` : ''}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(w.startedAt)}</p>

@@ -18,6 +18,8 @@ import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight } from '../lib/weightStep';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
+import { volumePerMuscleGroup } from '../lib/metrics';
+import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
@@ -30,7 +32,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown } from 'lucide-react';
+import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
 import type { Equipment, Exercise, Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
@@ -307,6 +309,8 @@ export function WorkoutPage() {
   const [showFinish, setShowFinish] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<number | null>(null);
   const [workoutNotesOpen, setWorkoutNotesOpen] = useState(false);
+  // Muscle-group overview so the user can decide what to still train (open by default)
+  const [muscleOverviewOpen, setMuscleOverviewOpen] = useState(true);
   const [exerciseNotesDrafts, setExerciseNotesDrafts] = useState<Record<number, string>>({});
   const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
 
@@ -349,6 +353,13 @@ export function WorkoutPage() {
     }
     return map;
   }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
+
+  // Volume per muscle group so far this session — drives the live overview that
+  // lets the user decide which muscles still need work.
+  const muscleVolume = useMemo(
+    () => (workout ? volumePerMuscleGroup([workout], exerciseMap) : new Map<string, number>()),
+    [workout, exerciseMap],
+  );
 
   // NAV-07: index of the active exercise (first with unfinished sets), or -1 if
   // every exercise is done. Used to drive auto-expand/collapse.
@@ -640,7 +651,7 @@ export function WorkoutPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-sm font-semibold truncate">
-              {workout.schemaName ?? 'Losse training'}
+              {workout.schemaName ?? 'Vrije training'}
               {workout.schemaDayName && (
                 <span className="font-normal text-muted-foreground"> - {workout.schemaDayName}</span>
               )}
@@ -722,6 +733,36 @@ export function WorkoutPage() {
 
       {/* Exercise list -- minimal UI during training (NF-05) */}
       <div className="flex-1 px-4 py-3 space-y-4 pb-24">
+        {/* Muscle-group overview: which muscles are already trained this session */}
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setMuscleOverviewOpen(o => !o)}
+            className="w-full px-3 py-2 flex items-center gap-2 text-left"
+            aria-expanded={muscleOverviewOpen}
+          >
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-muted-foreground shrink-0 transition-transform',
+                !muscleOverviewOpen && '-rotate-90',
+              )}
+            />
+            <Dumbbell className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium">Getrainde spiergroepen</span>
+          </button>
+          {muscleOverviewOpen && (
+            <div className="px-3 pb-3 pt-1 border-t border-border">
+              {muscleVolume.size > 0 ? (
+                <MuscleVolumeBars volume={muscleVolume} />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nog geen sets voltooid. Zodra je sets logt, zie je hier welke spiergroepen je traint.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {workout.exercises.map((workoutExercise, exIdx) => {
           const exercise = exerciseMap.get(workoutExercise.exerciseId);
           const completedSetsCount = workoutExercise.sets.filter(s => s.completed).length;

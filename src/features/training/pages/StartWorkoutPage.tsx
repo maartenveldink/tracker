@@ -271,7 +271,7 @@ export function StartWorkoutPage() {
               <Zap className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium text-sm">Losse training</h3>
+              <h3 className="font-medium text-sm">Vrije training</h3>
               <p className="text-muted-foreground text-xs mt-0.5">Start zonder schema, voeg oefeningen toe tijdens het trainen</p>
             </div>
           </CardContent>

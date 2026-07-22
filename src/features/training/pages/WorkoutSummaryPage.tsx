@@ -6,7 +6,7 @@ import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
 import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
 import { useSettings } from '../../../hooks/useSettings';
-import { getMuscleGroupById } from '../db/muscles';
+import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -148,17 +148,13 @@ export function WorkoutSummaryPage() {
       .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
   }, 0);
 
-  const sortedMuscleVolume = Array.from(muscleVolume.entries())
-    .map(([id, vol]) => ({ id, name: getMuscleGroupById(id)?.name ?? id, volume: vol }))
-    .sort((a, b) => b.volume - a.volume);
-
   const volumeDiff = volumeComparison.previous !== null
     ? Math.round(volumeComparison.current - volumeComparison.previous)
     : null;
 
   async function shareSummary() {
     if (!workout) return;
-    const title = `${workout.schemaName ?? 'Losse training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
+    const title = `${workout.schemaName ?? 'Vrije training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
     const lines: string[] = [
       `🏋️ ${title} — ${formatDate(workout.startedAt)}`,
       `⏱️ ${formatDurationLong(duration)} · ${totalSetsCompleted} sets · ${Math.round(totalVolume)} kg volume`,
@@ -200,7 +196,7 @@ export function WorkoutSummaryPage() {
       {/* Quick stats */}
       <div className="px-4 py-4">
         <h2 className="text-lg font-semibold mb-1">
-          {workout.schemaName ?? 'Losse training'}
+          {workout.schemaName ?? 'Vrije training'}
           {workout.schemaDayName && (
             <span className="text-muted-foreground font-normal"> - {workout.schemaDayName}</span>
           )}
@@ -298,32 +294,12 @@ export function WorkoutSummaryPage() {
       </div>
 
       {/* Volume per muscle group (E3-08) */}
-      {sortedMuscleVolume.length > 0 && (
+      {muscleVolume.size > 0 && (
         <>
           <Separator />
           <div className="px-4 py-3">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Volume per spiergroep</h3>
-            <div className="space-y-2">
-              {sortedMuscleVolume.map(({ id, name, volume }) => {
-                const maxVolume = sortedMuscleVolume[0]?.volume ?? 1;
-                const percentage = (volume / maxVolume) * 100;
-
-                return (
-                  <div key={id}>
-                    <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="text-card-foreground">{name}</span>
-                      <span className="text-muted-foreground">{Math.round(volume)} kg</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <MuscleVolumeBars volume={muscleVolume} />
           </div>
         </>
       )}

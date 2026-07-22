@@ -55,7 +55,7 @@ export function DashboardPage() {
                   {active.status === 'paused' ? 'Gepauzeerde training' : 'Actieve training'}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {active.schemaName ?? 'Losse training'}
+                  {active.schemaName ?? 'Vrije training'}
                   {active.schemaDayName ? ` — ${active.schemaDayName}` : ''}
                 </p>
               </div>

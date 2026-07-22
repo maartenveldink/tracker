@@ -44,7 +44,7 @@ src/
       hooks/      # useExercises, useSchemas, useWorkout, useProgress, useBodyWeight
       lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), metrics (streak/volume/PRs/heatmap), reps, schemaShare
       pages/      # Exercise*, Schema*, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
-      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, VolumeTrendChart, WorkoutHistory
+      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars
     nutrition/    # Foods, recipes, daily macro log (optional module)
     planner/      # Weekly planner (optional module)
     google-health/# Google Health OAuth + sleep/steps/HR sync (optional module)
@@ -66,7 +66,7 @@ src/
 
 - **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest; per-exercise equipment (cable/dumbbell/plates/other) that drives the weight increment, auto-detected from name/description.
 - **Epic 2** (E2-01 to E2-12): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas; collapsible exercise cards; rest-per-set; QR/link sharing.
-- **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema/ad-hoc, set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references.
+- **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema or free ("Vrije training", ad-hoc), set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references; live muscle-group volume overview (shared `MuscleVolumeBars` with the summary) to decide what to still train.
 - **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, and a **Workout history overview** with delete.
 - **Dashboard**: Home landing aggregating streak, this-week sessions/volume, recent PRs, quick weigh-in, and resume-active-workout — powered by a shared `metrics` lib.
 - **Epic 5** (E5-01, E5-04 to E5-09): Food database CRUD + recipes with auto-calculated macros; Open Food Facts text search (E5-09). Optional module (feature flag).
