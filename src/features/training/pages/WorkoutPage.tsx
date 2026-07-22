@@ -313,6 +313,9 @@ export function WorkoutPage() {
   const [muscleOverviewOpen, setMuscleOverviewOpen] = useState(true);
   // SL-05: "exIdx-setIdx" of a set the user tried to complete without a weight
   const [weightErrorKey, setWeightErrorKey] = useState<string | null>(null);
+  // Suppress the reps-input blur-to-complete when the blur is caused by the
+  // +/- steppers or by our own Enter handler (which calls blur() itself).
+  const suppressRepsBlurRef = useRef(false);
   const [exerciseNotesDrafts, setExerciseNotesDrafts] = useState<Record<number, string>>({});
   const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
 
@@ -964,6 +967,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -1, exercise?.equipment)}
                         >
                           -
@@ -984,6 +988,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 1, exercise?.equipment)}
                         >
                           +
@@ -995,6 +1000,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleRepsStep(exIdx, setIdx, set.actualReps, -1)}
                         >
                           -
@@ -1003,7 +1009,26 @@ export function WorkoutPage() {
                           type="number"
                           value={set.actualReps ?? ''}
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
-                          onFocus={e => e.target.select()}
+                          onFocus={e => { suppressRepsBlurRef.current = false; e.target.select(); }}
+                          // Enter/Return confirms the typed reps: complete the set
+                          // (same flow as tapping the quick-reps bar). Suppress the
+                          // blur handler that our own blur() call would trigger.
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && !set.completed && !set.skipped && set.actualReps != null && set.actualReps > 0) {
+                              e.preventDefault();
+                              suppressRepsBlurRef.current = true;
+                              e.currentTarget.blur();
+                              handleQuickReps(exIdx, setIdx, set.actualReps);
+                            }
+                          }}
+                          // Tabbing/tapping away after typing reps also completes the
+                          // set, unless the blur came from a stepper or Enter (guarded).
+                          onBlur={() => {
+                            if (suppressRepsBlurRef.current) { suppressRepsBlurRef.current = false; return; }
+                            if (!set.completed && !set.skipped && set.actualReps != null && set.actualReps > 0) {
+                              handleQuickReps(exIdx, setIdx, set.actualReps);
+                            }
+                          }}
                           placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : prevSet ? String(prevSet.reps) : '-'}
                           className="h-7 text-center text-sm px-0.5 min-w-0"
                         />
@@ -1011,6 +1036,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
+                          onPointerDown={() => { suppressRepsBlurRef.current = true; }}
                           onClick={() => handleRepsStep(exIdx, setIdx, set.actualReps, 1)}
                         >
                           +
