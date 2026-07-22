@@ -7,12 +7,20 @@ import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useP
 import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
+import { getMuscleGroupById } from '../db/muscles';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
 import type { Exercise, Workout } from '../../../db/index';
 
@@ -57,11 +65,13 @@ function buildSummarySvg(data: {
   volume: number;
   streak: number | null;
   exercises: CardExerciseRow[];
+  muscles: Array<{ name: string; volume: number }>;
 }): SVGSVGElement {
   const width = 640;
   const pad = 40;
   const bg = '#0f172a';
   const card = '#1e293b';
+  const track = '#334155';
   const text = '#f1f5f9';
   const muted = '#94a3b8';
   const accent = '#38bdf8';
@@ -124,6 +134,30 @@ function buildSummarySvg(data: {
     y += 32;
   }
 
+  // Volume per muscle group
+  if (data.muscles.length > 0) {
+    y += 12;
+    parts.push(
+      `<text x="${pad}" y="${y}" fill="${muted}" font-size="14" font-weight="600" letter-spacing="1" font-family="system-ui, sans-serif">VOLUME PER SPIERGROEP</text>`,
+    );
+    y += 26;
+    const barW = width - pad * 2;
+    const maxVol = Math.max(...data.muscles.map(m => m.volume), 1);
+    for (const m of data.muscles) {
+      parts.push(
+        `<text x="${pad}" y="${y}" fill="${text}" font-size="15" font-family="system-ui, sans-serif">${escapeXml(truncate(m.name, 36))}</text>`,
+        `<text x="${width - pad}" y="${y}" fill="${muted}" font-size="14" text-anchor="end" font-family="system-ui, sans-serif">${Math.round(m.volume)} kg</text>`,
+      );
+      const trackY = y + 8;
+      const fillW = Math.max(6, (m.volume / maxVol) * barW);
+      parts.push(
+        `<rect x="${pad}" y="${trackY}" width="${barW}" height="8" rx="4" fill="${track}"/>`,
+        `<rect x="${pad}" y="${trackY}" width="${fillW}" height="8" rx="4" fill="${accent}"/>`,
+      );
+      y = trackY + 8 + 24;
+    }
+  }
+
   y += 8;
   parts.push(
     `<text x="${pad}" y="${y}" fill="${accent}" font-size="14" font-weight="600" font-family="system-ui, sans-serif">Tracker</text>`,
@@ -151,6 +185,7 @@ export function WorkoutSummaryPage() {
   const location = useLocation();
   const closeTo = (location.state as { from?: string } | null)?.from ?? '/start';
   const [showDelete, setShowDelete] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const exerciseMap = useMemo(() => {
     const map = new Map<number, Exercise>();
@@ -297,6 +332,9 @@ export function WorkoutSummaryPage() {
         isPR: prExercises.has(we.exerciseId),
       });
     }
+    const muscles = Array.from(muscleVolume.entries())
+      .map(([id, vol]) => ({ name: getMuscleGroupById(id)?.name ?? id, volume: vol }))
+      .sort((a, b) => b.volume - a.volume);
     const svg = buildSummarySvg({
       title,
       date: formatDate(workout.startedAt),
@@ -305,6 +343,7 @@ export function WorkoutSummaryPage() {
       volume: totalVolume,
       streak,
       exercises,
+      muscles,
     });
     const blob = await svgToPngBlob(svg, { scale: 2, background: '#0f172a' });
     await shareImage(blob, 'training.png', title);
@@ -323,22 +362,22 @@ export function WorkoutSummaryPage() {
         title="Samenvatting"
         actions={
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={shareSummary}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowShare(true)}
+              aria-label="Delen"
+            >
               <Share2 className="h-4 w-4" />
-              Tekst
-            </Button>
-            <Button variant="ghost" size="sm" onClick={shareSummaryImage}>
-              <ImageIcon className="h-4 w-4" />
-              Afbeelding
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               className="text-muted-foreground hover:text-destructive"
               onClick={() => setShowDelete(true)}
+              aria-label="Training verwijderen"
             >
               <Trash2 className="h-4 w-4" />
-              Verwijder
             </Button>
             <Button
               variant="ghost"
@@ -491,6 +530,33 @@ export function WorkoutSummaryPage() {
           Volgende sessie starten
         </Button>
       </div>
+
+      <Sheet open={showShare} onOpenChange={setShowShare}>
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <SheetTitle>Training delen</SheetTitle>
+            <SheetDescription>Kies hoe je deze samenvatting wilt delen.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              className="h-20 flex-col gap-2"
+              onClick={() => { setShowShare(false); shareSummary(); }}
+            >
+              <FileText className="h-6 w-6" />
+              Tekst
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex-col gap-2"
+              onClick={() => { setShowShare(false); shareSummaryImage(); }}
+            >
+              <ImageIcon className="h-6 w-6" />
+              Afbeelding
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={showDelete}
