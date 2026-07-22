@@ -542,14 +542,29 @@ export function WorkoutPage() {
     }
   }
 
+  // The weight shown in the input when the user hasn't typed one: the actual
+  // value, else the planned weight, else the previous session's matching set.
+  // This is exactly what the input renders as a placeholder, so confirming a set
+  // without editing logs the number the user sees.
+  function resolveSetWeight(exerciseIndex: number, setIndex: number): number | null {
+    const exercise = workout?.exercises[exerciseIndex];
+    const set = exercise?.sets[setIndex];
+    if (set?.weight != null) return set.weight;
+    if (set?.plannedWeight != null) return set.plannedWeight;
+    if (!exercise) return null;
+    const prevSet = previousSessions.get(exercise.exerciseId)?.sets[setIndex];
+    return prevSet?.weight ?? null;
+  }
+
   // Tapping a rep count completes the set immediately and starts the rest timer
   async function handleQuickReps(exerciseIndex: number, setIndex: number, reps: number) {
     if (!workoutId) return;
     const exercise = workout?.exercises[exerciseIndex];
-    const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
     // SL-05: a set needs a weight before it counts. 0 is valid (bodyweight
-    // exercises like pull-ups/dips), but an empty field is a mistake — keep the
-    // tapped reps and flag the weight input instead of completing the set.
+    // exercises like pull-ups/dips), but a truly empty field is a mistake — keep
+    // the tapped reps and flag the weight input instead of completing the set.
+    // The shown placeholder (planned / previous-session weight) counts as filled.
+    const currentWeight = resolveSetWeight(exerciseIndex, setIndex);
     if (currentWeight === null) {
       await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { actualReps: reps });
       setWeightErrorKey(`${exerciseIndex}-${setIndex}`);
@@ -557,6 +572,7 @@ export function WorkoutPage() {
     }
     requestNotifyPermission();
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
+      weight: currentWeight,
       actualReps: reps,
       completed: true,
       skipped: false,
