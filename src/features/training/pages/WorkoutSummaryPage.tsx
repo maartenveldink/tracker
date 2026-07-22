@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatDurationLong } from '../../../lib/utils';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM } from '../hooks/useProgress';
@@ -36,6 +36,8 @@ export function WorkoutSummaryPage() {
   const completedWorkouts = useCompletedWorkouts();
   const settings = useSettings();
   const navigate = useNavigate();
+  const location = useLocation();
+  const closeTo = (location.state as { from?: string } | null)?.from ?? '/start';
 
   const exerciseMap = useMemo(() => {
     const map = new Map<number, Exercise>();
@@ -186,7 +188,7 @@ export function WorkoutSummaryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/start')}
+              onClick={() => navigate(closeTo)}
             >
               <X className="h-4 w-4" />
               Sluiten

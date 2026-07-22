@@ -52,7 +52,7 @@ export function WorkoutHistory() {
           <Card key={w.id} className="shadow-none">
             <CardContent className="p-3 flex items-center gap-3">
               <button
-                onClick={() => navigate(`/workout/${w.id}/summary`)}
+                onClick={() => navigate(`/workout/${w.id}/summary`, { state: { from: '/start/history' } })}
                 className="min-w-0 flex-1 text-left"
               >
                 <p className="text-sm font-medium truncate">

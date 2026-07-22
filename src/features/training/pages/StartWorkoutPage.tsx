@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Play, Calendar, AlertTriangle } from 'lucide-react';
+import { Zap, Play, Calendar, AlertTriangle, History } from 'lucide-react';
 import type { WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
@@ -245,7 +245,20 @@ export function StartWorkoutPage() {
 
   return (
     <div>
-      <PageHeader title="Start training" />
+      <PageHeader
+        title="Start training"
+        actions={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={() => navigate('/start/history')}
+            aria-label="Trainingshistorie"
+          >
+            <History className="h-5 w-5" />
+          </Button>
+        }
+      />
 
       <div className="px-4 py-4 space-y-4">
         {/* Ad-hoc option (E3-01) */}

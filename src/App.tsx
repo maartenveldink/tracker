@@ -16,6 +16,7 @@ import { WorkoutPage } from './features/training/pages/WorkoutPage';
 import { WorkoutEditPage } from './features/training/pages/WorkoutEditPage';
 import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage';
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
+import { WorkoutHistoryPage } from './features/training/pages/WorkoutHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DashboardPage } from './pages/DashboardPage';
 
@@ -68,6 +69,7 @@ export function App() {
           <Route path="/schemas/:id" element={<SchemaDetailPage />} />
           <Route path="/schemas/:id/edit" element={<SchemaFormPage />} />
           <Route path="/start" element={<StartWorkoutPage />} />
+          <Route path="/start/history" element={<WorkoutHistoryPage />} />
           <Route path="/progress" element={<ProgressPage />} />
 
           {/* Optional: nutrition module (E5/E6) */}
