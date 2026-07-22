@@ -311,6 +311,8 @@ export function WorkoutPage() {
   const [workoutNotesOpen, setWorkoutNotesOpen] = useState(false);
   // Muscle-group overview so the user can decide what to still train (open by default)
   const [muscleOverviewOpen, setMuscleOverviewOpen] = useState(true);
+  // SL-05: "exIdx-setIdx" of a set the user tried to complete without a weight
+  const [weightErrorKey, setWeightErrorKey] = useState<string | null>(null);
   const [exerciseNotesDrafts, setExerciseNotesDrafts] = useState<Record<number, string>>({});
   const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
 
@@ -500,6 +502,16 @@ export function WorkoutPage() {
   // Tapping a rep count completes the set immediately and starts the rest timer
   async function handleQuickReps(exerciseIndex: number, setIndex: number, reps: number) {
     if (!workoutId) return;
+    const exercise = workout?.exercises[exerciseIndex];
+    const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
+    // SL-05: a set needs a weight before it counts. 0 is valid (bodyweight
+    // exercises like pull-ups/dips), but an empty field is a mistake — keep the
+    // tapped reps and flag the weight input instead of completing the set.
+    if (currentWeight === null) {
+      await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { actualReps: reps });
+      setWeightErrorKey(`${exerciseIndex}-${setIndex}`);
+      return;
+    }
     requestNotifyPermission();
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, {
       actualReps: reps,
@@ -507,10 +519,8 @@ export function WorkoutPage() {
       skipped: false,
     });
     // Carry the entered weight over to the next set if it has none yet
-    const exercise = workout?.exercises[exerciseIndex];
-    const currentWeight = exercise?.sets[setIndex]?.weight ?? null;
     const nextSet = exercise?.sets[setIndex + 1];
-    if (currentWeight !== null && nextSet && nextSet.weight === null) {
+    if (nextSet && nextSet.weight === null) {
       await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: currentWeight });
     }
     // Start the rest timer using this exercise's rest time
@@ -594,7 +604,13 @@ export function WorkoutPage() {
   async function handleWeightChange(exerciseIndex: number, setIndex: number, value: string) {
     if (!workoutId) return;
     const weight = value === '' ? null : parseFloat(value);
+    if (weight !== null) clearWeightError(exerciseIndex, setIndex);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight });
+  }
+
+  // SL-05: drop the "weight required" flag once this set has a weight again
+  function clearWeightError(exerciseIndex: number, setIndex: number) {
+    setWeightErrorKey(prev => (prev === `${exerciseIndex}-${setIndex}` ? null : prev));
   }
 
   // SL-03: weight +/- buttons — increment depends on the exercise's equipment
@@ -607,6 +623,7 @@ export function WorkoutPage() {
   ) {
     if (!workoutId) return;
     const newWeight = steppedWeight(currentWeight, dir, equipment);
+    if (newWeight !== null) clearWeightError(exerciseIndex, setIndex);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight: newWeight });
   }
 
@@ -958,7 +975,10 @@ export function WorkoutPage() {
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
                           placeholder={set.plannedWeight != null ? String(set.plannedWeight) : prevSet ? String(prevSet.weight) : '-'}
-                          className="h-7 text-center text-sm px-0.5 min-w-0"
+                          className={cn(
+                            'h-7 text-center text-sm px-0.5 min-w-0',
+                            weightErrorKey === `${exIdx}-${setIdx}` && 'border-destructive focus-visible:ring-destructive',
+                          )}
                         />
                         <Button
                           variant="ghost"
@@ -1031,6 +1051,14 @@ export function WorkoutPage() {
                           <History className="h-3 w-3" />
                           Zelfde als vorige: {prevSet.weight}kg × {prevSet.reps}
                         </button>
+                      </div>
+                    )}
+                    {/* SL-05: weight required before a set can be completed */}
+                    {isActiveSet && !set.completed && !set.skipped && weightErrorKey === `${exIdx}-${setIdx}` && (
+                      <div className="px-3 pt-1">
+                        <span className="text-[11px] text-destructive">
+                          Vul eerst een gewicht in (0 voor lichaamsgewicht).
+                        </span>
                       </div>
                     )}
                     {/* Quick reps bar under the active set — tapping completes the set */}
