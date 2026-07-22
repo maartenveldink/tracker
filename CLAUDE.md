@@ -42,7 +42,7 @@ src/
     training/     # Exercises, schemas, live workout, progress & metrics
       db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
       hooks/      # useExercises, useSchemas, useWorkout, useProgress, useBodyWeight
-      lib/        # restTime (rest resolution + matrix), metrics (streak/volume/PRs/heatmap), reps, schemaShare
+      lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), metrics (streak/volume/PRs/heatmap), reps, schemaShare
       pages/      # Exercise*, Schema*, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
       components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, VolumeTrendChart, WorkoutHistory
     nutrition/    # Foods, recipes, daily macro log (optional module)
@@ -64,7 +64,7 @@ src/
 
 ## Implemented Epics
 
-- **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest.
+- **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest; per-exercise equipment (cable/dumbbell/plates/other) that drives the weight increment, auto-detected from name/description.
 - **Epic 2** (E2-01 to E2-12): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas; collapsible exercise cards; rest-per-set; QR/link sharing.
 - **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema/ad-hoc, set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references.
 - **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, and a **Workout history overview** with delete.

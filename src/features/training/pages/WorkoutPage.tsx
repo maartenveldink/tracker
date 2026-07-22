@@ -16,6 +16,7 @@ import {
 import { useExercises, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
+import { steppedWeight } from '../lib/weightStep';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -30,7 +31,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown } from 'lucide-react';
-import type { Exercise, Workout } from '../../../db/index';
+import type { Equipment, Exercise, Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
 
@@ -585,10 +586,16 @@ export function WorkoutPage() {
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight });
   }
 
-  // SL-03: weight +/- buttons
-  async function handleWeightStep(exerciseIndex: number, setIndex: number, currentWeight: number | null, step: number) {
+  // SL-03: weight +/- buttons — increment depends on the exercise's equipment
+  async function handleWeightStep(
+    exerciseIndex: number,
+    setIndex: number,
+    currentWeight: number | null,
+    dir: 1 | -1,
+    equipment: Equipment | undefined,
+  ) {
     if (!workoutId) return;
-    const newWeight = Math.max(0, (currentWeight ?? 0) + step);
+    const newWeight = steppedWeight(currentWeight, dir, equipment);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight: newWeight });
   }
 
@@ -899,7 +906,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
-                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -2.5)}
+                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -1, exercise?.equipment)}
                         >
                           -
                         </Button>
@@ -916,7 +923,7 @@ export function WorkoutPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0 text-xs text-muted-foreground"
-                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 2.5)}
+                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 1, exercise?.equipment)}
                         >
                           +
                         </Button>

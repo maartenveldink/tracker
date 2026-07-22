@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clampRest, formatRest, movementDefaultRest } from '../lib/restTime';
+import { detectEquipment } from '../lib/weightStep';
+import type { Equipment } from '../../../db/index';
 
 const LATERALITY_OPTIONS = [
   { value: '', label: 'Onbekend' },
@@ -21,6 +23,13 @@ const MOVEMENT_OPTIONS = [
   { value: '', label: 'Onbekend' },
   { value: 'compound', label: 'Compound' },
   { value: 'isolation', label: 'Isolatie' },
+] as const;
+
+const EQUIPMENT_OPTIONS = [
+  { value: 'cable', label: 'Cable (5 lb)' },
+  { value: 'dumbbell', label: 'Halter (2 kg)' },
+  { value: 'plates', label: 'Schijven (1,25 kg)' },
+  { value: 'other', label: 'Overig (1 kg)' },
 ] as const;
 
 /** Small inline "+" that opens the native picker to add a muscle group. */
@@ -102,6 +111,9 @@ export function ExerciseFormPage() {
   const [laterality, setLaterality] = useState<'' | 'bilateral' | 'unilateral'>('');
   const [movementType, setMovementType] = useState<'' | 'compound' | 'isolation'>('');
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const [equipment, setEquipment] = useState<Equipment>('other');
+  // Once the user picks equipment manually we stop auto-detecting from the text.
+  const equipmentTouched = useRef(false);
 
   const settings = useSettings();
   const muscleGroups = getMuscleGroups(settings.muscleDetailLevel);
@@ -117,8 +129,17 @@ export function ExerciseFormPage() {
       setLaterality(existing.laterality ?? '');
       setMovementType(existing.movementType ?? '');
       setRestSeconds(existing.restTimerSeconds ?? null);
+      setEquipment(existing.equipment ?? detectEquipment(`${existing.name} ${existing.description}`));
+      equipmentTouched.current = true; // keep the saved/derived value; don't auto-flip it
     }
   }, [existing]);
+
+  // For a new exercise, keep equipment in sync with the name/description until
+  // the user overrides it manually.
+  useEffect(() => {
+    if (isEditing || equipmentTouched.current) return;
+    setEquipment(detectEquipment(`${name} ${description}`));
+  }, [isEditing, name, description]);
 
   function addMuscle(type: 'primary' | 'secondary', muscleId: string) {
     if (!muscleId) return;
@@ -152,6 +173,7 @@ export function ExerciseFormPage() {
       secondaryMuscles,
       laterality: laterality === '' ? undefined : laterality,
       movementType: movementType === '' ? undefined : movementType,
+      equipment,
       restTimerSeconds: restSeconds ?? undefined,
     };
 
@@ -246,6 +268,17 @@ export function ExerciseFormPage() {
             onChange={v => setMovementType(v as '' | 'compound' | 'isolation')}
           />
         </div>
+
+        {/* Equipment: drives the weight increment used by the +/- steppers */}
+        <CycleField
+          label="Materiaal (gewichtsstap)"
+          value={equipment}
+          options={EQUIPMENT_OPTIONS}
+          onChange={v => {
+            equipmentTouched.current = true;
+            setEquipment(v as Equipment);
+          }}
+        />
 
         {/* E1-07: per-exercise default rest */}
         <div className="space-y-2">

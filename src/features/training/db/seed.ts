@@ -1,4 +1,5 @@
-import { db, type Exercise, UNILATERAL_DEFAULT_EXERCISES, COMPOUND_DEFAULT_EXERCISES } from '../../../db/index';
+import { db, type Exercise, UNILATERAL_DEFAULT_EXERCISES, COMPOUND_DEFAULT_EXERCISES, DEFAULT_EXERCISE_EQUIPMENT } from '../../../db/index';
+import { detectEquipment } from '../lib/weightStep';
 
 /**
  * Seed data: 25 common exercises with muscle group mappings (E1-02).
@@ -201,6 +202,8 @@ export async function seedDatabase(): Promise<void> {
     laterality: UNILATERAL_DEFAULT_EXERCISES.has(e.name) ? 'unilateral' : 'bilateral',
     // Movement type from the shared mapping (compound set + isolation fallback)
     movementType: COMPOUND_DEFAULT_EXERCISES.has(e.name) ? 'compound' : 'isolation',
+    // Equipment: curated per default exercise, keyword-detected as fallback
+    equipment: DEFAULT_EXERCISE_EQUIPMENT[e.name] ?? detectEquipment(`${e.name} ${e.description}`),
     createdAt: now,
   }));
 

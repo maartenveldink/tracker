@@ -6,6 +6,7 @@ import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/usePro
 import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
 import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
+import { steppedWeight } from '../lib/weightStep';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -462,12 +463,13 @@ export function SchemaFormPage() {
     );
   }
 
-  function stepStartWeight(index: number, delta: number) {
+  function stepStartWeight(index: number, dir: 1 | -1) {
     setCurrentExercises(prev =>
       prev.map((e, i) => {
         if (i !== index) return e;
         const base = e.startWeight ?? suggestStartWeight(e.exerciseId, e.repsPerSet) ?? 0;
-        return { ...e, startWeight: Math.max(0, roundToStep(base + delta)) };
+        const equipment = exerciseById.get(e.exerciseId)?.equipment;
+        return { ...e, startWeight: steppedWeight(base, dir, equipment) };
       })
     );
   }
@@ -653,8 +655,8 @@ export function SchemaFormPage() {
                       label="Startgewicht"
                       value={effectiveWeight != null ? `${effectiveWeight} kg` : '—'}
                       decDisabled={(effectiveWeight ?? 0) <= 0}
-                      onDec={() => stepStartWeight(i, -2.5)}
-                      onInc={() => stepStartWeight(i, 2.5)}
+                      onDec={() => stepStartWeight(i, -1)}
+                      onInc={() => stepStartWeight(i, 1)}
                       onReset={!isAutoWeight && suggestion != null ? () => resetStartWeight(i) : undefined}
                       caption={
                         isAutoWeight

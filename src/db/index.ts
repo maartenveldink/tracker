@@ -26,7 +26,16 @@ export interface Exercise {
   laterality?: 'bilateral' | 'unilateral';
   /** Optional movement type: compound (multi-joint) or isolation. Undefined = unknown. */
   movementType?: 'compound' | 'isolation';
+  /**
+   * Optional equipment type, which drives the weight increment used by the
+   * +/- steppers (see `features/training/lib/weightStep.ts`). Undefined falls
+   * back to the "other" 1 kg step.
+   */
+  equipment?: Equipment;
 }
+
+/** Equipment an exercise is loaded with; determines its weight increment. */
+export type Equipment = 'cable' | 'dumbbell' | 'plates' | 'other';
 
 export interface SchemaExercise {
   exerciseId: number;
@@ -502,7 +511,44 @@ class TrackerDB extends Dexie {
         }
       });
     });
+
+    // Per-exercise equipment type (drives the weight increment)
+    this.version(13).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
+    }).upgrade(async tx => {
+      // Backfill equipment: curated mapping for seeded defaults, keyword
+      // detection for everything else.
+      await tx.table('exercises').toCollection().modify(e => {
+        if (e.equipment === undefined) {
+          const curated = e.isDefault ? DEFAULT_EXERCISE_EQUIPMENT[e.name] : undefined;
+          e.equipment = curated ?? detectEquipmentFromText(`${e.name} ${e.description}`);
+        }
+      });
+    });
   }
+}
+
+/**
+ * Best-guess equipment from an exercise's name + description. Kept inline here
+ * (rather than importing the feature lib) to preserve the db → feature layering.
+ * Mirrors `features/training/lib/weightStep.ts#detectEquipment`.
+ */
+function detectEquipmentFromText(text: string): Equipment {
+  const t = text.toLowerCase();
+  if (t.includes('cable') || t.includes('kabel')) return 'cable';
+  if (t.includes('barbell') || t.includes('halterschijf') || t.includes('halterschijven')) return 'plates';
+  if (t.includes('dumbbell') || t.includes('halter')) return 'dumbbell';
+  return 'other';
 }
 
 /**
@@ -535,5 +581,44 @@ export const COMPOUND_DEFAULT_EXERCISES = new Set<string>([
   'Bulgarian Split Squat',
   'Hip Thrust',
 ]);
+
+/**
+ * Curated equipment (weight-increment class) per seeded default exercise. Used
+ * by the seed and the v13 backfill so defaults get a sensible increment instead
+ * of falling back to keyword detection. Plate-loaded machines are grouped under
+ * 'plates' since they progress in the same 1.25 kg micro-plate steps.
+ * Names not listed fall back to `detectEquipment` on the name + description.
+ */
+export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
+  // Cable / pulley stations
+  'Cable Fly': 'cable',
+  'Lat Pulldown': 'cable',
+  'Seated Cable Row': 'cable',
+  'Face Pull': 'cable',
+  'Tricep Pushdown': 'cable',
+  // Dumbbell (halter)
+  'Incline Dumbbell Press': 'dumbbell',
+  'Lateral Raise': 'dumbbell',
+  'Hammer Curl': 'dumbbell',
+  'Bulgarian Split Squat': 'dumbbell',
+  // Barbell / EZ-bar / plate-loaded (halterschijven)
+  'Barbell Back Squat': 'plates',
+  'Barbell Bench Press': 'plates',
+  'Conventional Deadlift': 'plates',
+  'Overhead Press': 'plates',
+  'Barbell Row': 'plates',
+  'Barbell Curl': 'plates',
+  'Skull Crusher': 'plates',
+  'Romanian Deadlift': 'plates',
+  'Leg Press': 'plates',
+  'Hip Thrust': 'plates',
+  'Standing Calf Raise': 'plates',
+  'Leg Curl': 'plates',
+  'Leg Extension': 'plates',
+  // Bodyweight (overig, 1 kg add-on steps)
+  'Dips': 'other',
+  'Pull-up': 'other',
+  'Hanging Leg Raise': 'other',
+};
 
 export const db = new TrackerDB();
