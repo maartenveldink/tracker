@@ -29,7 +29,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon } from 'lucide-react';
+import { Pause, Play, Check, SkipForward, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown } from 'lucide-react';
 import type { Exercise, Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
@@ -316,6 +316,9 @@ export function WorkoutPage() {
   const [exerciseRest, setExerciseRest] = useState<Record<number, number>>({});
   // Confirm dialog for deleting a whole exercise
   const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
+  // NAV-07: which exercise card is expanded. Defaults to the active exercise;
+  // tapping a header lets the user override until the active exercise advances.
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   // NAV-01: refs for scrolling to exercises
   const exerciseRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -345,6 +348,15 @@ export function WorkoutPage() {
     }
     return map;
   }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
+
+  // NAV-07: index of the active exercise (first with unfinished sets), or -1 if
+  // every exercise is done. Used to drive auto-expand/collapse.
+  const activeExerciseIdx = useMemo(() => {
+    if (!workout) return -1;
+    return workout.exercises.findIndex(
+      ex => !(ex.sets.length > 0 && ex.sets.every(s => s.completed || s.skipped)),
+    );
+  }, [workout]);
 
   // Timer (E3-06)
   const workoutStatus = workout?.status;
@@ -417,6 +429,21 @@ export function WorkoutPage() {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
+
+  // NAV-07: keep the active exercise expanded. When it advances (previous one
+  // fully logged), collapse the old card, expand the new one and scroll it in.
+  const prevActiveRef = useRef<number | null>(null);
+  useEffect(() => {
+    prevActiveRef.current = null;
+  }, [workoutId]);
+  useEffect(() => {
+    if (activeExerciseIdx === -1) return;
+    setExpandedIdx(activeExerciseIdx);
+    if (prevActiveRef.current !== null && prevActiveRef.current !== activeExerciseIdx) {
+      scrollToExercise(activeExerciseIdx);
+    }
+    prevActiveRef.current = activeExerciseIdx;
+  }, [activeExerciseIdx, scrollToExercise]);
 
   if (!workout || !workoutId) {
     return (
@@ -659,7 +686,7 @@ export function WorkoutPage() {
             return (
               <button
                 key={`${we.exerciseId}-${exIdx}`}
-                onClick={() => scrollToExercise(exIdx)}
+                onClick={() => { setExpandedIdx(exIdx); scrollToExercise(exIdx); }}
                 className={cn(
                   'shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
                   colorClass,
@@ -704,6 +731,9 @@ export function WorkoutPage() {
           // RT-01: is the rest timer for this exercise?
           const timerForThisExercise = restTimer && restTimer.exerciseIdx === exIdx;
 
+          // NAV-07: only the expanded card shows its rest controls and set grid
+          const isExpanded = expandedIdx === exIdx;
+
           return (
             <div
               key={`${workoutExercise.exerciseId}-${exIdx}`}
@@ -711,25 +741,41 @@ export function WorkoutPage() {
               className="bg-card rounded-xl border border-border overflow-hidden scroll-mt-24"
             >
               {/* Exercise header */}
-              <div className="px-3 py-2 flex items-center justify-between border-b border-border">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium truncate flex items-center gap-1.5">
-                    {exercise?.name ?? 'Onbekend'}
-                    {/* MF-01: green checkmark when all sets done */}
-                    {exerciseDone && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <div className={cn('px-3 py-2 flex items-center justify-between', isExpanded && 'border-b border-border')}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedIdx(isExpanded ? null : exIdx)}
+                  className="flex-1 min-w-0 flex items-center gap-2 text-left"
+                  aria-expanded={isExpanded}
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 text-muted-foreground shrink-0 transition-transform',
+                      !isExpanded && '-rotate-90',
                     )}
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {completedSetsCount}/{totalSets} sets
-                  </span>
-                </div>
+                  />
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium truncate flex items-center gap-1.5">
+                      {exercise?.name ?? 'Onbekend'}
+                      {/* MF-01: green checkmark when all sets done */}
+                      {exerciseDone && (
+                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      )}
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      {completedSetsCount}/{totalSets} sets
+                    </span>
+                  </div>
+                </button>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground"
-                    onClick={() => setExpandedNotes(expandedNotes === exIdx ? null : exIdx)}
+                    onClick={() => {
+                      setExpandedIdx(exIdx);
+                      setExpandedNotes(expandedNotes === exIdx ? null : exIdx);
+                    }}
                     aria-label="Notities"
                   >
                     <FileText className="h-4 w-4" />
@@ -738,7 +784,7 @@ export function WorkoutPage() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground"
-                    onClick={() => addWorkoutSet(workoutId, exIdx)}
+                    onClick={() => { setExpandedIdx(exIdx); void addWorkoutSet(workoutId, exIdx); }}
                     aria-label="Set toevoegen"
                   >
                     <Plus className="h-4 w-4" />
@@ -755,6 +801,8 @@ export function WorkoutPage() {
                 </div>
               </div>
 
+              {isExpanded && (
+                <>
               {/* Rest time control for this exercise */}
               <RestControlBar
                 seconds={getRest(workoutExercise.exerciseId)}
@@ -948,6 +996,8 @@ export function WorkoutPage() {
                   );
                 })}
               </div>
+                </>
+              )}
             </div>
           );
         })}
