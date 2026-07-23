@@ -22,7 +22,15 @@ npm run dev      # Start dev server (http://localhost:5173)
 npm run build    # TypeScript check + Vite production build
 npm run preview  # Preview production build
 npx tsc --noEmit # Type-check only
+npm run e2e      # Playwright end-to-end tests (auto-starts dev server)
 ```
+
+## Testing
+
+End-to-end tests use Playwright (`e2e/`, Page Object Model + fixtures, mobile
+Chromium). See `docs/e2e-testing.md` for the architecture and conventions. There
+are no unit tests; the suite drives the real app + IndexedDB. Run `npm run e2e`
+(and `npm run e2e:typecheck`) before pushing test changes.
 
 ## Project Structure
 

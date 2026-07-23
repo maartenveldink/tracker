@@ -10,7 +10,11 @@
     "dev": "vite",
     "prebuild": "node -e \"if(+process.versions.node.split('.')[0]<20){console.error('\\n[tracker] Node '+process.versions.node+' gevonden, maar dit project vereist Node >=20 (zie .nvmrc). Draai eerst: nvm use\\n');process.exit(1)}\"",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report",
+    "e2e:typecheck": "tsc --noEmit -p e2e/tsconfig.json"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -34,6 +38,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

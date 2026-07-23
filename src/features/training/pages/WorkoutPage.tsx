@@ -203,7 +203,7 @@ function RestTimerBar({
   const seconds = timer.remaining % 60;
 
   return (
-    <div className="px-3 py-2 border-b border-border bg-blue-950/30">
+    <div data-testid="rest-timer" className="px-3 py-2 border-b border-border bg-blue-950/30">
       <div className="flex items-center gap-2">
         <span className="text-sm font-mono font-medium text-blue-300 min-w-[3rem]">
           {minutes}:{String(seconds).padStart(2, '0')}
@@ -249,7 +249,7 @@ function QuickRepsBar({
   btnClass: string;
 }) {
   return (
-    <div className="px-3 py-1.5 border-b border-border bg-muted/20">
+    <div data-testid="quick-reps" className="px-3 py-1.5 border-b border-border bg-muted/20">
       <div className="grid grid-cols-6 gap-1">
         {QUICK_REP_VALUES.map(n => (
           <Button
@@ -895,6 +895,8 @@ export function WorkoutPage() {
             <div
               key={`${workoutExercise.exerciseId}-${exIdx}`}
               ref={(el) => { exerciseRefs.current[exIdx] = el; }}
+              data-testid="exercise-card"
+              data-superset={ssInfo.inSuperset ? ssInfo.label : undefined}
               className={cn(
                 'bg-card rounded-xl border border-border overflow-hidden scroll-mt-24',
                 ssInfo.inSuperset && 'border-l-4 border-l-primary',
@@ -1074,6 +1076,7 @@ export function WorkoutPage() {
                         <Input
                           type="number"
                           step="0.5"
+                          data-testid="set-weight"
                           value={set.weight ?? ''}
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
                           onFocus={e => e.target.select()}
@@ -1195,6 +1198,7 @@ export function WorkoutPage() {
           return (
             <div
               key={`ss-${workout.exercises[ssBlock[0]!]!.supersetGroup}`}
+              data-testid="superset-group"
               className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-3"
             >
               <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">

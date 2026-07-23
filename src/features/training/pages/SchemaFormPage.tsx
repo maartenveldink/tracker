@@ -595,7 +595,7 @@ export function SchemaFormPage() {
             `${ex.sets} × ${formatReps(ex.repsPerSet, ex.repsMax)} · rust ${formatRest(effectiveRest)}` +
             (effectiveWeight != null ? ` · ${effectiveWeight} kg` : '');
           return (
-          <Card key={`${ex.exerciseId}-${i}`} className="shadow-none">
+          <Card key={`${ex.exerciseId}-${i}`} data-testid="schema-exercise" className="shadow-none">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <button
@@ -737,6 +737,7 @@ export function SchemaFormPage() {
           return (
             <div
               key={`ss-${exs[indices[0]!]!.supersetGroup}`}
+              data-testid="superset-group"
               className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-1.5"
             >
               <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
