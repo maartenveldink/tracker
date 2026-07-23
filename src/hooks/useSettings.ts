@@ -8,6 +8,12 @@ const DEFAULTS: AppSettings = {
   workoutDensity: 'comfortable',
   macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
+  weightSteps: {
+    cable: { value: 5, unit: 'lb' },
+    dumbbell: { value: 2, unit: 'kg' },
+    plates: { value: 1.25, unit: 'kg' },
+    other: { value: 1, unit: 'kg' },
+  },
   restDefaults: {
     bilateralCompound: 180,
     unilateralCompound: 90,
@@ -37,6 +43,7 @@ export function useSettings(): AppSettings {
   return {
     ...DEFAULTS,
     ...row,
+    weightSteps: { ...DEFAULTS.weightSteps, ...row.weightSteps },
     features: { ...DEFAULTS.features, ...row.features },
   };
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays, Rows3 } from 'lucide-react';
+import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays, Rows3, Dumbbell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,11 +18,35 @@ import {
 import { clearAllData } from '@/features/training/db/seedDemoWorkouts';
 import { GoogleHealthCard } from '@/features/google-health/components/GoogleHealthCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
+import {
+  WEIGHT_STEP_PRESETS,
+  weightStepKey,
+  weightStepLabel,
+} from '@/features/training/lib/weightStep';
+import type { Equipment, WeightStepSetting } from '@/db/index';
 import { exportAllData, downloadExport, hasExportableData } from '@/lib/exportData';
 import { validateExport, importData, type ImportMode, type ImportResult } from '@/lib/importData';
 import type { TrackerExport } from '@/lib/exportData';
 
 type Feedback = { type: 'success' | 'error'; message: string } | null;
+
+/** Equipment types shown in the weight-increment settings, with their labels. */
+const WEIGHT_STEP_EQUIPMENT: { value: Equipment; label: string }[] = [
+  { value: 'cable', label: 'Cable' },
+  { value: 'dumbbell', label: 'Halter' },
+  { value: 'plates', label: 'Schijven / barbell' },
+  { value: 'other', label: 'Overig' },
+];
+
+const WEIGHT_STEP_OPTIONS = WEIGHT_STEP_PRESETS.map((step) => ({
+  key: weightStepKey(step),
+  step,
+  label: weightStepLabel(step),
+}));
+
+function findPresetByKey(key: string): WeightStepSetting | undefined {
+  return WEIGHT_STEP_OPTIONS.find((o) => o.key === key)?.step;
+}
 
 export function SettingsPage() {
   const settings = useSettings();
@@ -285,6 +309,49 @@ export function SettingsPage() {
               </Label>
             </div>
           </RadioGroup>
+        </CardContent>
+      </Card>
+
+      {/* Weight increments — step size of the +/- weight buttons per equipment */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Dumbbell className="h-4 w-4 text-primary" />
+            Gewichtsstappen
+          </CardTitle>
+          <CardDescription>
+            Kies per materiaal hoeveel het gewicht op- en afgaat met de +/- knoppen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {WEIGHT_STEP_EQUIPMENT.map(({ value, label }) => {
+            const current = settings.weightSteps[value];
+            return (
+              <div key={value} className="flex items-center justify-between gap-3">
+                <Label htmlFor={`weightstep-${value}`} className="font-medium">
+                  {label}
+                </Label>
+                <select
+                  id={`weightstep-${value}`}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={weightStepKey(current)}
+                  onChange={(e) => {
+                    const preset = findPresetByKey(e.target.value);
+                    if (!preset) return;
+                    void updateSettings({
+                      weightSteps: { ...settings.weightSteps, [value]: preset },
+                    });
+                  }}
+                >
+                  {WEIGHT_STEP_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 

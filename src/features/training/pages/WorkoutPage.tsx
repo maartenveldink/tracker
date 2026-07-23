@@ -16,7 +16,7 @@ import {
 import { useExercises, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
-import { steppedWeight } from '../lib/weightStep';
+import { steppedWeight, weightStepFor } from '../lib/weightStep';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
@@ -673,7 +673,7 @@ export function WorkoutPage() {
     equipment: Equipment | undefined,
   ) {
     if (!workoutId) return;
-    const newWeight = steppedWeight(currentWeight, dir, equipment);
+    const newWeight = steppedWeight(currentWeight, dir, weightStepFor(settings.weightSteps, equipment));
     if (newWeight !== null) clearWeightError(exerciseIndex, setIndex);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight: newWeight });
   }

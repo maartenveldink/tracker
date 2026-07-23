@@ -26,10 +26,10 @@ const MOVEMENT_OPTIONS = [
 ] as const;
 
 const EQUIPMENT_OPTIONS = [
-  { value: 'cable', label: 'Cable (5 lb)' },
-  { value: 'dumbbell', label: 'Halter (2 kg)' },
-  { value: 'plates', label: 'Schijven (1,25 kg)' },
-  { value: 'other', label: 'Overig (1 kg)' },
+  { value: 'cable', label: 'Cable' },
+  { value: 'dumbbell', label: 'Halter' },
+  { value: 'plates', label: 'Schijven / barbell' },
+  { value: 'other', label: 'Overig' },
 ] as const;
 
 /** Small inline "+" that opens the native picker to add a muscle group. */

@@ -37,6 +37,15 @@ export interface Exercise {
 /** Equipment an exercise is loaded with; determines its weight increment. */
 export type Equipment = 'cable' | 'dumbbell' | 'plates' | 'other';
 
+/** Unit a weight increment is expressed in. */
+export type WeightUnit = 'kg' | 'lb';
+
+/** A configurable weight increment (e.g. 2.5 kg, or 2.5 lb). */
+export interface WeightStepSetting {
+  value: number;
+  unit: WeightUnit;
+}
+
 export interface SchemaExercise {
   exerciseId: number;
   /** Lower bound / target reps per set. */
@@ -262,6 +271,8 @@ export interface AppSettings {
     fat: number | null;
   };
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
+  /** Weight increment per equipment type for the +/- weight buttons. */
+  weightSteps: Record<Equipment, WeightStepSetting>;
   /** Default rest (seconds) per laterality × movement-type combination. */
   restDefaults: {
     bilateralCompound: number;
@@ -343,6 +354,12 @@ class TrackerDB extends Dexie {
         workoutDensity: 'comfortable',
         macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
+        weightSteps: {
+          cable: { value: 5, unit: 'lb' },
+          dumbbell: { value: 2, unit: 'kg' },
+          plates: { value: 1.25, unit: 'kg' },
+          other: { value: 1, unit: 'kg' },
+        },
         restDefaults: {
           bilateralCompound: 180,
           unilateralCompound: 90,
@@ -538,6 +555,32 @@ class TrackerDB extends Dexie {
         if (e.equipment === undefined) {
           const curated = e.isDefault ? DEFAULT_EXERCISE_EQUIPMENT[e.name] : undefined;
           e.equipment = curated ?? detectEquipmentFromText(`${e.name} ${e.description}`);
+        }
+      });
+    });
+
+    // Configurable weight increment per equipment type
+    this.version(14).stores({
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      foods: '++id, name',
+      recipes: '++id, name',
+      dailyLog: '++id, date, itemType, itemId',
+      settings: 'id',
+      weekPlans: '++id, name',
+      googleHealthConnection: 'id',
+      googleHealthData: '++id, date',
+      bodyWeights: '++id, date',
+    }).upgrade(async tx => {
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.weightSteps === undefined) {
+          s.weightSteps = {
+            cable: { value: 5, unit: 'lb' },
+            dumbbell: { value: 2, unit: 'kg' },
+            plates: { value: 1.25, unit: 'kg' },
+            other: { value: 1, unit: 'kg' },
+          };
         }
       });
     });
