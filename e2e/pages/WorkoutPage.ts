@@ -43,4 +43,34 @@ export class WorkoutPage {
     await this.page.waitForTimeout(400);
     await card.getByTestId('quick-reps').getByRole('button', { name: String(reps), exact: true }).click();
   }
+
+  /** The weight input of the nth set (0-based) in the expanded card. */
+  setWeightInput(index: number): Locator {
+    return this.expandedCard.getByTestId('set-weight').nth(index);
+  }
+
+  /** Adds an ad-hoc exercise mid-workout via the picker sheet. */
+  async addExercise(name: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();
+    await this.page.getByRole('button', { name, exact: true }).click();
+  }
+
+  async pause(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Pauze' }).click();
+  }
+
+  async resume(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Hervat' }).click();
+  }
+
+  get pausedBanner(): Locator {
+    return this.page.getByText('Training gepauzeerd');
+  }
+
+  /** Finishes the workout (confirms the dialog) and waits for the summary. */
+  async finish(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Afronden', exact: true }).first().click();
+    await this.page.getByRole('dialog').getByRole('button', { name: 'Afronden' }).click();
+    await this.page.waitForURL(/\/workout\/\d+\/summary$/);
+  }
 }

@@ -13,4 +13,10 @@ export class StartWorkoutPage {
     await this.page.getByText(schemaName, { exact: true }).click();
     await this.page.waitForURL(/\/workout\/\d+$/);
   }
+
+  /** Starts an ad-hoc ("Vrije training") workout with no schema. */
+  async startFree(): Promise<void> {
+    await this.page.getByText('Vrije training', { exact: true }).click();
+    await this.page.waitForURL(/\/workout\/\d+$/);
+  }
 }
