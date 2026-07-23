@@ -30,14 +30,41 @@ e2e/
   fixtures/
     app.ts            # custom test fixtures — inject page objects
   pages/              # Page Objects (one per screen)
-    SchemaEditorPage.ts
-    StartWorkoutPage.ts
-    WorkoutPage.ts
+    ExercisesPage.ts  ExerciseFormPage.ts
+    SchemasPage.ts    SchemaEditorPage.ts   SchemaDetailPage.ts
+    StartWorkoutPage.ts  WorkoutPage.ts
+    DashboardPage.ts  ProgressPage.ts       SettingsPage.ts
+    NutritionPages.ts PlannerPage.ts
   tests/              # specs (*.spec.ts)
-    smoke.spec.ts
-    superset.spec.ts
+    smoke.spec.ts        superset.spec.ts
+    exercises.spec.ts    schemas.spec.ts
+    workout.spec.ts      settings.spec.ts
+    dashboard.spec.ts    progress.spec.ts
+    progressive-overload.spec.ts
+    nutrition.spec.ts    planner.spec.ts
   tsconfig.json       # type-checking config for the e2e sources
 ```
+
+## Coverage
+
+The suite exercises the main user flows across the app:
+
+- **Exercises** — create, search, edit, delete.
+- **Schemas** — create, copy, delete, and a share → re-import round-trip (which
+  also proves supersets survive sharing).
+- **Supersets** — link/unlink in the editor; alternating registration and
+  rest-after-round in the live workout.
+- **Live workout** — free and schema-based workouts to summary, pause/resume,
+  weight carry-over, rest timer.
+- **Progressive overload** — hitting the target reps bumps the next suggestion.
+- **Progress & history** — records board, workout history + delete.
+- **Dashboard** — quick weigh-in, resume active workout.
+- **Settings** — 1RM formula & weight-step persistence, feature flags, clear-all.
+- **Optional modules** — nutrition (food CRUD) and planner (week plan), behind
+  their feature flags.
+
+Google Health (Epic 7) is intentionally excluded — it depends on an external
+OAuth provider and isn't exercisable without mocking.
 
 A test reads as intent, not mechanics:
 
@@ -109,6 +136,21 @@ failures surface immediately.
 [`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml) runs on pushes to
 `main` and on PRs: Node 22, `npm ci`, `npx playwright install --with-deps
 chromium`, then `npm run e2e`. The HTML report is uploaded as an artifact.
+
+## App-specific gotchas (handled in the page objects)
+
+State that round-trips through IndexedDB is asynchronous, so a few flows need an
+explicit wait — encapsulated in the page objects, not repeated in specs:
+
+- **Feature flags** — after enabling a module in Settings, `toggleFeature` waits
+  for its nav item to appear before returning. Otherwise a follow-up navigation
+  to the now-gated route can be redirected by a flag that hasn't committed yet.
+- **Recent-use warning (CT-06)** — starting a schema used within 48h shows a
+  "Toch starten" confirmation first; `StartWorkoutPage.start` clicks it if
+  present, so re-running the same schema (e.g. the progressive-overload test)
+  works.
+- **Set completion** — a logged weight round-trips before it counts, so
+  `completeActiveSet` waits briefly between entering the weight and tapping reps.
 
 ## Adding a test
 

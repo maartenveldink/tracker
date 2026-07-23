@@ -16,9 +16,15 @@ export class SettingsPage {
     await this.page.locator(`#formula-${formula}`).click();
   }
 
-  /** Toggles an optional feature module on/off. */
+  /**
+   * Enables/disables an optional feature module. Waits for the change to reach
+   * the nav (i.e. persist to IndexedDB) so a follow-up navigation to the now-
+   * gated route isn't redirected by a not-yet-committed flag.
+   */
   async toggleFeature(feature: Feature): Promise<void> {
     await this.page.locator(`#feature-${feature}`).click();
+    const navName = feature === 'nutrition' ? 'Voeding' : 'Planner';
+    await this.page.getByRole('link', { name: navName }).waitFor({ state: 'visible' });
   }
 
   /** Sets the weight increment for an equipment type via its dropdown. */

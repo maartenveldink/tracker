@@ -49,6 +49,18 @@ export class WorkoutPage {
     return this.expandedCard.getByTestId('set-weight').nth(index);
   }
 
+  /**
+   * Logs the active set by only tapping a rep count — used for the 2nd set
+   * onward, where the weight is already carried over from the previous set.
+   */
+  async logActiveReps(reps: number): Promise<void> {
+    await this.expandedCard
+      .getByTestId('quick-reps')
+      .getByRole('button', { name: String(reps), exact: true })
+      .click();
+    await this.page.waitForTimeout(300);
+  }
+
   /** Adds an ad-hoc exercise mid-workout via the picker sheet. */
   async addExercise(name: string): Promise<void> {
     await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();

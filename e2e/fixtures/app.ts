@@ -7,6 +7,10 @@ import { ExerciseFormPage } from '../pages/ExerciseFormPage';
 import { StartWorkoutPage } from '../pages/StartWorkoutPage';
 import { WorkoutPage } from '../pages/WorkoutPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { DashboardPage } from '../pages/DashboardPage';
+import { ProgressPage, WorkoutHistoryPage } from '../pages/ProgressPage';
+import { FoodsPage } from '../pages/NutritionPages';
+import { PlannerPage } from '../pages/PlannerPage';
 
 /**
  * Custom fixtures that hand each test ready-made page objects. Because every
@@ -22,6 +26,11 @@ type AppFixtures = {
   startWorkout: StartWorkoutPage;
   workout: WorkoutPage;
   settings: SettingsPage;
+  dashboard: DashboardPage;
+  progress: ProgressPage;
+  history: WorkoutHistoryPage;
+  foods: FoodsPage;
+  planner: PlannerPage;
 };
 
 export const test = base.extend<AppFixtures>({
@@ -48,6 +57,21 @@ export const test = base.extend<AppFixtures>({
   },
   settings: async ({ page }, use) => {
     await use(new SettingsPage(page));
+  },
+  dashboard: async ({ page }, use) => {
+    await use(new DashboardPage(page));
+  },
+  progress: async ({ page }, use) => {
+    await use(new ProgressPage(page));
+  },
+  history: async ({ page }, use) => {
+    await use(new WorkoutHistoryPage(page));
+  },
+  foods: async ({ page }, use) => {
+    await use(new FoodsPage(page));
+  },
+  planner: async ({ page }, use) => {
+    await use(new PlannerPage(page));
   },
 });
 

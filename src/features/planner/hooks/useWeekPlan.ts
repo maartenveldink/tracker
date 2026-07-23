@@ -9,8 +9,10 @@ export function useWeekPlans(): WeekPlan[] {
 /** The most recently updated week plan — acts as the "active" plan. */
 export function useActiveWeekPlan(): WeekPlan | undefined {
   return useLiveQuery(async () => {
-    const all = await db.weekPlans.orderBy('updatedAt').reverse().toArray();
-    return all[0];
+    // `updatedAt` is not an index, so sort in memory (orderBy would throw a
+    // Dexie SchemaError). The most recently updated plan is the active one.
+    const all = await db.weekPlans.toArray();
+    return all.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0];
   });
 }
 
