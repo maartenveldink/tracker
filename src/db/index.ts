@@ -74,6 +74,11 @@ export interface SchemaExercise {
    * default (see rest resolution order in the workout page).
    */
   restSeconds?: number;
+  /**
+   * Optional superset grouping. Consecutive exercises sharing the same non-empty
+   * `supersetGroup` are performed as a superset (one set each, alternating).
+   */
+  supersetGroup?: string;
   order: number;
 }
 
@@ -122,6 +127,11 @@ export interface WorkoutExercise {
   notes: string;
   /** Optional rest (seconds) snapshotted from the schema exercise when the workout started. */
   restSeconds?: number;
+  /**
+   * Optional superset grouping snapshotted from the schema. Consecutive exercises
+   * sharing the same non-empty value are trained as a superset (alternating sets).
+   */
+  supersetGroup?: string;
 }
 
 export type WorkoutStatus = 'active' | 'paused' | 'completed';

@@ -10,6 +10,7 @@ interface SharedExercise {
   r: number; // reps per set (lower bound / target)
   rm?: number; // optional upper bound for a rep range
   w?: number; // optional start weight (kg)
+  g?: number; // optional superset group index within this list
 }
 
 interface SharedDay {
@@ -49,13 +50,26 @@ export function buildSharedSchema(
   schema: TrainingSchema,
   exerciseNameById: Map<number, string>,
 ): SharedSchema {
-  const toShared = (e: SchemaExercise): SharedExercise => ({
-    n: exerciseNameById.get(e.exerciseId) ?? 'Onbekend',
-    s: e.sets,
-    r: e.repsPerSet,
-    ...(e.repsMax != null ? { rm: e.repsMax } : {}),
-    ...(e.startWeight != null ? { w: e.startWeight } : {}),
-  });
+  // Encode supersets compactly: map each distinct group id within a list to a
+  // small integer, so `g` marks which exercises belong together.
+  const toSharedList = (exs: SchemaExercise[]): SharedExercise[] => {
+    const groupIndex = new Map<string, number>();
+    return exs.map(e => {
+      let g: number | undefined;
+      if (e.supersetGroup) {
+        if (!groupIndex.has(e.supersetGroup)) groupIndex.set(e.supersetGroup, groupIndex.size);
+        g = groupIndex.get(e.supersetGroup);
+      }
+      return {
+        n: exerciseNameById.get(e.exerciseId) ?? 'Onbekend',
+        s: e.sets,
+        r: e.repsPerSet,
+        ...(e.repsMax != null ? { rm: e.repsMax } : {}),
+        ...(e.startWeight != null ? { w: e.startWeight } : {}),
+        ...(g != null ? { g } : {}),
+      };
+    });
+  };
 
   if (schema.days && schema.days.length > 0) {
     return {
@@ -67,13 +81,13 @@ export function buildSharedSchema(
           id: d.id,
           name: d.name,
           order: d.order,
-          exercises: d.exercises.map(toShared),
+          exercises: toSharedList(d.exercises),
         })),
       rotation: schema.rotation && schema.rotation.length > 0 ? schema.rotation : undefined,
     };
   }
 
-  return { v: 1, name: schema.name, exercises: schema.exercises.map(toShared) };
+  return { v: 1, name: schema.name, exercises: toSharedList(schema.exercises) };
 }
 
 /** Encodes a schema into a share URL for the given app origin+base. */
@@ -140,15 +154,23 @@ export async function importSharedSchema(shared: SharedSchema): Promise<number> 
   }
 
   async function toSchemaExercises(shExs: SharedExercise[]): Promise<SchemaExercise[]> {
+    // Re-materialise superset group indices into fresh ids, one per distinct `g`.
+    const groupIdByIndex = new Map<number, string>();
     const out: SchemaExercise[] = [];
     for (let i = 0; i < shExs.length; i++) {
       const e = shExs[i]!;
+      let supersetGroup: string | undefined;
+      if (e.g != null) {
+        if (!groupIdByIndex.has(e.g)) groupIdByIndex.set(e.g, crypto.randomUUID());
+        supersetGroup = groupIdByIndex.get(e.g);
+      }
       out.push({
         exerciseId: await resolveId(e.n),
         sets: e.s,
         repsPerSet: e.r,
         ...(e.rm != null ? { repsMax: e.rm } : {}),
         ...(e.w != null ? { startWeight: e.w } : {}),
+        ...(supersetGroup ? { supersetGroup } : {}),
         order: i,
       });
     }

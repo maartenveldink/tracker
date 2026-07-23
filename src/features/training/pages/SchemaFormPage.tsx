@@ -7,6 +7,8 @@ import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
 import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
+import { groupSupersets, normalizeSupersets, supersetBlocks } from '../lib/superset';
+import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +22,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2, Link2, Link2Off } from 'lucide-react';
 import type { SchemaExercise, SchemaDay, Exercise } from '../../../db/index';
 
 interface DayState {
@@ -412,8 +414,32 @@ export function SchemaFormPage() {
 
   function removeExercise(index: number) {
     setCurrentExercises(prev =>
-      prev.filter((_, i) => i !== index).map((e, i) => ({ ...e, order: i }))
+      normalizeSupersets(prev.filter((_, i) => i !== index)).map((e, i) => ({ ...e, order: i }))
     );
+  }
+
+  /** Link the exercise at `index` into a superset with the one above it, or unlink it. */
+  function toggleSupersetLink(index: number) {
+    if (index <= 0) return;
+    setCurrentExercises(prev => {
+      const cur = prev[index]!;
+      const above = prev[index - 1]!;
+      const isLinked = !!cur.supersetGroup && cur.supersetGroup === above.supersetGroup;
+      let next: SchemaExercise[];
+      if (isLinked) {
+        next = prev.map((e, i) => {
+          if (i !== index) return e;
+          const { supersetGroup: _drop, ...rest } = e;
+          return rest;
+        });
+      } else {
+        const groupId = above.supersetGroup ?? crypto.randomUUID();
+        next = prev.map((e, i) =>
+          i === index || i === index - 1 ? { ...e, supersetGroup: groupId } : e
+        );
+      }
+      return normalizeSupersets(next);
+    });
   }
 
   function moveExercise(index: number, direction: 'up' | 'down') {
@@ -426,7 +452,7 @@ export function SchemaFormPage() {
       const temp = updated[index]!;
       updated[index] = updated[newIndex]!;
       updated[newIndex] = temp;
-      return updated.map((e, i) => ({ ...e, order: i }));
+      return normalizeSupersets(updated).map((e, i) => ({ ...e, order: i }));
     });
   }
 
@@ -552,10 +578,7 @@ export function SchemaFormPage() {
 
   // --- Render helpers ---
 
-  function renderExerciseList(exs: SchemaExercise[], totalLength: number) {
-    return (
-      <div className="space-y-2">
-        {exs.map((ex, i) => {
+  function renderExerciseCard(ex: SchemaExercise, i: number, totalLength: number, info: ReturnType<typeof groupSupersets>[number]) {
           const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
           const effectiveWeight = ex.startWeight ?? suggestion;
           const isAutoWeight = ex.startWeight == null;
@@ -566,6 +589,8 @@ export function SchemaFormPage() {
           const effectiveRest = ex.restSeconds ?? inheritedRest;
           const isAutoRest = ex.restSeconds == null;
           const isExpanded = expandedExercises.has(ex.exerciseId);
+          // Linked = shares a superset with the exercise directly above.
+          const isLinkedAbove = i > 0 && info.inSuperset && !info.isFirst;
           const summary =
             `${ex.sets} × ${formatReps(ex.repsPerSet, ex.repsMax)} · rust ${formatRest(effectiveRest)}` +
             (effectiveWeight != null ? ` · ${effectiveWeight} kg` : '');
@@ -584,7 +609,11 @@ export function SchemaFormPage() {
                   ) : (
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="text-muted-foreground text-xs w-4 text-center shrink-0">{i + 1}</span>
+                  {info.inSuperset ? (
+                    <span className="w-4 text-center shrink-0 text-xs font-semibold text-primary">{info.label}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs w-4 text-center shrink-0">{i + 1}</span>
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium truncate">
                       {exerciseMap.get(ex.exerciseId) ?? 'Onbekend'}
@@ -594,6 +623,19 @@ export function SchemaFormPage() {
                     )}
                   </span>
                 </button>
+                {i > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn('h-7 w-7', isLinkedAbove ? 'text-primary' : 'text-muted-foreground')}
+                    onClick={() => toggleSupersetLink(i)}
+                    aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
+                    title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
+                  >
+                    {isLinkedAbove ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -679,6 +721,30 @@ export function SchemaFormPage() {
               )}
             </CardContent>
           </Card>
+          );
+  }
+
+  function renderExerciseList(exs: SchemaExercise[], totalLength: number) {
+    const infos = groupSupersets(exs);
+    const blocks = supersetBlocks(exs);
+    return (
+      <div className="space-y-2">
+        {blocks.map(indices => {
+          if (indices.length === 1) {
+            const i = indices[0]!;
+            return renderExerciseCard(exs[i]!, i, totalLength, infos[i]!);
+          }
+          return (
+            <div
+              key={`ss-${exs[indices[0]!]!.supersetGroup}`}
+              className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-1.5"
+            >
+              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
+                <Link2 className="h-3 w-3" />
+                Superset
+              </div>
+              {indices.map(i => renderExerciseCard(exs[i]!, i, totalLength, infos[i]!))}
+            </div>
           );
         })}
       </div>

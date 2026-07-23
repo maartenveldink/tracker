@@ -47,12 +47,13 @@ function getDefaultDayId(
 }
 
 function buildWorkoutExercises(
-  exercises: { exerciseId: number; sets: number; repsPerSet: number; repsMax?: number; startWeight?: number; restSeconds?: number }[],
+  exercises: { exerciseId: number; sets: number; repsPerSet: number; repsMax?: number; startWeight?: number; restSeconds?: number; supersetGroup?: string }[],
 ): WorkoutExercise[] {
   return exercises.map((se, order) => ({
     exerciseId: se.exerciseId,
     order,
     ...(se.restSeconds != null ? { restSeconds: se.restSeconds } : {}),
+    ...(se.supersetGroup ? { supersetGroup: se.supersetGroup } : {}),
     sets: Array.from({ length: se.sets }, (_, i): WorkoutSet => ({
       exerciseId: se.exerciseId,
       setNumber: i + 1,

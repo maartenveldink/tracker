@@ -17,6 +17,7 @@ import { useExercises, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
+import { groupSupersets, supersetBlocks } from '../lib/superset';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
@@ -32,7 +33,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, Check, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
+import { Pause, Play, Check, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell, Link2 } from 'lucide-react';
 import type { Exercise, Workout, WorkoutDensity } from '../../../db/index';
 
 // --- Set-control sizing (Settings → "Weergave training") ---
@@ -582,15 +583,57 @@ export function WorkoutPage() {
     if (nextSet && nextSet.weight === null) {
       await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: currentWeight });
     }
-    // Start the rest timer using this exercise's rest time
-    const rest = getRest(exercise?.exerciseId ?? -1);
-    setRestTimer({
-      exerciseIdx: exerciseIndex,
-      setIdx: setIndex,
-      remaining: rest,
-      total: rest,
-      startedAt: Date.now(),
-    });
+    finishSet(exerciseIndex, setIndex);
+  }
+
+  // After a set is logged: for supersets, alternate to the next exercise in the
+  // group without resting (rest only after the last exercise of the round);
+  // otherwise start the rest timer as usual. `workout` is the pre-completion
+  // snapshot, so the just-finished (exIdx,setIdx) is treated as done here.
+  function finishSet(exerciseIndex: number, setIndex: number) {
+    const exercises = workout?.exercises ?? [];
+    const info = groupSupersets(exercises)[exerciseIndex];
+
+    // The rest duration comes from the just-finished exercise; `displayExIdx`
+    // decides which (expanded) card shows the timer bar.
+    const startRest = (displayExIdx: number) => {
+      const rest = getRest(exercises[exerciseIndex]?.exerciseId ?? -1);
+      setRestTimer({
+        exerciseIdx: displayExIdx,
+        setIdx: setIndex,
+        remaining: rest,
+        total: rest,
+        startedAt: Date.now(),
+      });
+    };
+
+    const hasOpenSet = (exIdx: number) =>
+      (exercises[exIdx]?.sets ?? []).some(
+        (s, sIdx) => !s.completed && !s.skipped && !(exIdx === exerciseIndex && sIdx === setIndex),
+      );
+
+    if (!info || !info.inSuperset) {
+      startRest(exerciseIndex);
+      return;
+    }
+
+    // Mid-round: hand off to the next group member that still has work — no rest.
+    const nextMember = info.members.find(m => m > exerciseIndex && hasOpenSet(m));
+    if (nextMember != null) {
+      setExpandedIdx(nextMember);
+      scrollToExercise(nextMember);
+      return;
+    }
+
+    // End of the round: focus the first member starting the next round and show
+    // the rest timer on that (now expanded) card so it stays visible.
+    const firstOpen = info.members.find(hasOpenSet);
+    const displayExIdx = firstOpen ?? exerciseIndex;
+    startRest(displayExIdx);
+    if (firstOpen != null && firstOpen !== exerciseIndex) {
+      setExpandedIdx(firstOpen);
+      scrollToExercise(firstOpen);
+    }
   }
 
   // E3-19: fill weight + reps from the previous session's matching set and complete it
@@ -609,15 +652,7 @@ export function WorkoutPage() {
     if (nextSet && nextSet.weight === null) {
       await updateWorkoutSet(workoutId, exerciseIndex, setIndex + 1, { weight: prev.weight });
     }
-    // Start the rest timer, matching quick-reps completion
-    const rest = getRest(exercise?.exerciseId ?? -1);
-    setRestTimer({
-      exerciseIdx: exerciseIndex,
-      setIdx: setIndex,
-      remaining: rest,
-      total: rest,
-      startedAt: Date.now(),
-    });
+    finishSet(exerciseIndex, setIndex);
   }
 
   // Undo completion of a set (the prominent complete button was removed)
@@ -758,6 +793,7 @@ export function WorkoutPage() {
         <div className="flex gap-1.5 min-w-max">
           {workout.exercises.map((we, exIdx) => {
             const ex = exerciseMap.get(we.exerciseId);
+            const navSsInfo = groupSupersets(workout.exercises)[exIdx]!;
             const done = we.sets.filter(s => s.completed).length;
             const skipped = we.sets.filter(s => s.skipped).length;
             const total = we.sets.length;
@@ -778,6 +814,7 @@ export function WorkoutPage() {
                   colorClass,
                 )}
               >
+                {navSsInfo.inSuperset && <span className="text-primary font-semibold">{navSsInfo.label} </span>}
                 {truncateName(ex?.name ?? '?')} {done}/{total}
               </button>
             );
@@ -831,7 +868,11 @@ export function WorkoutPage() {
           )}
         </div>
 
-        {workout.exercises.map((workoutExercise, exIdx) => {
+        {supersetBlocks(workout.exercises).map((ssBlock) => {
+          const ssInfos = groupSupersets(workout.exercises);
+          const cards = ssBlock.map((exIdx) => {
+          const workoutExercise = workout.exercises[exIdx]!;
+          const ssInfo = ssInfos[exIdx]!;
           const exercise = exerciseMap.get(workoutExercise.exerciseId);
           const completedSetsCount = workoutExercise.sets.filter(s => s.completed).length;
           const skippedSetsCount = workoutExercise.sets.filter(s => s.skipped).length;
@@ -854,7 +895,10 @@ export function WorkoutPage() {
             <div
               key={`${workoutExercise.exerciseId}-${exIdx}`}
               ref={(el) => { exerciseRefs.current[exIdx] = el; }}
-              className="bg-card rounded-xl border border-border overflow-hidden scroll-mt-24"
+              className={cn(
+                'bg-card rounded-xl border border-border overflow-hidden scroll-mt-24',
+                ssInfo.inSuperset && 'border-l-4 border-l-primary',
+              )}
             >
               {/* Exercise header */}
               <div className={cn('px-3 py-2 flex items-center justify-between', isExpanded && 'border-b border-border')}>
@@ -870,6 +914,11 @@ export function WorkoutPage() {
                       !isExpanded && '-rotate-90',
                     )}
                   />
+                  {ssInfo.inSuperset && (
+                    <span className="shrink-0 h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">
+                      {ssInfo.label}
+                    </span>
+                  )}
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium truncate flex items-center gap-1.5">
                       {exercise?.name ?? 'Onbekend'}
@@ -1139,6 +1188,19 @@ export function WorkoutPage() {
               </div>
                 </>
               )}
+            </div>
+          );
+          });
+          if (ssBlock.length === 1) return cards[0];
+          return (
+            <div
+              key={`ss-${workout.exercises[ssBlock[0]!]!.supersetGroup}`}
+              className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-3"
+            >
+              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
+                <Link2 className="h-3 w-3" /> Superset
+              </div>
+              {cards}
             </div>
           );
         })}
