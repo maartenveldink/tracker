@@ -16,7 +16,7 @@ import {
 import { useExercises, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
-import { steppedWeight, weightStepFor } from '../lib/weightStep';
+import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, Check, Plus, Minus, Trash2, FileText, StickyNote, History, CheckCircle2, RotateCcw, Clock, X as XIcon, ChevronDown, Dumbbell } from 'lucide-react';
-import type { Equipment, Exercise, Workout, WorkoutDensity } from '../../../db/index';
+import type { Exercise, Workout, WorkoutDensity } from '../../../db/index';
 
 // --- Set-control sizing (Settings → "Weergave training") ---
 // Class strings are written out in full so Tailwind's JIT keeps them.
@@ -670,10 +670,10 @@ export function WorkoutPage() {
     setIndex: number,
     currentWeight: number | null,
     dir: 1 | -1,
-    equipment: Equipment | undefined,
+    exercise: Exercise | undefined,
   ) {
     if (!workoutId) return;
-    const newWeight = steppedWeight(currentWeight, dir, weightStepFor(settings.weightSteps, equipment));
+    const newWeight = steppedWeight(currentWeight, dir, weightStepForExercise(exercise, settings.weightSteps));
     if (newWeight !== null) clearWeightError(exerciseIndex, setIndex);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight: newWeight });
   }
@@ -1018,7 +1018,7 @@ export function WorkoutPage() {
                           size="icon"
                           className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
-                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -1, exercise?.equipment)}
+                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, -1, exercise)}
                         >
                           -
                         </Button>
@@ -1040,7 +1040,7 @@ export function WorkoutPage() {
                           size="icon"
                           className={cn(density.stepper, 'shrink-0 text-xs text-muted-foreground')}
                           onPointerDown={() => { suppressRepsBlurRef.current = true; }}
-                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 1, exercise?.equipment)}
+                          onClick={() => handleWeightStep(exIdx, setIdx, set.weight, 1, exercise)}
                         >
                           +
                         </Button>

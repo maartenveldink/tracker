@@ -1,4 +1,4 @@
-import type { Equipment, WeightStepSetting } from '../../../db/index';
+import type { Equipment, Exercise, WeightStepSetting } from '../../../db/index';
 
 /** Exact pound → kilogram conversion factor. */
 const LB_TO_KG = 0.45359237;
@@ -57,6 +57,17 @@ export function weightStepFor(
 ): WeightStepSetting {
   const key = equipment ?? DEFAULT_EQUIPMENT;
   return weightSteps?.[key] ?? DEFAULT_WEIGHT_STEPS[key];
+}
+
+/**
+ * The effective step for an exercise: its own `weightStep` override if set,
+ * otherwise the step configured for its equipment type.
+ */
+export function weightStepForExercise(
+  exercise: Pick<Exercise, 'weightStep' | 'equipment'> | undefined,
+  weightSteps: Record<Equipment, WeightStepSetting> | undefined,
+): WeightStepSetting {
+  return exercise?.weightStep ?? weightStepFor(weightSteps, exercise?.equipment);
 }
 
 /** A comparable key for a step, e.g. "2.5-lb" — handy for `<select>` values. */

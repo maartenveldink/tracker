@@ -10,8 +10,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clampRest, formatRest, movementDefaultRest } from '../lib/restTime';
-import { detectEquipment } from '../lib/weightStep';
-import type { Equipment } from '../../../db/index';
+import {
+  detectEquipment,
+  weightStepFor,
+  weightStepKey,
+  weightStepLabel,
+  WEIGHT_STEP_PRESETS,
+} from '../lib/weightStep';
+import type { Equipment, WeightStepSetting } from '../../../db/index';
+
+const WEIGHT_STEP_OPTIONS = WEIGHT_STEP_PRESETS.map((step) => ({
+  key: weightStepKey(step),
+  step,
+  label: weightStepLabel(step),
+}));
 
 const LATERALITY_OPTIONS = [
   { value: '', label: 'Onbekend' },
@@ -112,6 +124,8 @@ export function ExerciseFormPage() {
   const [movementType, setMovementType] = useState<'' | 'compound' | 'isolation'>('');
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
   const [equipment, setEquipment] = useState<Equipment>('other');
+  // null = inherit the equipment's configured increment.
+  const [weightStep, setWeightStep] = useState<WeightStepSetting | null>(null);
   // Once the user picks equipment manually we stop auto-detecting from the text.
   const equipmentTouched = useRef(false);
 
@@ -130,6 +144,7 @@ export function ExerciseFormPage() {
       setMovementType(existing.movementType ?? '');
       setRestSeconds(existing.restTimerSeconds ?? null);
       setEquipment(existing.equipment ?? detectEquipment(`${existing.name} ${existing.description}`));
+      setWeightStep(existing.weightStep ?? null);
       equipmentTouched.current = true; // keep the saved/derived value; don't auto-flip it
     }
   }, [existing]);
@@ -174,6 +189,7 @@ export function ExerciseFormPage() {
       laterality: laterality === '' ? undefined : laterality,
       movementType: movementType === '' ? undefined : movementType,
       equipment,
+      weightStep: weightStep ?? undefined,
       restTimerSeconds: restSeconds ?? undefined,
     };
 
@@ -269,9 +285,9 @@ export function ExerciseFormPage() {
           />
         </div>
 
-        {/* Equipment: drives the weight increment used by the +/- steppers */}
+        {/* Equipment: drives the default weight increment used by the +/- steppers */}
         <CycleField
-          label="Materiaal (gewichtsstap)"
+          label="Materiaal"
           value={equipment}
           options={EQUIPMENT_OPTIONS}
           onChange={v => {
@@ -279,6 +295,29 @@ export function ExerciseFormPage() {
             setEquipment(v as Equipment);
           }}
         />
+
+        {/* Per-exercise weight increment override (defaults to the equipment's step) */}
+        <div className="space-y-2">
+          <Label htmlFor="weight-step">Gewichtsstap</Label>
+          <select
+            id="weight-step"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            value={weightStep ? weightStepKey(weightStep) : ''}
+            onChange={e => {
+              const found = WEIGHT_STEP_OPTIONS.find(o => o.key === e.target.value);
+              setWeightStep(found?.step ?? null);
+            }}
+          >
+            <option value="">
+              Materiaalstandaard ({weightStepLabel(weightStepFor(settings.weightSteps, equipment))})
+            </option>
+            {WEIGHT_STEP_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* E1-07: per-exercise default rest */}
         <div className="space-y-2">

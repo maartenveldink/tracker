@@ -32,6 +32,11 @@ export interface Exercise {
    * back to the "other" 1 kg step.
    */
   equipment?: Equipment;
+  /**
+   * Optional per-exercise weight increment for the +/- steppers. Overrides the
+   * equipment-based default from `AppSettings.weightSteps`. Undefined = inherit.
+   */
+  weightStep?: WeightStepSetting;
 }
 
 /** Equipment an exercise is loaded with; determines its weight increment. */

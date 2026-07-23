@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSchemas, isMultiDay, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
 import { useCompletedWorkouts, computeExerciseSessions } from '../hooks/useProgress';
+import { useExercises } from '../hooks/useExercises';
+import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { useSettings } from '../../../hooks/useSettings';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -82,22 +84,42 @@ export function StartWorkoutPage() {
   const activeWorkoutState = useActiveWorkout();
   const activeWorkout = activeWorkoutState?.workout;
   const completedWorkouts = useCompletedWorkouts();
+  const exercises = useExercises();
   const settings = useSettings();
   const navigate = useNavigate();
+
+  const exerciseById = useMemo(
+    () => new Map(exercises.map(e => [e.id!, e])),
+    [exercises],
+  );
 
   // E3-38: seed each set's planned weight from the most recent session of the
   // same exercise, so returning users start from what they last lifted. The
   // schema start weight only applies the first time (no history yet).
+  //
+  // Progressive overload: when every planned set was matched last time by a
+  // completed set that reached the top of its rep range, seed one increment
+  // heavier instead (e.g. 3×8–10 all done at ≥10 reps → +1 step next time).
   function seedHistoryWeights(exercises: WorkoutExercise[]): WorkoutExercise[] {
     return exercises.map(we => {
       const sessions = computeExerciseSessions(completedWorkouts, we.exerciseId, settings.oneRMFormula);
       const last = sessions[sessions.length - 1];
       if (!last) return we;
+
+      const step = weightStepForExercise(exerciseById.get(we.exerciseId), settings.weightSteps);
+      const hitTopOfRange = we.sets.every((s, i) => {
+        const hist = last.sets[i];
+        const target = s.plannedRepsMax ?? s.plannedReps;
+        return hist != null && target != null && hist.reps >= target;
+      });
+
       return {
         ...we,
         sets: we.sets.map((s, i) => {
           const hist = last.sets[i];
-          return hist ? { ...s, plannedWeight: hist.weight } : s;
+          if (!hist) return s;
+          const weight = hitTopOfRange ? steppedWeight(hist.weight, 1, step) : hist.weight;
+          return { ...s, plannedWeight: weight };
         }),
       };
     });

@@ -6,7 +6,7 @@ import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/usePro
 import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
 import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
-import { steppedWeight, weightStepFor } from '../lib/weightStep';
+import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -468,8 +468,8 @@ export function SchemaFormPage() {
       prev.map((e, i) => {
         if (i !== index) return e;
         const base = e.startWeight ?? suggestStartWeight(e.exerciseId, e.repsPerSet) ?? 0;
-        const equipment = exerciseById.get(e.exerciseId)?.equipment;
-        return { ...e, startWeight: steppedWeight(base, dir, weightStepFor(settings.weightSteps, equipment)) };
+        const exercise = exerciseById.get(e.exerciseId);
+        return { ...e, startWeight: steppedWeight(base, dir, weightStepForExercise(exercise, settings.weightSteps)) };
       })
     );
   }
