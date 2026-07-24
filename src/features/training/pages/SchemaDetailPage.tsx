@@ -80,10 +80,14 @@ function computeMuscleAnalysis(
   return { stats, missing, totalSets };
 }
 
-function MuscleStatsSection({ analysis, allExercises }: {
+function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: {
   analysis: MuscleAnalysis;
   allExercises: Exercise[];
+  exercises: SchemaExercise[];
+  exerciseMap: Map<number, Exercise>;
 }) {
+  const [selected, setSelected] = useState<MuscleStats | null>(null);
+
   const suggestions = useMemo(() => {
     if (analysis.missing.length === 0) return [];
     const missingIds = new Set(analysis.missing.map(m => m.id));
@@ -92,19 +96,46 @@ function MuscleStatsSection({ analysis, allExercises }: {
       .slice(0, 5);
   }, [analysis.missing, allExercises]);
 
+  // Exercises training the selected muscle, split by primary vs secondary role.
+  const selectedExercises = useMemo(() => {
+    if (!selected) return { primary: [], secondary: [] } as {
+      primary: { name: string; sets: number }[];
+      secondary: { name: string; sets: number }[];
+    };
+    const primary: { name: string; sets: number }[] = [];
+    const secondary: { name: string; sets: number }[] = [];
+    for (const se of exercises) {
+      const ex = exerciseMap.get(se.exerciseId);
+      if (!ex) continue;
+      const entry = { name: ex.name, sets: se.sets };
+      if (ex.primaryMuscles.includes(selected.id)) primary.push(entry);
+      else if (ex.secondaryMuscles.includes(selected.id)) secondary.push(entry);
+    }
+    return { primary, secondary };
+  }, [selected, exercises, exerciseMap]);
+
   return (
     <>
       {/* Muscle group overview (E2-04) */}
       {analysis.stats.length > 0 && (
         <div className="px-4 py-3">
-          <h2 className="text-sm font-medium text-muted-foreground mb-2">Spiergroepverdeling</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Spiergroepverdeling</h2>
+          <p className="text-xs text-muted-foreground/80 mb-2">
+            Aantal sets per spiergroep (primair + secundair) — tik voor de oefeningen.
+          </p>
           <div className="space-y-2">
             {analysis.stats.map(stat => {
               const maxSets = analysis.stats[0]
                 ? analysis.stats[0].primarySets + analysis.stats[0].secondarySets
                 : 1;
               return (
-                <div key={stat.id}>
+                <button
+                  key={stat.id}
+                  type="button"
+                  data-testid="muscle-bar"
+                  onClick={() => setSelected(stat)}
+                  className="w-full text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-accent/50 transition-colors"
+                >
                   <div className="flex items-center justify-between text-xs mb-0.5">
                     <span className="text-card-foreground">{stat.name}</span>
                     <span className="text-muted-foreground">
@@ -123,12 +154,52 @@ function MuscleStatsSection({ analysis, allExercises }: {
                       />
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       )}
+
+      {/* Exercises for the tapped muscle group */}
+      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent data-testid="muscle-exercises">
+          <DialogHeader>
+            <DialogTitle>{selected?.name}</DialogTitle>
+            <DialogDescription>
+              Oefeningen in dit schema die deze spiergroep trainen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedExercises.primary.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Primair</p>
+                <ul className="space-y-1">
+                  {selectedExercises.primary.map((e, i) => (
+                    <li key={`p-${i}`} className="flex justify-between text-sm">
+                      <span>{e.name}</span>
+                      <span className="text-muted-foreground">{e.sets} sets</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {selectedExercises.secondary.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Secundair</p>
+                <ul className="space-y-1">
+                  {selectedExercises.secondary.map((e, i) => (
+                    <li key={`s-${i}`} className="flex justify-between text-sm">
+                      <span>{e.name}</span>
+                      <span className="text-muted-foreground">{e.sets} sets</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Missing muscle groups (E2-05) */}
       {analysis.missing.length > 0 && (
@@ -203,12 +274,17 @@ export function SchemaDetailPage() {
   const multiDay = schema ? isMultiDay(schema) : false;
   const sortedDays = useMemo(() => schema ? getSortedDays(schema) : [], [schema]);
 
+  // Exercises across all days (for the "Totaal" scope).
+  const totalExercises = useMemo(
+    () => (schema ? getAllSchemaExercises(schema) : []),
+    [schema],
+  );
+
   // Analysis for total schema (all exercises across all days)
   const totalAnalysis = useMemo(() => {
     if (!schema) return { stats: [], missing: [], totalSets: 0 };
-    const allExs = getAllSchemaExercises(schema);
-    return computeMuscleAnalysis(allExs, exerciseMap, settings.muscleDetailLevel);
-  }, [schema, exerciseMap, settings.muscleDetailLevel]);
+    return computeMuscleAnalysis(totalExercises, exerciseMap, settings.muscleDetailLevel);
+  }, [schema, totalExercises, exerciseMap, settings.muscleDetailLevel]);
 
   // Per-day analysis (E2-10)
   const dayAnalyses = useMemo(() => {
@@ -411,20 +487,20 @@ export function SchemaDetailPage() {
             </TabsList>
           </div>
           <TabsContent value="totaal">
-            <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} />
+            <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} exercises={totalExercises} exerciseMap={exerciseMap} />
           </TabsContent>
           {sortedDays.map(day => {
             const dayAnalysis = dayAnalyses.get(day.id);
             if (!dayAnalysis) return null;
             return (
               <TabsContent key={day.id} value={day.id}>
-                <MuscleStatsSection analysis={dayAnalysis} allExercises={allExercises} />
+                <MuscleStatsSection analysis={dayAnalysis} allExercises={allExercises} exercises={day.exercises} exerciseMap={exerciseMap} />
               </TabsContent>
             );
           })}
         </Tabs>
       ) : (
-        <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} />
+        <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} exercises={totalExercises} exerciseMap={exerciseMap} />
       )}
 
       {/* Share via QR / link */}

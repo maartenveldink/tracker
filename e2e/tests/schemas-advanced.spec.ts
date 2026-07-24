@@ -31,4 +31,17 @@ test.describe('Schemas — advanced', () => {
 
     await expect(page.getByRole('heading', { name: 'Spiergroepverdeling' })).toBeVisible();
   });
+
+  test('tapping a muscle bar lists the exercises for that group', async ({ schemaEditor, page }) => {
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('E2E Muscle');
+    await schemaEditor.addExercise(A);
+    await schemaEditor.save();
+
+    await page.getByTestId('muscle-bar').first().click();
+
+    const dialog = page.getByTestId('muscle-exercises');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(A)).toBeVisible();
+  });
 });
