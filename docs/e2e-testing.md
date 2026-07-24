@@ -34,14 +34,13 @@ e2e/
     SchemasPage.ts    SchemaEditorPage.ts   SchemaDetailPage.ts
     StartWorkoutPage.ts  WorkoutPage.ts
     DashboardPage.ts  ProgressPage.ts       SettingsPage.ts
-    NutritionPages.ts PlannerPage.ts
   tests/              # specs (*.spec.ts)
-    smoke.spec.ts        superset.spec.ts
-    exercises.spec.ts    schemas.spec.ts
-    workout.spec.ts      settings.spec.ts
-    dashboard.spec.ts    progress.spec.ts
+    smoke.spec.ts        superset.spec.ts   superset-advanced.spec.ts
+    exercises.spec.ts    exercise-advanced.spec.ts
+    schemas.spec.ts
+    workout.spec.ts      workout-advanced.spec.ts
+    settings.spec.ts     dashboard.spec.ts  progress.spec.ts
     progressive-overload.spec.ts
-    nutrition.spec.ts    planner.spec.ts
   tsconfig.json       # type-checking config for the e2e sources
 ```
 
@@ -59,12 +58,7 @@ The suite exercises the main user flows across the app:
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
 - **Progress & history** — records board, workout history + delete.
 - **Dashboard** — quick weigh-in, resume active workout.
-- **Settings** — 1RM formula & weight-step persistence, feature flags, clear-all.
-- **Optional modules** — nutrition (food CRUD) and planner (week plan), behind
-  their feature flags.
-
-Google Health (Epic 7) is intentionally excluded — it depends on an external
-OAuth provider and isn't exercisable without mocking.
+- **Settings** — 1RM formula & weight-step persistence, clear-all.
 
 A test reads as intent, not mechanics:
 
@@ -142,9 +136,6 @@ chromium`, then `npm run e2e`. The HTML report is uploaded as an artifact.
 State that round-trips through IndexedDB is asynchronous, so a few flows need an
 explicit wait — encapsulated in the page objects, not repeated in specs:
 
-- **Feature flags** — after enabling a module in Settings, `toggleFeature` waits
-  for its nav item to appear before returning. Otherwise a follow-up navigation
-  to the now-gated route can be redirected by a flag that hasn't committed yet.
 - **Recent-use warning (CT-06)** — starting a schema used within 48h shows a
   "Toch starten" confirmation first; `StartWorkoutPage.start` clicks it if
   present, so re-running the same schema (e.g. the progressive-overload test)

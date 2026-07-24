@@ -19,15 +19,6 @@ test.describe('Settings', () => {
     await expect(page.locator('#weightstep-plates')).toHaveValue('2.5-kg');
   });
 
-  test('enabling the nutrition module reveals its nav item', async ({ settings, page }) => {
-    await settings.goto();
-    await expect(page.getByRole('link', { name: 'Voeding' })).toHaveCount(0);
-
-    await settings.toggleFeature('nutrition');
-
-    await expect(page.getByRole('link', { name: 'Voeding' })).toBeVisible();
-  });
-
   test('clear-all wipes user schemas', async ({ schemaEditor, schemas, settings }) => {
     await schemaEditor.gotoNew();
     await schemaEditor.setName('E2E ClearMe');

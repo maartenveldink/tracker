@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, CheckCircle2, Calculator, Eye, Target, Download, Upload, Timer, Puzzle, Apple, CalendarDays, Rows3, Dumbbell } from 'lucide-react';
+import { Trash2, CheckCircle2, Calculator, Eye, Download, Upload, Timer, Rows3, Dumbbell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -16,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { clearAllData } from '@/features/training/db/seedDemoWorkouts';
-import { GoogleHealthCard } from '@/features/google-health/components/GoogleHealthCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
 import {
   WEIGHT_STEP_PRESETS,
@@ -62,23 +60,6 @@ export function SettingsPage() {
   const [importPreview, setImportPreview] = useState<TrackerExport | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  // Macro goals local drafts (flush on blur)
-  const [calDraft, setCalDraft] = useState('');
-  const [proteinDraft, setProteinDraft] = useState('');
-  const [carbsDraft, setCarbsDraft] = useState('');
-  const [fatDraft, setFatDraft] = useState('');
-  const macroInitialized = useRef(false);
-
-  useEffect(() => {
-    if (!macroInitialized.current && settings.macroGoals) {
-      macroInitialized.current = true;
-      setCalDraft(settings.macroGoals.calories?.toString() ?? '');
-      setProteinDraft(settings.macroGoals.protein?.toString() ?? '');
-      setCarbsDraft(settings.macroGoals.carbs?.toString() ?? '');
-      setFatDraft(settings.macroGoals.fat?.toString() ?? '');
-    }
-  }, [settings.macroGoals]);
-
   useEffect(() => {
     return () => {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
@@ -96,7 +77,6 @@ export function SettingsPage() {
     setLoading(true);
     try {
       await clearAllData();
-      macroInitialized.current = false;
       flash('success', 'Alle data gewist. Oefeningen zijn opnieuw ingeladen.');
     } catch {
       flash('error', 'Er ging iets mis bij het wissen.');
@@ -104,18 +84,6 @@ export function SettingsPage() {
       setLoading(false);
     }
   };
-
-  function flushMacroGoals(field: 'calories' | 'protein' | 'carbs' | 'fat', value: string) {
-    const parsed = value === '' ? null : parseFloat(value);
-    const numValue = parsed !== null && !isNaN(parsed) && parsed > 0 ? parsed : null;
-    void updateSettings({
-      macroGoals: {
-        ...settings.macroGoals,
-        [field]: numValue,
-      },
-    });
-  }
-
 
   const handleExport = async () => {
     setLoading(true);
@@ -157,9 +125,6 @@ export function SettingsPage() {
     try {
       const result = await importData(importPreview, mode);
       setImportResult(result);
-      if (mode === 'replace') {
-        macroInitialized.current = false;
-      }
       flash('success', 'Import geslaagd.');
     } catch {
       flash('error', 'Import mislukt. Bestaande data is niet gewijzigd.');
@@ -355,47 +320,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Feature modules — hide optional features from the main navigation */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Puzzle className="h-4 w-4 text-primary" />
-            Modules
-          </CardTitle>
-          <CardDescription>
-            Schakel extra modules in of uit. Uitgeschakelde modules verdwijnen uit de navigatie.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="feature-nutrition" className="cursor-pointer flex items-center gap-2">
-              <Apple className="h-4 w-4 text-muted-foreground" />
-              Voeding
-            </Label>
-            <Switch
-              id="feature-nutrition"
-              checked={settings.features.nutrition}
-              onCheckedChange={(checked) =>
-                void updateSettings({ features: { ...settings.features, nutrition: checked } })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="feature-planner" className="cursor-pointer flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              Planner
-            </Label>
-            <Switch
-              id="feature-planner"
-              checked={settings.features.planner}
-              onCheckedChange={(checked) =>
-                void updateSettings({ features: { ...settings.features, planner: checked } })
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* RT-05: Rest timer duration */}
       <Card>
         <CardHeader>
@@ -518,82 +442,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* E8-03: Macro goals */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
-            Macrodoelen
-          </CardTitle>
-          <CardDescription>
-            Stel dagelijkse macro-doelen in. Laat leeg om geen doel te gebruiken.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="goal-calories" className="text-xs">Calorieen (kcal)</Label>
-              <Input
-                id="goal-calories"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={calDraft}
-                onChange={e => setCalDraft(e.target.value)}
-                onBlur={() => flushMacroGoals('calories', calDraft)}
-                placeholder="-"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="goal-protein" className="text-xs">Eiwitten (g)</Label>
-              <Input
-                id="goal-protein"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={proteinDraft}
-                onChange={e => setProteinDraft(e.target.value)}
-                onBlur={() => flushMacroGoals('protein', proteinDraft)}
-                placeholder="-"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="goal-carbs" className="text-xs">Koolhydraten (g)</Label>
-              <Input
-                id="goal-carbs"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={carbsDraft}
-                onChange={e => setCarbsDraft(e.target.value)}
-                onBlur={() => flushMacroGoals('carbs', carbsDraft)}
-                placeholder="-"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="goal-fat" className="text-xs">Vetten (g)</Label>
-              <Input
-                id="goal-fat"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={fatDraft}
-                onChange={e => setFatDraft(e.target.value)}
-                onBlur={() => flushMacroGoals('fat', fatDraft)}
-                placeholder="-"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Epic 7: Google Health integration */}
-      <GoogleHealthCard />
-
       {/* E8-07: Export */}
       <Card>
         <CardHeader>
@@ -701,9 +549,6 @@ export function SettingsPage() {
               {importPreview.workouts.length > 0 && <li>{importPreview.workouts.length} trainingen</li>}
               {importPreview.schemas.length > 0 && <li>{importPreview.schemas.length} schema&apos;s</li>}
               {importPreview.exercises.length > 0 && <li>{importPreview.exercises.length} oefeningen</li>}
-              {importPreview.foods.length > 0 && <li>{importPreview.foods.length} voedingsmiddelen</li>}
-              {importPreview.recipes.length > 0 && <li>{importPreview.recipes.length} recepten</li>}
-              {importPreview.dailyLog.length > 0 && <li>{importPreview.dailyLog.length} daglog-items</li>}
               {(importPreview.bodyWeights?.length ?? 0) > 0 && <li>{importPreview.bodyWeights!.length} gewicht-metingen</li>}
             </ul>
           )}
@@ -745,9 +590,6 @@ export function SettingsPage() {
               {importResult.workouts > 0 && <li>{importResult.workouts} trainingen</li>}
               {importResult.schemas > 0 && <li>{importResult.schemas} schema&apos;s</li>}
               {importResult.exercises > 0 && <li>{importResult.exercises} oefeningen</li>}
-              {importResult.foods > 0 && <li>{importResult.foods} voedingsmiddelen</li>}
-              {importResult.recipes > 0 && <li>{importResult.recipes} recepten</li>}
-              {importResult.dailyLog > 0 && <li>{importResult.dailyLog} daglog-items</li>}
               {importResult.bodyWeights > 0 && <li>{importResult.bodyWeights} gewicht-metingen</li>}
             </ul>
           )}

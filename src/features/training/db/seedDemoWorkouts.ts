@@ -6,7 +6,6 @@ const SETTINGS_DEFAULTS: AppSettings = {
   oneRMFormula: 'epley',
   muscleDetailLevel: 'global',
   workoutDensity: 'comfortable',
-  macroGoals: { calories: null, protein: null, carbs: null, fat: null },
   restTimerSeconds: 90,
   weightSteps: {
     cable: { value: 5, unit: 'lb' },
@@ -22,7 +21,6 @@ const SETTINGS_DEFAULTS: AppSettings = {
   },
   restTimerVibrate: true,
   restTimerSound: true,
-  features: { nutrition: false, planner: false },
 };
 
 /**
@@ -30,18 +28,12 @@ const SETTINGS_DEFAULTS: AppSettings = {
  * Called by the "Alles wissen" button in Settings.
  */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.foods, db.recipes, db.dailyLog, db.bodyWeights, db.settings, db.weekPlans], async () => {
+  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.bodyWeights, db.settings], async () => {
     await db.workouts.clear();
     await db.schemas.clear();
     await db.exercises.clear();
-    await db.foods.clear();
-    await db.recipes.clear();
-    await db.dailyLog.clear();
-    await db.weekPlans.clear();
     await db.bodyWeights.clear();
     await db.settings.put(SETTINGS_DEFAULTS);
-    // Note: Google Health tokens and health data are NOT cleared here — the user
-    // manages that via the dedicated "Ontkoppel Google Health" button (E7-10).
   });
   await seedDatabase();
 }

@@ -159,115 +159,6 @@ export interface BodyWeightEntry {
   createdAt: Date;
 }
 
-// --- Nutrition Types ---
-
-export interface Macros {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
-
-export interface Food {
-  id?: number;
-  name: string;
-  servingSize: number;  // grams per serving
-  calories: number;     // per serving
-  protein: number;      // per serving
-  carbs: number;        // per serving
-  fat: number;          // per serving
-  createdAt: Date;
-}
-
-export interface RecipeIngredient {
-  foodId: number;
-  grams: number;
-}
-
-export interface Recipe {
-  id?: number;
-  name: string;
-  ingredients: RecipeIngredient[];
-  totalWeight: number;  // computed: sum of ingredient grams
-  calories: number;     // computed totals
-  protein: number;
-  carbs: number;
-  fat: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type DailyLogItemType = 'food' | 'recipe';
-
-export interface DailyLogEntry {
-  id?: number;
-  date: string;          // YYYY-MM-DD
-  itemType: DailyLogItemType;
-  itemId: number;        // food or recipe id
-  itemName: string;      // denormalized for display
-  grams: number;         // actual grams consumed
-  calories: number;      // computed for this entry
-  protein: number;
-  carbs: number;
-  fat: number;
-  createdAt: Date;
-}
-
-export interface MacroGoals {
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-}
-
-// --- Week Planner Types (Epic 9) ---
-
-export interface WeekPlanDay {
-  weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = maandag, 6 = zondag
-  schemaId: number | null;    // null = rustdag
-  schemaDayId: string | null; // null = single-day schema of rustdag
-  label: string | null;       // optioneel override-label, bv. "Push A"
-}
-
-export interface WeekPlan {
-  id?: number;
-  name: string;
-  days: WeekPlanDay[]; // 7 entries, een per weekdag
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// --- Google Health Types (Epic 7) ---
-
-export interface GoogleHealthConnection {
-  id: 1; // singleton row
-  accountName: string;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number; // Unix timestamp in ms
-  connectedAt: Date;
-  lastSyncAt: Date | null;
-  lastSyncError: string | null; // E7-18: last API error message, null when healthy
-  consecutiveFailDays: number;  // E7-19: days without a successful sync
-}
-
-export interface SleepPhases {
-  lightMinutes: number;
-  deepMinutes: number;
-  remMinutes: number;
-  awakeMinutes: number;
-}
-
-export interface GoogleHealthDay {
-  id?: number;
-  date: string;                    // YYYY-MM-DD (wake-up date)
-  sleepMinutes: number | null;     // E7-12: total sleep duration
-  sleepPhases: SleepPhases | null; // E7-12: breakdown if available
-  steps: number | null;            // E7-14
-  restingHeartRate: number | null; // E7-15: min bpm of the day
-  syncedAt: Date;
-}
-
 // --- App Settings ---
 
 /** Sizing/spacing of the live-workout set controls (buttons + inputs). */
@@ -279,12 +170,6 @@ export interface AppSettings {
   muscleDetailLevel: 'global' | 'detailed';
   /** How large/roomy the workout set controls are rendered. */
   workoutDensity: WorkoutDensity;
-  macroGoals: {
-    calories: number | null;
-    protein: number | null;
-    carbs: number | null;
-    fat: number | null;
-  };
   restTimerSeconds: number; // RT-05: default rest timer duration (15–600, step 15)
   /** Weight increment per equipment type for the +/- weight buttons. */
   weightSteps: Record<Equipment, WeightStepSetting>;
@@ -299,11 +184,6 @@ export interface AppSettings {
   restTimerVibrate: boolean;
   /** E3-12: play a sound when the rest timer ends. */
   restTimerSound: boolean;
-  /** Optional feature modules, hidden from the main navigation when disabled. */
-  features: {
-    nutrition: boolean;
-    planner: boolean;
-  };
 }
 
 // --- Database ---
@@ -312,13 +192,7 @@ class TrackerDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>;
   schemas!: EntityTable<TrainingSchema, 'id'>;
   workouts!: EntityTable<Workout, 'id'>;
-  foods!: EntityTable<Food, 'id'>;
-  recipes!: EntityTable<Recipe, 'id'>;
-  dailyLog!: EntityTable<DailyLogEntry, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
-  weekPlans!: EntityTable<WeekPlan, 'id'>;
-  googleHealthConnection!: EntityTable<GoogleHealthConnection, 'id'>;
-  googleHealthData!: EntityTable<GoogleHealthDay, 'id'>;
   bodyWeights!: EntityTable<BodyWeightEntry, 'id'>;
 
   constructor() {
@@ -367,7 +241,6 @@ class TrackerDB extends Dexie {
         oneRMFormula: 'epley',
         muscleDetailLevel: 'global',
         workoutDensity: 'comfortable',
-        macroGoals: { calories: null, protein: null, carbs: null, fat: null },
         restTimerSeconds: 90,
         weightSteps: {
           cable: { value: 5, unit: 'lb' },
@@ -383,20 +256,7 @@ class TrackerDB extends Dexie {
         },
         restTimerVibrate: true,
         restTimerSound: true,
-        features: { nutrition: false, planner: false },
       };
-
-      // Migrate macroGoals from localStorage
-      try {
-        const stored = localStorage.getItem('tracker_macro_goals');
-        if (stored) {
-          const parsed = JSON.parse(stored) as AppSettings['macroGoals'];
-          defaults.macroGoals = parsed;
-          localStorage.removeItem('tracker_macro_goals');
-        }
-      } catch {
-        // ignore parse errors
-      }
 
       await tx.table('settings').put(defaults);
     });
@@ -597,6 +457,22 @@ class TrackerDB extends Dexie {
             other: { value: 1, unit: 'kg' },
           };
         }
+      });
+    });
+
+    // Drop the removed nutrition, planner and Google Health modules. Setting a
+    // store to null deletes it (and its data) on upgrade.
+    this.version(15).stores({
+      foods: null,
+      recipes: null,
+      dailyLog: null,
+      weekPlans: null,
+      googleHealthConnection: null,
+      googleHealthData: null,
+    }).upgrade(async tx => {
+      await tx.table('settings').toCollection().modify(s => {
+        delete s.macroGoals;
+        delete s.features;
       });
     });
   }
