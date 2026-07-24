@@ -996,7 +996,7 @@ export function SchemaFormPage() {
                 placeholder="Zoek oefening..."
                 autoFocus
               />
-              <div className="max-h-48 overflow-y-auto space-y-1">
+              <div className="h-48 overflow-y-auto space-y-1">
                 {filteredExercises.map(ex => (
                   <button
                     key={ex.id}

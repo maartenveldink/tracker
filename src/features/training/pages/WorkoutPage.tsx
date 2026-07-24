@@ -1232,7 +1232,7 @@ export function WorkoutPage() {
                 placeholder="Zoek oefening..."
                 autoFocus
               />
-              <div className="max-h-48 overflow-y-auto space-y-1">
+              <div className="h-48 overflow-y-auto space-y-1">
                 {filteredAddExercises.map(ex => (
                   <button
                     key={ex.id}
