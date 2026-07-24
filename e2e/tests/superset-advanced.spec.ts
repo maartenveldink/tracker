@@ -39,6 +39,18 @@ test.describe('Supersets — advanced', () => {
     await expect(workout.expandedCard.locator('h3').first()).toContainText(A);
   });
 
+  test('shows supersets on the schema detail page', async ({ schemaEditor, page }) => {
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('E2E Detail Superset');
+    await schemaEditor.addExercise(A);
+    await schemaEditor.addExercise(B);
+    await schemaEditor.linkWithPrevious(B);
+    await schemaEditor.save(); // lands on the detail page
+
+    await expect(page.getByTestId('superset-group')).toHaveCount(1);
+    await expect(page.getByText('Superset', { exact: true })).toBeVisible();
+  });
+
   test('moving an exercise between members dissolves the superset', async ({ schemaEditor }) => {
     await schemaEditor.gotoNew();
     await schemaEditor.setName('E2E Dissolve');

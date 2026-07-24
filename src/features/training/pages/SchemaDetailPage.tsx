@@ -12,7 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, AlertTriangle, Lightbulb, Share2, Copy, Check } from 'lucide-react';
+import { Pencil, AlertTriangle, Lightbulb, Share2, Copy, Check, Link2 } from 'lucide-react';
+import { groupSupersets, supersetBlocks } from '../lib/superset';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -262,30 +263,54 @@ export function SchemaDetailPage() {
     if (exercises.length === 0) {
       return <p className="text-muted-foreground text-sm py-4 text-center">Geen oefeningen.</p>;
     }
+    const infos = groupSupersets(exercises);
+
+    const renderCard = (i: number) => {
+      const se = exercises[i]!;
+      const info = infos[i]!;
+      const exercise = exerciseMap.get(se.exerciseId);
+      return (
+        <Card key={`${se.exerciseId}-${i}`} className="shadow-none">
+          <CardContent className="p-3 flex items-center gap-3">
+            {info.inSuperset ? (
+              <span className="w-5 text-center text-xs font-semibold text-primary">{info.label}</span>
+            ) : (
+              <span className="text-muted-foreground text-xs w-5 text-center">{i + 1}</span>
+            )}
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium">{exercise?.name ?? 'Onbekend'}</span>
+              <div className="flex gap-1 mt-1">
+                {exercise?.primaryMuscles.map(m => (
+                  <MuscleChip key={m} muscleId={m} type="primary" />
+                ))}
+              </div>
+            </div>
+            <span className="text-muted-foreground text-xs whitespace-nowrap text-right">
+              {se.sets}x{formatReps(se.repsPerSet, se.repsMax)}
+              {se.startWeight != null && (
+                <span className="block text-[10px]">{se.startWeight} kg</span>
+              )}
+            </span>
+          </CardContent>
+        </Card>
+      );
+    };
+
     return (
       <div className="space-y-2">
-        {exercises.map((se, i) => {
-          const exercise = exerciseMap.get(se.exerciseId);
+        {supersetBlocks(exercises).map(block => {
+          if (block.length === 1) return renderCard(block[0]!);
           return (
-            <Card key={`${se.exerciseId}-${i}`} className="shadow-none">
-              <CardContent className="p-3 flex items-center gap-3">
-                <span className="text-muted-foreground text-xs w-5 text-center">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{exercise?.name ?? 'Onbekend'}</span>
-                  <div className="flex gap-1 mt-1">
-                    {exercise?.primaryMuscles.map(m => (
-                      <MuscleChip key={m} muscleId={m} type="primary" />
-                    ))}
-                  </div>
-                </div>
-                <span className="text-muted-foreground text-xs whitespace-nowrap text-right">
-                  {se.sets}x{formatReps(se.repsPerSet, se.repsMax)}
-                  {se.startWeight != null && (
-                    <span className="block text-[10px]">{se.startWeight} kg</span>
-                  )}
-                </span>
-              </CardContent>
-            </Card>
+            <div
+              key={`ss-${exercises[block[0]!]!.supersetGroup}`}
+              data-testid="superset-group"
+              className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-2"
+            >
+              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
+                <Link2 className="h-3 w-3" /> Superset
+              </div>
+              {block.map(renderCard)}
+            </div>
           );
         })}
       </div>
