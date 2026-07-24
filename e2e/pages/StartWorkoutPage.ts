@@ -27,4 +27,12 @@ export class StartWorkoutPage {
     await this.page.getByText('Vrije training', { exact: true }).click();
     await this.page.waitForURL(/\/workout\/\d+$/);
   }
+
+  /** Starts a specific day of a multi-day schema. */
+  async startDay(schemaName: string, dayName: string): Promise<void> {
+    await this.page.getByText(schemaName, { exact: true }).click(); // expands day selection
+    await this.page.getByText(dayName, { exact: true }).click();    // pick the day
+    await this.page.getByRole('button', { name: new RegExp(`^Start ${dayName}`) }).click();
+    await this.page.waitForURL(/\/workout\/\d+$/);
+  }
 }

@@ -37,7 +37,7 @@ e2e/
   tests/              # specs (*.spec.ts)
     smoke.spec.ts        superset.spec.ts   superset-advanced.spec.ts
     exercises.spec.ts    exercise-advanced.spec.ts
-    schemas.spec.ts
+    schemas.spec.ts      schemas-advanced.spec.ts
     workout.spec.ts      workout-advanced.spec.ts
     settings.spec.ts     dashboard.spec.ts  progress.spec.ts
     progressive-overload.spec.ts
@@ -49,16 +49,19 @@ e2e/
 The suite exercises the main user flows across the app:
 
 - **Exercises** — create, search, edit, delete.
-- **Schemas** — create, copy, delete, and a share → re-import round-trip (which
-  also proves supersets survive sharing).
+- **Schemas** — create, copy, delete, a share → re-import round-trip (which also
+  proves supersets survive sharing), multi-day schemas (build + start a chosen
+  day), and the muscle-coverage breakdown.
 - **Supersets** — link/unlink in the editor; alternating registration and
   rest-after-round in the live workout.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
   weight carry-over, rest timer.
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
-- **Progress & history** — records board, workout history + delete.
+- **Progress & history** — records board, workout history + delete, body-weight
+  logging.
 - **Dashboard** — quick weigh-in, resume active workout.
-- **Settings** — 1RM formula & weight-step persistence, clear-all.
+- **Settings** — 1RM formula, weight-step and muscle-detail persistence,
+  clear-all, and a data export → wipe → import round-trip.
 
 A test reads as intent, not mechanics:
 

@@ -48,4 +48,15 @@ test.describe('Progress & history', () => {
     await progress.openTab('Records');
     await expect(page.getByText(A).first()).toBeVisible();
   });
+
+  test('records a body weight on the weight tab', async ({ progress, page }) => {
+    await progress.goto();
+    await progress.openTab('Gewicht');
+    await expect(page.getByText('Nog geen gewicht gelogd', { exact: false })).toBeVisible();
+
+    await page.getByPlaceholder('kg').fill('80');
+    await page.getByRole('button', { name: 'Opslaan' }).click();
+
+    await expect(page.getByText('Nog geen gewicht gelogd', { exact: false })).toHaveCount(0);
+  });
 });

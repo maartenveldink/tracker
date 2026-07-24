@@ -57,6 +57,16 @@ export class SchemaEditorPage {
     return this.exerciseRow(name).getByText(/^[A-Z]$/);
   }
 
+  /** Turns a single-day schema into a multi-day one (adds a day). */
+  async addDay(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Dag toevoegen' }).click();
+  }
+
+  /** Switches the editor to the given day tab (e.g. "Dag 2"). */
+  async selectDay(name: string): Promise<void> {
+    await this.page.getByRole('tab', { name }).click();
+  }
+
   /** Saves the schema and waits for the redirect to its detail page. */
   async save(): Promise<void> {
     await this.page.getByRole('button', { name: /Aanmaken|Opslaan/ }).click();
