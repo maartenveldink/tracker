@@ -39,6 +39,14 @@ export class SchemaEditorPage {
     await this.exerciseRow(name).getByRole('button', { name: 'Superset ontkoppelen' }).click();
   }
 
+  async moveUp(name: string): Promise<void> {
+    await this.exerciseRow(name).getByRole('button', { name: 'Omhoog' }).click();
+  }
+
+  async moveDown(name: string): Promise<void> {
+    await this.exerciseRow(name).getByRole('button', { name: 'Omlaag' }).click();
+  }
+
   /** All superset group containers currently rendered. */
   get supersetGroups(): Locator {
     return this.page.getByTestId('superset-group');

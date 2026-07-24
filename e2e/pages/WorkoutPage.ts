@@ -79,6 +79,25 @@ export class WorkoutPage {
     return this.page.getByText('Training gepauzeerd');
   }
 
+  /** Number of set rows in the expanded card (one weight input per set). */
+  setCount(): Promise<number> {
+    return this.expandedCard.getByTestId('set-weight').count();
+  }
+
+  async addSet(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Set toevoegen' }).click();
+  }
+
+  /** Removes the last set of the expanded card. */
+  async removeLastSet(): Promise<void> {
+    await this.expandedCard.getByRole('button', { name: 'Set verwijderen' }).last().click();
+  }
+
+  /** Skips the running rest timer (the X button inside the timer bar). */
+  async skipRest(): Promise<void> {
+    await this.restTimer.getByRole('button').last().click();
+  }
+
   /** Finishes the workout (confirms the dialog) and waits for the summary. */
   async finish(): Promise<void> {
     await this.page.getByRole('button', { name: 'Afronden', exact: true }).first().click();
