@@ -970,13 +970,17 @@ export function WorkoutPage() {
 
               {isExpanded && (
                 <>
-              {/* Rest time control for this exercise */}
-              <RestControlBar
-                seconds={getRest(workoutExercise.exerciseId)}
-                isDefault={exerciseRest[workoutExercise.exerciseId] === undefined}
-                onAdjust={(delta) => adjustRest(workoutExercise.exerciseId, delta)}
-                onSaveDefault={() => saveRestAsDefault(workoutExercise.exerciseId)}
-              />
+              {/* Rest time control for this exercise. Hidden for superset members:
+                  rest there applies after the round, not between the alternating
+                  sets, so a per-exercise rest control is misleading. */}
+              {!ssInfo.inSuperset && (
+                <RestControlBar
+                  seconds={getRest(workoutExercise.exerciseId)}
+                  isDefault={exerciseRest[workoutExercise.exerciseId] === undefined}
+                  onAdjust={(delta) => adjustRest(workoutExercise.exerciseId, delta)}
+                  onSaveDefault={() => saveRestAsDefault(workoutExercise.exerciseId)}
+                />
+              )}
 
               {/* Previous session reference (E3-10) */}
               {prevSession ? (
