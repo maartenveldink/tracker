@@ -708,7 +708,10 @@ export function WorkoutPage() {
     exercise: Exercise | undefined,
   ) {
     if (!workoutId) return;
-    const newWeight = steppedWeight(currentWeight, dir, weightStepForExercise(exercise, settings.weightSteps));
+    // When the set has no typed weight yet, step from the weight the user
+    // actually sees (planned / previous-session placeholder) instead of 0.
+    const base = currentWeight ?? resolveSetWeight(exerciseIndex, setIndex);
+    const newWeight = steppedWeight(base, dir, weightStepForExercise(exercise, settings.weightSteps));
     if (newWeight !== null) clearWeightError(exerciseIndex, setIndex);
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { weight: newWeight });
   }
