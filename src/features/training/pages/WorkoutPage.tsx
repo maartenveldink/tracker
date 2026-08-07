@@ -480,12 +480,19 @@ export function WorkoutPage() {
     }
   }, [workout?.status, workoutId, navigate]);
 
-  // NAV-01: scroll to exercise
+  // NAV-01: scroll to exercise. Deferred across two animation frames so the
+  // expand/collapse that accompanies advancing to the next exercise (which
+  // shrinks the card above the target) is committed and laid out first —
+  // otherwise the smooth scroll aims at the pre-collapse position and overshoots.
   const scrollToExercise = useCallback((index: number) => {
-    const el = exerciseRefs.current[index];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = exerciseRefs.current[index];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
   }, []);
 
   // NAV-07: keep the active exercise expanded. When it advances (previous one
