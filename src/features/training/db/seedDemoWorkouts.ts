@@ -21,6 +21,7 @@ const SETTINGS_DEFAULTS: AppSettings = {
   },
   restTimerVibrate: true,
   restTimerSound: true,
+  exerciseTransitionSeconds: 45,
 };
 
 /**

@@ -6,6 +6,7 @@ import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../d
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
 import { formatReps } from '../lib/reps';
+import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -280,6 +281,12 @@ export function SchemaDetailPage() {
     [schema],
   );
 
+  // Estimated total training time (rest + work + transitions).
+  const totalEstimate = useMemo(
+    () => estimateExercisesSeconds(totalExercises, exerciseMap, settings),
+    [totalExercises, exerciseMap, settings],
+  );
+
   // Analysis for total schema (all exercises across all days)
   const totalAnalysis = useMemo(() => {
     if (!schema) return { stats: [], missing: [], totalSets: 0 };
@@ -426,7 +433,7 @@ export function SchemaDetailPage() {
         {multiDay ? (
           <>
             <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              {sortedDays.length} dagen | {getAllSchemaExercises(schema).length} oefeningen totaal
+              {sortedDays.length} dagen | {getAllSchemaExercises(schema).length} oefeningen totaal | {formatEstimatedTime(totalEstimate)}
             </h2>
             {schema.rotation && schema.rotation.length > 0 && (
               <p className="text-xs text-muted-foreground mb-2">
@@ -450,7 +457,8 @@ export function SchemaDetailPage() {
                 <TabsContent key={day.id} value={day.id} className="mt-3">
                   <p className="text-xs text-muted-foreground mb-2">
                     {day.exercises.length} oefening{day.exercises.length !== 1 ? 'en' : ''} |{' '}
-                    {day.exercises.reduce((sum, e) => sum + e.sets, 0)} sets
+                    {day.exercises.reduce((sum, e) => sum + e.sets, 0)} sets |{' '}
+                    {formatEstimatedTime(estimateExercisesSeconds(day.exercises, exerciseMap, settings))}
                   </p>
                   {renderExerciseList(day.exercises)}
                 </TabsContent>
@@ -460,7 +468,7 @@ export function SchemaDetailPage() {
         ) : (
           <>
             <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Oefeningen ({schema.exercises.length})
+              Oefeningen ({schema.exercises.length}){schema.exercises.length > 0 ? ` | ${formatEstimatedTime(totalEstimate)}` : ''}
             </h2>
             {schema.exercises.length === 0 && (
               <p className="text-muted-foreground text-sm py-4 text-center">Geen oefeningen in dit schema.</p>

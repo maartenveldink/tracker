@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, CheckCircle2, Calculator, Eye, Download, Upload, Timer, Rows3, Dumbbell } from 'lucide-react';
+import { Trash2, CheckCircle2, Calculator, Eye, Download, Upload, Timer, Rows3, Dumbbell, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -438,6 +438,53 @@ export function SettingsPage() {
                 onCheckedChange={(checked) => void updateSettings({ restTimerSound: checked })}
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transition time between exercises — used in the schema time estimate */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hourglass className="h-4 w-4 text-primary" />
+            Wisseltijd tussen oefeningen
+          </CardTitle>
+          <CardDescription>
+            Tijd voor opruimen en het klaarzetten van de volgende oefening. Telt mee in de
+            geschatte duur van een schema (0 - 5 min, stappen van 15s).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              disabled={settings.exerciseTransitionSeconds <= 0}
+              onClick={() =>
+                void updateSettings({
+                  exerciseTransitionSeconds: Math.max(0, settings.exerciseTransitionSeconds - 15),
+                })
+              }
+            >
+              -
+            </Button>
+            <div className="flex-1 text-center font-medium">
+              {Math.floor(settings.exerciseTransitionSeconds / 60)}:{String(settings.exerciseTransitionSeconds % 60).padStart(2, '0')}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              disabled={settings.exerciseTransitionSeconds >= 300}
+              onClick={() =>
+                void updateSettings({
+                  exerciseTransitionSeconds: Math.min(300, settings.exerciseTransitionSeconds + 15),
+                })
+              }
+            >
+              +
+            </Button>
           </div>
         </CardContent>
       </Card>

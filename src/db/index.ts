@@ -189,6 +189,11 @@ export interface AppSettings {
   restTimerVibrate: boolean;
   /** E3-12: play a sound when the rest timer ends. */
   restTimerSound: boolean;
+  /**
+   * Time (seconds) reserved between exercises for tidy-up + setup of the next
+   * one. Used by the schema time estimate.
+   */
+  exerciseTransitionSeconds: number;
 }
 
 // --- Database ---
@@ -261,6 +266,7 @@ class TrackerDB extends Dexie {
         },
         restTimerVibrate: true,
         restTimerSound: true,
+        exerciseTransitionSeconds: 45,
       };
 
       await tx.table('settings').put(defaults);

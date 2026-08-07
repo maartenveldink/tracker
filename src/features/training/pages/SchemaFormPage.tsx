@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSchema, createSchema, updateSchema } from '../hooks/useSchemas';
 import { useExercises } from '../hooks/useExercises';
+import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
@@ -863,6 +864,12 @@ export function SchemaFormPage() {
 
                   {renderExerciseList(day.exercises, day.exercises.length)}
 
+                  {day.exercises.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Geschatte duur: {formatEstimatedTime(estimateExercisesSeconds(day.exercises, exerciseById, settings))}
+                    </p>
+                  )}
+
                   <Button
                     type="button"
                     variant="outline"
@@ -968,6 +975,11 @@ export function SchemaFormPage() {
           ) : (
             <>
               {renderExerciseList(exercises, exercises.length)}
+              {exercises.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Geschatte duur: {formatEstimatedTime(estimateExercisesSeconds(exercises, exerciseById, settings))}
+                </p>
+              )}
               <Button
                 type="button"
                 variant="outline"
