@@ -118,6 +118,11 @@ export interface WorkoutSet {
   weight: number | null;
   completed: boolean;
   skipped: boolean;
+  /**
+   * For unilateral exercises each planned set is logged per side, so its sets
+   * alternate 'left'/'right'. Undefined for bilateral exercises (single set).
+   */
+  side?: 'left' | 'right';
 }
 
 export interface WorkoutExercise {

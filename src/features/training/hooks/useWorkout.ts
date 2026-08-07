@@ -87,21 +87,26 @@ export async function addWorkoutSet(
     if (!exercise) return;
 
     const lastSet = exercise.sets[exercise.sets.length - 1];
-    const newSet: WorkoutSet = {
+    // Unilateral exercises log per side, so a set is added as a left/right pair.
+    const isUnilateral = lastSet?.side !== undefined;
+    const sides: (WorkoutSet['side'])[] = isUnilateral ? ['left', 'right'] : [undefined];
+
+    const newSets: WorkoutSet[] = sides.map((side, i) => ({
       exerciseId: exercise.exerciseId,
-      setNumber: exercise.sets.length + 1,
+      setNumber: exercise.sets.length + 1 + i,
       plannedReps: lastSet?.plannedReps ?? null,
       ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
       ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
+      ...(side ? { side } : {}),
       actualReps: null,
       weight: lastSet?.weight ?? null,
       completed: false,
       skipped: false,
-    };
+    }));
 
     exercises[exerciseIndex] = {
       ...exercise,
-      sets: [...exercise.sets, newSet],
+      sets: [...exercise.sets, ...newSets],
     };
 
     await db.workouts.update(workoutId, { exercises });

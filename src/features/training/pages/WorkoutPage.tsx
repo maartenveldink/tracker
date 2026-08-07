@@ -1060,7 +1060,9 @@ export function WorkoutPage() {
                           <Check className="h-4 w-4 text-green-500" />
                         </button>
                       ) : (
-                        <span className="text-xs text-muted-foreground text-center">{set.setNumber}</span>
+                        <span className="text-xs text-muted-foreground text-center">
+                          {set.side ? (set.side === 'left' ? 'L' : 'R') : set.setNumber}
+                        </span>
                       )}
                       {/* SL-03: kg input with +/- buttons */}
                       <div className="flex items-center gap-0.5">

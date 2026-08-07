@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Zap, Play, Calendar, AlertTriangle, History } from 'lucide-react';
-import type { WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
+import type { Exercise, WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
  * Determines the default day for a multi-day schema (E2-11), following the
@@ -48,25 +48,41 @@ function getDefaultDayId(
 
 function buildWorkoutExercises(
   exercises: { exerciseId: number; sets: number; repsPerSet: number; repsMax?: number; startWeight?: number; restSeconds?: number; supersetGroup?: string }[],
+  exerciseById: Map<number, Exercise>,
 ): WorkoutExercise[] {
-  return exercises.map((se, order) => ({
-    exerciseId: se.exerciseId,
-    order,
-    ...(se.restSeconds != null ? { restSeconds: se.restSeconds } : {}),
-    ...(se.supersetGroup ? { supersetGroup: se.supersetGroup } : {}),
-    sets: Array.from({ length: se.sets }, (_, i): WorkoutSet => ({
+  return exercises.map((se, order) => {
+    // Unilateral exercises are logged per side: each planned set becomes a
+    // left+right pair, so 3 planned sets yield 6 loggable sets.
+    const isUnilateral = exerciseById.get(se.exerciseId)?.laterality === 'unilateral';
+    const sides: (WorkoutSet['side'])[] = isUnilateral ? ['left', 'right'] : [undefined];
+
+    const sets: WorkoutSet[] = [];
+    for (let i = 0; i < se.sets; i++) {
+      for (const side of sides) {
+        sets.push({
+          exerciseId: se.exerciseId,
+          setNumber: sets.length + 1,
+          plannedReps: se.repsPerSet,
+          ...(se.repsMax != null ? { plannedRepsMax: se.repsMax } : {}),
+          ...(se.startWeight != null ? { plannedWeight: se.startWeight } : {}),
+          ...(side ? { side } : {}),
+          actualReps: null,
+          weight: null,
+          completed: false,
+          skipped: false,
+        });
+      }
+    }
+
+    return {
       exerciseId: se.exerciseId,
-      setNumber: i + 1,
-      plannedReps: se.repsPerSet,
-      ...(se.repsMax != null ? { plannedRepsMax: se.repsMax } : {}),
-      ...(se.startWeight != null ? { plannedWeight: se.startWeight } : {}),
-      actualReps: null,
-      weight: null,
-      completed: false,
-      skipped: false,
-    })),
-    notes: '',
-  }));
+      order,
+      ...(se.restSeconds != null ? { restSeconds: se.restSeconds } : {}),
+      ...(se.supersetGroup ? { supersetGroup: se.supersetGroup } : {}),
+      sets,
+      notes: '',
+    };
+  });
 }
 
 // CT-02: format "X dagen geleden" or "Nog niet getraind"
@@ -209,7 +225,7 @@ export function StartWorkoutPage() {
     }
     setRecentWarningSchemaId(null);
 
-    const exercises = seedHistoryWeights(buildWorkoutExercises(schema.exercises));
+    const exercises = seedHistoryWeights(buildWorkoutExercises(schema.exercises, exerciseById));
     const workoutId = await startWorkout(schema.id!, schema.name, exercises);
     navigate(`/workout/${workoutId}`);
   }
@@ -226,7 +242,7 @@ export function StartWorkoutPage() {
     const day = sortedDays.find(d => d.id === dayId);
     if (!day) return;
 
-    const exercises = seedHistoryWeights(buildWorkoutExercises(day.exercises));
+    const exercises = seedHistoryWeights(buildWorkoutExercises(day.exercises, exerciseById));
     const workoutId = await startWorkout(
       schema.id!,
       schema.name,
