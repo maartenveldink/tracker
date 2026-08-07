@@ -11,15 +11,10 @@ export class StartWorkoutPage {
   /** Starts a single-day schema by name and waits for the live workout to open. */
   async start(schemaName: string): Promise<void> {
     await this.page.getByText(schemaName, { exact: true }).click();
-    // CT-06: a recently-used schema shows a "Toch starten" confirmation first.
-    const confirm = this.page.getByRole('button', { name: 'Toch starten' });
-    try {
-      await confirm.waitFor({ state: 'visible', timeout: 1000 });
-      await confirm.click();
-    } catch {
-      // No recent-use warning — the workout is already starting.
-    }
     await this.page.waitForURL(/\/workout\/\d+$/);
+    // Wait until the exercise cards have rendered so callers can assert on the
+    // set grid immediately.
+    await this.page.getByTestId('exercise-card').first().waitFor({ state: 'visible' });
   }
 
   /** Starts an ad-hoc ("Vrije training") workout with no schema. */

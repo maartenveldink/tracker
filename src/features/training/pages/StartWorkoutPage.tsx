@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Play, Calendar, AlertTriangle, History } from 'lucide-react';
+import { Zap, Play, Calendar, History } from 'lucide-react';
 import type { Exercise, WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
@@ -146,9 +146,6 @@ export function StartWorkoutPage() {
   const [expandedSchemaId, setExpandedSchemaId] = useState<number | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // CT-06: recent usage warning
-  const [recentWarningSchemaId, setRecentWarningSchemaId] = useState<number | null>(null);
-
   // Completed multi-day sessions per schema — the position in the rhythm cycle.
   // Derived from already-loaded completedWorkouts (avoids N+1 queries).
   const completedCountBySchema = useMemo(() => {
@@ -209,35 +206,13 @@ export function StartWorkoutPage() {
     );
   }
 
-  // CT-06: check if schema was used recently (< 48 hours)
-  function isRecentlyUsed(schemaId: number): boolean {
-    const lastDate = lastSessionBySchema.get(schemaId);
-    if (!lastDate) return false;
-    const hoursSince = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60);
-    return hoursSince < 48;
-  }
-
   async function handleStartSingleDay(schema: TrainingSchema) {
-    // CT-06: show warning if recently used
-    if (schema.id && isRecentlyUsed(schema.id) && recentWarningSchemaId !== schema.id) {
-      setRecentWarningSchemaId(schema.id);
-      return;
-    }
-    setRecentWarningSchemaId(null);
-
     const exercises = seedHistoryWeights(buildWorkoutExercises(schema.exercises, exerciseById));
     const workoutId = await startWorkout(schema.id!, schema.name, exercises);
     navigate(`/workout/${workoutId}`);
   }
 
   async function handleStartMultiDay(schema: TrainingSchema, dayId: string) {
-    // CT-06: show warning if recently used
-    if (schema.id && isRecentlyUsed(schema.id) && recentWarningSchemaId !== schema.id) {
-      setRecentWarningSchemaId(schema.id);
-      return;
-    }
-    setRecentWarningSchemaId(null);
-
     const sortedDays = getSortedDays(schema);
     const day = sortedDays.find(d => d.id === dayId);
     if (!day) return;
@@ -263,7 +238,6 @@ export function StartWorkoutPage() {
     if (expandedSchemaId === schema.id) {
       setExpandedSchemaId(null);
       setSelectedDayId(null);
-      setRecentWarningSchemaId(null);
       return;
     }
 
@@ -274,7 +248,6 @@ export function StartWorkoutPage() {
 
     setExpandedSchemaId(schema.id!);
     setSelectedDayId(defaultDayId);
-    setRecentWarningSchemaId(null);
   }
 
   async function handleStartAdHoc() {
@@ -367,23 +340,6 @@ export function StartWorkoutPage() {
                       </CardContent>
                     </Card>
 
-                    {/* CT-06: recent usage warning (single-day) */}
-                    {!multiDay && recentWarningSchemaId === schema.id && (
-                      <div className="mt-2 ml-2 flex items-start gap-2 rounded-lg bg-amber-900/30 border border-amber-800/50 px-3 py-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-xs text-amber-300">Je hebt dit schema recent al gedaan.</p>
-                          <Button
-                            size="sm"
-                            className="mt-1.5 text-xs h-7"
-                            onClick={() => handleStartSingleDay(schema)}
-                          >
-                            Toch starten
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Day selection for multi-day schemas (E2-11) */}
                     {isExpanded && multiDay && (
                       <div className="mt-2 ml-4 space-y-2">
@@ -418,16 +374,6 @@ export function StartWorkoutPage() {
                             </Card>
                           );
                         })}
-
-                        {/* CT-06: recent usage warning (multi-day) */}
-                        {recentWarningSchemaId === schema.id && (
-                          <div className="flex items-start gap-2 rounded-lg bg-amber-900/30 border border-amber-800/50 px-3 py-2">
-                            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-300">
-                              Je hebt dit schema recent al gedaan. Klik nogmaals om toch te starten.
-                            </p>
-                          </div>
-                        )}
 
                         <Button
                           className="w-full mt-2"
