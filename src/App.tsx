@@ -14,6 +14,7 @@ import { WorkoutPage } from './features/training/pages/WorkoutPage';
 import { WorkoutEditPage } from './features/training/pages/WorkoutEditPage';
 import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage';
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
+import { SuggestWorkoutPage } from './features/training/pages/SuggestWorkoutPage';
 import { WorkoutHistoryPage } from './features/training/pages/WorkoutHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -29,6 +30,7 @@ export function App() {
         <Route path="/workout/:id" element={<WorkoutPage />} />
         <Route path="/workout/:id/edit" element={<WorkoutEditPage />} />
         <Route path="/workout/:id/summary" element={<WorkoutSummaryPage />} />
+        <Route path="/start/suggestion" element={<SuggestWorkoutPage />} />
 
         {/* Standard pages with nav layout */}
         <Route element={<Layout />}>

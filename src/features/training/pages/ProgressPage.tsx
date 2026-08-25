@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Trash2, Pencil, Share2 } from 'lucide-react';
+import { ChevronLeft, Trash2, Pencil, Share2, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -530,11 +530,105 @@ function ComparisonView() {
   );
 }
 
+// ── Progression overview ───────────────────────────────────────────────────────
+
+interface ProgressionRow {
+  id: number;
+  name: string;
+  first: number;
+  last: number;
+  pct: number;
+  sessions: number;
+}
+
+function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
+  const workouts = useCompletedWorkouts();
+  const withSessions = useExercisesWithLastSession();
+  const exercises = useExercises();
+  const settings = useSettings();
+  const formula = settings.oneRMFormula;
+
+  const [period, setPeriod] = useState<PeriodFilter>('3m');
+
+  const nameById = useMemo(() => new Map(exercises.map(e => [e.id!, e.name])), [exercises]);
+
+  const rows = useMemo<ProgressionRow[]>(() => {
+    const result: ProgressionRow[] = [];
+    for (const { id } of withSessions) {
+      const name = nameById.get(id);
+      if (!name) continue;
+      const sessions = filterByPeriod(computeExerciseSessions(workouts, id, formula), period);
+      if (sessions.length < 2) continue;
+      const first = sessions[0]!.best1RM;
+      const last = sessions[sessions.length - 1]!.best1RM;
+      if (first <= 0) continue;
+      const pct = Math.round((last / first - 1) * 1000) / 10;
+      result.push({ id, name, first, last, pct, sessions: sessions.length });
+    }
+    return result.sort((a, b) => b.pct - a.pct);
+  }, [withSessions, nameById, workouts, formula, period]);
+
+  return (
+    <div className="px-4 py-3 space-y-4">
+      {/* Period filter */}
+      <div className="flex gap-2">
+        {PERIOD_OPTIONS.map(opt => (
+          <Button
+            key={opt.value}
+            variant={period === opt.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setPeriod(opt.value)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground text-sm">
+          Nog te weinig data in deze periode. Log minstens twee sessies van een oefening.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map(row => {
+            const up = row.pct > 0;
+            const flat = row.pct === 0;
+            return (
+              <button key={row.id} onClick={() => onSelect(row.id)} className="w-full text-left">
+                <Card className="hover:bg-accent/40 transition-colors">
+                  <CardContent className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{row.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {Math.round(row.first)} → {Math.round(row.last)} kg · {row.sessions} sessies
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 inline-flex items-center gap-1 text-sm font-semibold tabular-nums',
+                        flat ? 'text-muted-foreground' : up ? 'text-emerald-400' : 'text-red-400',
+                      )}
+                    >
+                      {!flat && (up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
+                      {up ? '+' : ''}{row.pct}%
+                    </span>
+                  </CardContent>
+                </Card>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 type ProgressMode =
   | 'single'
   | 'compare'
+  | 'progression'
   | 'volume'
   | 'records'
   | 'consistency'
@@ -543,6 +637,7 @@ type ProgressMode =
 const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
   { value: 'single', label: 'Per oefening' },
   { value: 'compare', label: 'Vergelijken' },
+  { value: 'progression', label: 'Progressie' },
   { value: 'volume', label: 'Volume' },
   { value: 'records', label: 'Records' },
   { value: 'consistency', label: 'Consistentie' },
@@ -599,6 +694,9 @@ export function ProgressPage() {
 
       {mode === 'single' && <ExerciseList onSelect={setSelectedId} />}
       {mode === 'compare' && <ComparisonView />}
+      {mode === 'progression' && (
+        <ProgressionOverview onSelect={id => { setSelectedId(id); setMode('single'); }} />
+      )}
       {mode === 'volume' && <VolumeTrendChart />}
       {mode === 'records' && (
         <RecordsBoard onSelect={id => { setSelectedId(id); setMode('single'); }} />

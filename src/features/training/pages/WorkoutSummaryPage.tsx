@@ -5,8 +5,10 @@ import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useProgress';
 import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
+import { improvedExercises } from '../lib/progression';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
+import { CelebrationBurst } from '../components/CelebrationBurst';
 import { getMuscleGroupById } from '../db/muscles';
 import {
   Sheet,
@@ -20,7 +22,7 @@ import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText } from 'lucide-react';
+import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
 import type { Exercise, Workout } from '../../../db/index';
 
@@ -235,6 +237,13 @@ export function WorkoutSummaryPage() {
     return prSet;
   }, [workout, completedWorkouts, settings.oneRMFormula]);
 
+  // Feature 4: exercises that improved over the previous session (1RM up), but
+  // are not an all-time PR. PR takes precedence over this lighter status.
+  const improvedExerciseIds = useMemo(() => {
+    if (!workout) return new Set<number>();
+    return improvedExercises(workout, completedWorkouts, settings.oneRMFormula);
+  }, [workout, completedWorkouts, settings.oneRMFormula]);
+
   // MF-04: Volume comparison with previous session of same schema
   const volumeComparison = useMemo<{ current: number; previous: number | null }>(() => {
     if (!workout) return { current: 0, previous: null };
@@ -358,6 +367,7 @@ export function WorkoutSummaryPage() {
 
   return (
     <div className="min-h-screen">
+      <CelebrationBurst play={prExercises.size > 0 || improvedExerciseIds.size > 0} />
       <PageHeader
         title="Samenvatting"
         actions={
@@ -456,6 +466,7 @@ export function WorkoutSummaryPage() {
             const exercise = exerciseMap.get(we.exerciseId);
             const completedSets = we.sets.filter(s => s.completed);
             const isPR = prExercises.has(we.exerciseId);
+            const isImproved = !isPR && improvedExerciseIds.has(we.exerciseId);
 
             return (
               <Card key={`${we.exerciseId}-${idx}`} className="shadow-none">
@@ -466,6 +477,12 @@ export function WorkoutSummaryPage() {
                     {isPR && (
                       <span className="text-xs text-amber-400 font-medium">
                         {'\uD83C\uDFC6'} Persoonlijk record!
+                      </span>
+                    )}
+                    {/* Feature 4: progression vs previous session */}
+                    {isImproved && (
+                      <span className="text-xs text-emerald-400 font-medium inline-flex items-center gap-0.5">
+                        <TrendingUp className="h-3.5 w-3.5" /> Vooruitgang
                       </span>
                     )}
                   </h4>

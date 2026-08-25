@@ -2,17 +2,17 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSchemas, isMultiDay, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
-import { useCompletedWorkouts, computeExerciseSessions } from '../hooks/useProgress';
+import { useCompletedWorkouts } from '../hooks/useProgress';
 import { useExercises } from '../hooks/useExercises';
-import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
+import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
 import { useSettings } from '../../../hooks/useSettings';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Play, Calendar, History } from 'lucide-react';
-import type { Exercise, WorkoutExercise, WorkoutSet, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
+import { Zap, Play, Calendar, History, Sparkles } from 'lucide-react';
+import type { WorkoutExercise, TrainingSchema, SchemaDay, Workout } from '../../../db/index';
 
 /**
  * Determines the default day for a multi-day schema (E2-11), following the
@@ -46,45 +46,6 @@ function getDefaultDayId(
   return sortedDays[0]!.id;
 }
 
-function buildWorkoutExercises(
-  exercises: { exerciseId: number; sets: number; repsPerSet: number; repsMax?: number; startWeight?: number; restSeconds?: number; supersetGroup?: string }[],
-  exerciseById: Map<number, Exercise>,
-): WorkoutExercise[] {
-  return exercises.map((se, order) => {
-    // Unilateral exercises are logged per side: each planned set becomes a
-    // left+right pair, so 3 planned sets yield 6 loggable sets.
-    const isUnilateral = exerciseById.get(se.exerciseId)?.laterality === 'unilateral';
-    const sides: (WorkoutSet['side'])[] = isUnilateral ? ['left', 'right'] : [undefined];
-
-    const sets: WorkoutSet[] = [];
-    for (let i = 0; i < se.sets; i++) {
-      for (const side of sides) {
-        sets.push({
-          exerciseId: se.exerciseId,
-          setNumber: sets.length + 1,
-          plannedReps: se.repsPerSet,
-          ...(se.repsMax != null ? { plannedRepsMax: se.repsMax } : {}),
-          ...(se.startWeight != null ? { plannedWeight: se.startWeight } : {}),
-          ...(side ? { side } : {}),
-          actualReps: null,
-          weight: null,
-          completed: false,
-          skipped: false,
-        });
-      }
-    }
-
-    return {
-      exerciseId: se.exerciseId,
-      order,
-      ...(se.restSeconds != null ? { restSeconds: se.restSeconds } : {}),
-      ...(se.supersetGroup ? { supersetGroup: se.supersetGroup } : {}),
-      sets,
-      notes: '',
-    };
-  });
-}
-
 // CT-02: format "X dagen geleden" or "Nog niet getraind"
 function formatDaysAgo(date: Date | null): string {
   if (!date) return 'Nog niet getraind';
@@ -110,37 +71,9 @@ export function StartWorkoutPage() {
     [exercises],
   );
 
-  // E3-38: seed each set's planned weight from the most recent session of the
-  // same exercise, so returning users start from what they last lifted. The
-  // schema start weight only applies the first time (no history yet).
-  //
-  // Progressive overload: when every planned set was matched last time by a
-  // completed set that reached the top of its rep range, seed one increment
-  // heavier instead (e.g. 3×8–10 all done at ≥10 reps → +1 step next time).
-  function seedHistoryWeights(exercises: WorkoutExercise[]): WorkoutExercise[] {
-    return exercises.map(we => {
-      const sessions = computeExerciseSessions(completedWorkouts, we.exerciseId, settings.oneRMFormula);
-      const last = sessions[sessions.length - 1];
-      if (!last) return we;
-
-      const step = weightStepForExercise(exerciseById.get(we.exerciseId), settings.weightSteps);
-      const hitTopOfRange = we.sets.every((s, i) => {
-        const hist = last.sets[i];
-        const target = s.plannedRepsMax ?? s.plannedReps;
-        return hist != null && target != null && hist.reps >= target;
-      });
-
-      return {
-        ...we,
-        sets: we.sets.map((s, i) => {
-          const hist = last.sets[i];
-          if (!hist) return s;
-          const weight = hitTopOfRange ? steppedWeight(hist.weight, 1, step) : hist.weight;
-          return { ...s, plannedWeight: weight };
-        }),
-      };
-    });
-  }
+  // E3-38: seed planned weights from history (with progressive overload).
+  const seedWeights = (ex: WorkoutExercise[]) =>
+    seedHistoryWeights(ex, completedWorkouts, exerciseById, settings);
 
   // Expanded schema card (for day selection on multi-day schemas)
   const [expandedSchemaId, setExpandedSchemaId] = useState<number | null>(null);
@@ -207,7 +140,7 @@ export function StartWorkoutPage() {
   }
 
   async function handleStartSingleDay(schema: TrainingSchema) {
-    const exercises = seedHistoryWeights(buildWorkoutExercises(schema.exercises, exerciseById));
+    const exercises = seedWeights(buildWorkoutExercises(schema.exercises, exerciseById));
     const workoutId = await startWorkout(schema.id!, schema.name, exercises);
     navigate(`/workout/${workoutId}`);
   }
@@ -217,7 +150,7 @@ export function StartWorkoutPage() {
     const day = sortedDays.find(d => d.id === dayId);
     if (!day) return;
 
-    const exercises = seedHistoryWeights(buildWorkoutExercises(day.exercises, exerciseById));
+    const exercises = seedWeights(buildWorkoutExercises(day.exercises, exerciseById));
     const workoutId = await startWorkout(
       schema.id!,
       schema.name,
@@ -285,6 +218,22 @@ export function StartWorkoutPage() {
             <div>
               <h3 className="font-medium text-sm">Vrije training</h3>
               <p className="text-muted-foreground text-xs mt-0.5">Start zonder schema, voeg oefeningen toe tijdens het trainen</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Suggested workout based on undertrained muscle groups */}
+        <Card
+          className="shadow-none cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={() => navigate('/start/suggestion')}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-medium text-sm">Voorgestelde training</h3>
+              <p className="text-muted-foreground text-xs mt-0.5">Op maat, gericht op spiergroepen die je lang niet trainde</p>
             </div>
           </CardContent>
         </Card>

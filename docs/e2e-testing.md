@@ -57,6 +57,10 @@ The suite exercises the main user flows across the app:
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
   weight carry-over, rest timer.
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
+- **Suggested workout** — the cold-start full-body suggestion, target-duration
+  control, adding an exercise, and the swap-for-similar sheet.
+- **Progression** — the summary's "Vooruitgang" flag vs an all-time PR, and the
+  Progress "Progressie" tab listing an exercise's % 1RM change.
 - **Progress & history** — records board, workout history + delete, body-weight
   logging.
 - **Dashboard** — quick weigh-in, resume active workout.

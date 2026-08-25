@@ -23,6 +23,12 @@ export class StartWorkoutPage {
     await this.page.waitForURL(/\/workout\/\d+$/);
   }
 
+  /** Opens the suggested-workout screen (`/start/suggestion`). */
+  async openSuggestion(): Promise<void> {
+    await this.page.getByText('Voorgestelde training', { exact: true }).click();
+    await this.page.waitForURL(/\/start\/suggestion$/);
+  }
+
   /** Starts a specific day of a multi-day schema. */
   async startDay(schemaName: string, dayName: string): Promise<void> {
     await this.page.getByText(schemaName, { exact: true }).click(); // expands day selection
