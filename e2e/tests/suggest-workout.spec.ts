@@ -18,6 +18,15 @@ test.describe('Suggested workout', () => {
     await expect(page.getByTestId('exercise-card').first()).toBeVisible();
   });
 
+  test('explains why each exercise was chosen', async ({ startWorkout, suggest, page }) => {
+    await startWorkout.goto();
+    await startWorkout.openSuggestion();
+
+    await expect(suggest.rows.first()).toBeVisible();
+    // Cold start: every muscle group is untrained, so each row states its reason.
+    await expect(page.getByText(/nog niet getraind/).first()).toBeVisible();
+  });
+
   test('a longer target duration is reflected in the label', async ({ startWorkout, suggest }) => {
     await startWorkout.goto();
     await startWorkout.openSuggestion();

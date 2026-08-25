@@ -53,12 +53,15 @@ function makeRng(seed: number): () => number {
   };
 }
 
-interface GroupStaleness {
+export interface GroupStaleness {
   groupId: string;
   setsInWindow: number;
   daysSinceLast: number; // large when never trained
   score: number;         // higher = staler
 }
+
+/** Sentinel `daysSinceLast` used when a muscle group was never trained. */
+export const NEVER_TRAINED_DAYS = 999;
 
 /**
  * Per target muscle group: how many primary-muscle sets were logged in the
@@ -103,9 +106,42 @@ export function muscleStaleness(
   return Array.from(seen).map(groupId => {
     const sets = setsInWindow.get(groupId) ?? 0;
     const last = lastTrained.get(groupId);
-    const daysSinceLast = last === undefined ? 999 : Math.floor((now.getTime() - last) / 86_400_000);
+    const daysSinceLast =
+      last === undefined ? NEVER_TRAINED_DAYS : Math.floor((now.getTime() - last) / 86_400_000);
     return { groupId, setsInWindow: sets, daysSinceLast, score: Math.max(0, WEEKLY_SET_TARGET - sets) + daysSinceLast };
   });
+}
+
+/** {@link muscleStaleness} keyed by group id, for quick lookup. */
+export function stalenessByGroup(
+  completedWorkouts: Workout[],
+  exerciseById: Map<number, Exercise>,
+  level: MuscleLevel,
+  now?: Date,
+): Map<string, GroupStaleness> {
+  const map = new Map<string, GroupStaleness>();
+  for (const g of muscleStaleness(completedWorkouts, exerciseById, level, now)) map.set(g.groupId, g);
+  return map;
+}
+
+/**
+ * The stalest primary muscle group of an exercise — i.e. the group that best
+ * explains why the exercise was suggested. Undefined when none of its primary
+ * muscles are known.
+ */
+export function stalestGroupForExercise(
+  exercise: Exercise,
+  byGroup: Map<string, GroupStaleness>,
+  level: MuscleLevel,
+): GroupStaleness | undefined {
+  const groups = new Set(exercise.primaryMuscles.map(m => toTargetId(m, level)));
+  let best: GroupStaleness | undefined;
+  for (const g of groups) {
+    const s = byGroup.get(g);
+    if (!s) continue;
+    if (!best || s.score > best.score) best = s;
+  }
+  return best;
 }
 
 interface SuggestionInput {

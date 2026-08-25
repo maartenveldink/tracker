@@ -4,7 +4,16 @@ import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
 import { startWorkout } from '../hooks/useWorkout';
-import { suggestWorkout, findSimilarExercises } from '../lib/suggestWorkout';
+import {
+  suggestWorkout,
+  findSimilarExercises,
+  stalenessByGroup,
+  stalestGroupForExercise,
+  WEEKLY_SET_TARGET,
+  NEVER_TRAINED_DAYS,
+  type GroupStaleness,
+} from '../lib/suggestWorkout';
+import { getMuscleGroupById } from '../db/muscles';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
 import { groupSupersets, normalizeSupersets } from '../lib/superset';
@@ -31,6 +40,7 @@ import {
   Link2,
   Play,
   Clock,
+  Target,
 } from 'lucide-react';
 import type { SchemaExercise, WorkoutSet } from '../../../db/index';
 
@@ -40,6 +50,16 @@ const STEP_TARGET = 5;
 
 function newSchemaExercise(exerciseId: number, order: number): SchemaExercise {
   return { exerciseId, sets: 3, repsPerSet: 8, repsMax: 12, order };
+}
+
+/** Human explanation of why an exercise's muscle group was prioritised. */
+function formatReason(g: GroupStaleness): { text: string; urgent: boolean } {
+  const name = getMuscleGroupById(g.groupId)?.name ?? g.groupId;
+  if (g.daysSinceLast >= NEVER_TRAINED_DAYS) return { text: `${name} · nog niet getraind`, urgent: true };
+  if (g.setsInWindow === 0) return { text: `${name} · ${g.daysSinceLast} dgn niet getraind`, urgent: true };
+  if (g.setsInWindow < WEEKLY_SET_TARGET)
+    return { text: `${name} · ${g.setsInWindow}/${WEEKLY_SET_TARGET} sets deze week`, urgent: true };
+  return { text: `${name} · voldoende getraind`, urgent: false };
 }
 
 function reindex(items: SchemaExercise[]): SchemaExercise[] {
@@ -103,6 +123,12 @@ export function SuggestWorkoutPage() {
 
   const supersetInfos = useMemo(() => groupSupersets(items), [items]);
   const usedIds = useMemo(() => new Set(items.map(i => i.exerciseId)), [items]);
+
+  // Why each exercise was chosen: the stalest primary muscle group per exercise.
+  const stalenessMap = useMemo(
+    () => stalenessByGroup(completedWorkouts, exerciseById, settings.muscleDetailLevel),
+    [completedWorkouts, exerciseById, settings.muscleDetailLevel],
+  );
 
   function changeTarget(delta: number) {
     const next = Math.min(MAX_TARGET, Math.max(MIN_TARGET, targetMin + delta));
@@ -296,6 +322,8 @@ export function SuggestWorkoutPage() {
             const ex = exerciseById.get(it.exerciseId);
             const info = supersetInfos[index];
             const dragging = drag?.index === index;
+            const stale = ex ? stalestGroupForExercise(ex, stalenessMap, settings.muscleDetailLevel) : undefined;
+            const reason = stale ? formatReason(stale) : undefined;
             return (
               <Card
                 key={`${it.exerciseId}-${index}`}
@@ -320,9 +348,21 @@ export function SuggestWorkoutPage() {
                         )}
                         <span className="font-medium text-sm truncate">{ex?.name ?? 'Onbekend'}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        Swipe of wissel voor een vergelijkbare oefening
-                      </div>
+                      {reason ? (
+                        <div
+                          className={cn(
+                            'text-xs mt-0.5 flex items-center gap-1',
+                            reason.urgent ? 'text-amber-400' : 'text-muted-foreground',
+                          )}
+                        >
+                          <Target className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{reason.text}</span>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Swipe of wissel voor een vergelijkbare oefening
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
