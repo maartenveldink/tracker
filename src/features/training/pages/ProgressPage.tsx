@@ -45,63 +45,8 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatRelative(date: Date): string {
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-  if (days === 0) return 'Vandaag';
-  if (days === 1) return 'Gisteren';
-  if (days < 7) return `${days} dagen geleden`;
-  if (days < 30) return `${Math.floor(days / 7)} wk geleden`;
-  if (days < 365) return `${Math.floor(days / 30)} mnd geleden`;
-  return `${Math.floor(days / 365)} jr geleden`;
-}
-
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-}
-
-// ── List view ────────────────────────────────────────────────────────────────
-
-function ExerciseList({ onSelect }: { onSelect: (id: number) => void }) {
-  const exercises = useExercises();
-  const withSessions = useExercisesWithLastSession();
-
-  const exerciseMap = useMemo(
-    () => new Map(exercises.map(e => [e.id!, e.name])),
-    [exercises],
-  );
-
-  if (withSessions.length === 0) {
-    return (
-      <div className="px-4 py-16 text-center text-muted-foreground text-sm">
-        Nog geen gelogde trainingen. Start een training om je voortgang bij te houden.
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-4 py-3 space-y-2">
-      {withSessions.map(({ id, lastSessionAt }) => {
-        const name = exerciseMap.get(id);
-        if (!name) return null;
-        return (
-          <button
-            key={id}
-            onClick={() => onSelect(id)}
-            className="w-full text-left"
-          >
-            <Card className="hover:bg-accent/40 transition-colors">
-              <CardContent className="px-4 py-3 flex items-center justify-between gap-3">
-                <span className="font-medium text-sm truncate">{name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {formatRelative(lastSessionAt)}
-                </span>
-              </CardContent>
-            </Card>
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 // ── Detail view ──────────────────────────────────────────────────────────────
@@ -537,7 +482,7 @@ interface ProgressionRow {
   name: string;
   first: number;
   last: number;
-  pct: number;
+  pct: number | null; // null when there aren't ≥2 sessions in the period
   sessions: number;
 }
 
@@ -558,14 +503,21 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
       const name = nameById.get(id);
       if (!name) continue;
       const sessions = filterByPeriod(computeExerciseSessions(workouts, id, formula), period);
-      if (sessions.length < 2) continue;
+      if (sessions.length === 0) continue;
       const first = sessions[0]!.best1RM;
       const last = sessions[sessions.length - 1]!.best1RM;
-      if (first <= 0) continue;
-      const pct = Math.round((last / first - 1) * 1000) / 10;
+      const pct =
+        sessions.length >= 2 && first > 0 ? Math.round((last / first - 1) * 1000) / 10 : null;
       result.push({ id, name, first, last, pct, sessions: sessions.length });
     }
-    return result.sort((a, b) => b.pct - a.pct);
+    // Exercises with a measurable change first (biggest gain on top), then the
+    // ones with too little data yet, alphabetically.
+    return result.sort((a, b) => {
+      if (a.pct === null && b.pct === null) return a.name.localeCompare(b.name);
+      if (a.pct === null) return 1;
+      if (b.pct === null) return -1;
+      return b.pct - a.pct;
+    });
   }, [withSessions, nameById, workouts, formula, period]);
 
   return (
@@ -586,13 +538,13 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
 
       {rows.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground text-sm">
-          Nog te weinig data in deze periode. Log minstens twee sessies van een oefening.
+          Nog geen gelogde oefeningen in deze periode.
         </div>
       ) : (
         <div className="space-y-2">
           {rows.map(row => {
-            const up = row.pct > 0;
-            const flat = row.pct === 0;
+            const up = row.pct != null && row.pct > 0;
+            const down = row.pct != null && row.pct < 0;
             return (
               <button key={row.id} onClick={() => onSelect(row.id)} className="w-full text-left">
                 <Card className="hover:bg-accent/40 transition-colors">
@@ -600,18 +552,25 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
                     <div className="min-w-0">
                       <div className="font-medium text-sm truncate">{row.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {Math.round(row.first)} → {Math.round(row.last)} kg · {row.sessions} sessies
+                        {row.pct === null
+                          ? `~${Math.round(row.last)} kg · 1 sessie`
+                          : `${Math.round(row.first)} → ${Math.round(row.last)} kg · ${row.sessions} sessies`}
                       </div>
                     </div>
-                    <span
-                      className={cn(
-                        'shrink-0 inline-flex items-center gap-1 text-sm font-semibold tabular-nums',
-                        flat ? 'text-muted-foreground' : up ? 'text-emerald-400' : 'text-red-400',
-                      )}
-                    >
-                      {!flat && (up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                      {up ? '+' : ''}{row.pct}%
-                    </span>
+                    {row.pct === null ? (
+                      <span className="shrink-0 text-sm text-muted-foreground">—</span>
+                    ) : (
+                      <span
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 text-sm font-semibold tabular-nums',
+                          up ? 'text-emerald-400' : down ? 'text-red-400' : 'text-muted-foreground',
+                        )}
+                      >
+                        {up && <TrendingUp className="h-4 w-4" />}
+                        {down && <TrendingDown className="h-4 w-4" />}
+                        {up ? '+' : ''}{row.pct}%
+                      </span>
+                    )}
                   </CardContent>
                 </Card>
               </button>
@@ -625,37 +584,36 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type ProgressMode =
-  | 'single'
-  | 'compare'
-  | 'progression'
-  | 'volume'
-  | 'records'
-  | 'consistency'
-  | 'bodyweight';
+type ProgressTab = 'exercises' | 'overview' | 'weight';
 
-const MODE_OPTIONS: { value: ProgressMode; label: string }[] = [
-  { value: 'single', label: 'Per oefening' },
-  { value: 'compare', label: 'Vergelijken' },
-  { value: 'progression', label: 'Progressie' },
-  { value: 'volume', label: 'Volume' },
-  { value: 'records', label: 'Records' },
-  { value: 'consistency', label: 'Consistentie' },
-  { value: 'bodyweight', label: 'Gewicht' },
+const TAB_OPTIONS: { value: ProgressTab; label: string }[] = [
+  { value: 'exercises', label: 'Oefeningen' },
+  { value: 'overview', label: 'Overzicht' },
+  { value: 'weight', label: 'Gewicht' },
 ];
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <h2 className="px-4 pt-4 pb-1 text-sm font-medium text-muted-foreground">{children}</h2>;
+}
 
 export function ProgressPage() {
   const exercises = useExercises();
   const [selectedId, setSelectedId] = useState<number | undefined>();
-  const [mode, setMode] = useState<ProgressMode>('single');
+  const [tab, setTab] = useState<ProgressTab>('exercises');
+  const [exerciseView, setExerciseView] = useState<'list' | 'compare'>('list');
 
   const selectedExercise = useMemo(
     () => exercises.find(e => e.id === selectedId),
     [exercises, selectedId],
   );
 
-  // A specific exercise is open — show its detail without the mode switcher
-  if (mode === 'single' && selectedId && selectedExercise) {
+  function openExercise(id: number) {
+    setSelectedId(id);
+    setTab('exercises');
+  }
+
+  // A specific exercise is open — show its detail without the tab switcher.
+  if (tab === 'exercises' && selectedId && selectedExercise) {
     return (
       <div>
         <PageHeader title="Progressie" />
@@ -672,16 +630,16 @@ export function ProgressPage() {
     <div>
       <PageHeader title="Progressie" />
 
-      {/* Mode switcher */}
-      <div className="px-4 py-3 overflow-x-auto">
-        <div className="inline-flex gap-1 rounded-xl border border-border p-1 bg-secondary/50">
-          {MODE_OPTIONS.map(opt => (
+      {/* Tab switcher — fixed three-up, no horizontal scroll */}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-border p-1 bg-secondary/50">
+          {TAB_OPTIONS.map(opt => (
             <button
               key={opt.value}
-              onClick={() => setMode(opt.value)}
+              onClick={() => setTab(opt.value)}
               className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
-                mode === opt.value
+                'py-2 rounded-lg text-sm font-medium transition-colors',
+                tab === opt.value
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground',
               )}
@@ -692,17 +650,45 @@ export function ProgressPage() {
         </div>
       </div>
 
-      {mode === 'single' && <ExerciseList onSelect={setSelectedId} />}
-      {mode === 'compare' && <ComparisonView />}
-      {mode === 'progression' && (
-        <ProgressionOverview onSelect={id => { setSelectedId(id); setMode('single'); }} />
+      {tab === 'exercises' && (
+        <>
+          {/* List ↔ Compare toggle */}
+          <div className="px-4 flex gap-2">
+            <Button
+              variant={exerciseView === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setExerciseView('list')}
+            >
+              Lijst
+            </Button>
+            <Button
+              variant={exerciseView === 'compare' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setExerciseView('compare')}
+            >
+              Vergelijken
+            </Button>
+          </div>
+          {exerciseView === 'list' ? (
+            <ProgressionOverview onSelect={openExercise} />
+          ) : (
+            <ComparisonView />
+          )}
+        </>
       )}
-      {mode === 'volume' && <VolumeTrendChart />}
-      {mode === 'records' && (
-        <RecordsBoard onSelect={id => { setSelectedId(id); setMode('single'); }} />
+
+      {tab === 'overview' && (
+        <>
+          <SectionHeading>Consistentie</SectionHeading>
+          <ConsistencyHeatmap />
+          <SectionHeading>Volume</SectionHeading>
+          <VolumeTrendChart />
+          <SectionHeading>Records</SectionHeading>
+          <RecordsBoard onSelect={openExercise} />
+        </>
       )}
-      {mode === 'consistency' && <ConsistencyHeatmap />}
-      {mode === 'bodyweight' && <BodyWeightSection />}
+
+      {tab === 'weight' && <BodyWeightSection />}
     </div>
   );
 }

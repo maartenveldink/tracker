@@ -71,7 +71,8 @@ test.describe('Progression', () => {
     await freeWorkout(startWorkout, workout, 70); // 1RM up vs first session
 
     await progress.goto();
-    await progress.openTab('Progressie');
+    // "Oefeningen" is the default tab and shows the %1RM list.
+    await progress.openTab('Oefeningen');
 
     await expect(page.getByText(A, { exact: true })).toBeVisible();
     await expect(page.getByText(/sessies/)).toBeVisible();

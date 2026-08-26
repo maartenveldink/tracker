@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-type Tab = 'Per oefening' | 'Vergelijken' | 'Progressie' | 'Volume' | 'Records' | 'Consistentie' | 'Gewicht';
+type Tab = 'Oefeningen' | 'Overzicht' | 'Gewicht';
 
 /** Page object for the Progress screen (`/progress`). */
 export class ProgressPage {

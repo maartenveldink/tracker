@@ -45,7 +45,7 @@ test.describe('Progress & history', () => {
     await logOneWorkout(schemaEditor, startWorkout, workout, 'E2E Records schema');
 
     await progress.goto();
-    await progress.openTab('Records');
+    await progress.openTab('Overzicht'); // Records now lives under "Overzicht"
     await expect(page.getByText(A).first()).toBeVisible();
   });
 
