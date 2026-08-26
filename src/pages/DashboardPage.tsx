@@ -68,9 +68,6 @@ export function DashboardPage() {
           </Card>
         )}
 
-        {/* Today's habits */}
-        <HabitsTodayCard />
-
         {/* Streak + this-week stats */}
         <div className="grid grid-cols-3 gap-3">
           <Card>
@@ -167,6 +164,9 @@ export function DashboardPage() {
             Progressie
           </Button>
         </div>
+
+        {/* Today's habits — kept last on the page */}
+        <HabitsTodayCard />
       </div>
     </div>
   );
