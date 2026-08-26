@@ -59,13 +59,14 @@ export async function exportAllData(): Promise<TrackerExport> {
  * Returns true when the database has no meaningful user data to export.
  */
 export async function hasExportableData(): Promise<boolean> {
-  const [workoutCount, schemaCount, bodyWeightCount] =
+  const [workoutCount, schemaCount, bodyWeightCount, habitCount] =
     await Promise.all([
       db.workouts.count(),
       db.schemas.count(),
       db.bodyWeights.count(),
+      db.habits.count(),
     ]);
-  return workoutCount + schemaCount + bodyWeightCount > 0;
+  return workoutCount + schemaCount + bodyWeightCount + habitCount > 0;
 }
 
 /**

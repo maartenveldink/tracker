@@ -84,4 +84,8 @@ export class HabitsPage {
   async prevDay(): Promise<void> {
     await this.page.getByRole('button', { name: 'Vorige dag' }).click();
   }
+
+  async moveUp(name: string): Promise<void> {
+    await this.row(name).getByRole('button', { name: 'Omhoog' }).click();
+  }
 }

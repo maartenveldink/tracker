@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Flame } from 'lucide-react';
 import type { Habit, HabitLog } from '../../../db/index';
-import { useHabits, useHabitLogs } from '../hooks/useHabits';
+import { useHabits, useHabitLogs, reorderHabits } from '../hooks/useHabits';
 import { isScheduledOn, doneByDateForHabit, habitStreak, isHabitDone } from '../lib/schedule';
 import { toISODate } from '../../../lib/dateUtils';
 import { PageHeader } from '../../../components/PageHeader';
@@ -60,6 +60,19 @@ export function HabitsPage() {
     });
   }
 
+  // Swap a habit with its visible neighbour, preserving the order of habits that
+  // aren't shown on this day, then persist the full reindexed order.
+  function moveHabit(habitId: number, dir: -1 | 1) {
+    const vi = scheduled.findIndex(h => h.id === habitId);
+    const neighbour = scheduled[vi + dir];
+    if (!neighbour) return;
+    const ids = habits.map(h => h.id!);
+    const ia = ids.indexOf(habitId);
+    const ib = ids.indexOf(neighbour.id!);
+    [ids[ia], ids[ib]] = [ids[ib]!, ids[ia]!];
+    void reorderHabits(ids);
+  }
+
   return (
     <div>
       <PageHeader
@@ -104,13 +117,16 @@ export function HabitsPage() {
             Geen habits gepland voor deze dag.
           </div>
         ) : (
-          scheduled.map(habit => (
+          scheduled.map((habit, i) => (
             <HabitRow
               key={habit.id}
               habit={habit}
               value={valueByHabit.get(habit.id!) ?? 0}
               dateKey={selectedKey}
               logs={logs}
+              canMoveUp={i > 0}
+              canMoveDown={i < scheduled.length - 1}
+              onMove={dir => moveHabit(habit.id!, dir)}
               onOpen={() => navigate(`/habits/${habit.id}`)}
             />
           ))
@@ -125,12 +141,18 @@ function HabitRow({
   value,
   dateKey,
   logs,
+  canMoveUp,
+  canMoveDown,
+  onMove,
   onOpen,
 }: {
   habit: Habit;
   value: number;
   dateKey: string;
   logs: HabitLog[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (dir: -1 | 1) => void;
   onOpen: () => void;
 }) {
   const done = isHabitDone(habit, value);
@@ -141,7 +163,31 @@ function HabitRow({
 
   return (
     <Card data-testid="habit-row" className={cn(done && 'border-primary/50')}>
-      <CardContent className="p-3 flex items-center gap-3">
+      <CardContent className="p-3 flex items-center gap-2">
+        {(canMoveUp || canMoveDown) && (
+          <div className="flex flex-col -my-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground"
+              onClick={() => onMove(-1)}
+              disabled={!canMoveUp}
+              aria-label="Omhoog"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground"
+              onClick={() => onMove(1)}
+              disabled={!canMoveDown}
+              aria-label="Omlaag"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-2">
             {habit.emoji && <span className="text-lg">{habit.emoji}</span>}

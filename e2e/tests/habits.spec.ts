@@ -41,6 +41,51 @@ test.describe('Habit tracker', () => {
     await expect(habits.row('Wel vandaag')).toBeVisible();
   });
 
+  test('reorders habits with the up control', async ({ habits }) => {
+    await habits.create({ name: 'Eerste', schedule: { kind: 'daily' } });
+    await habits.create({ name: 'Tweede', schedule: { kind: 'daily' } });
+
+    // Initial order: Eerste, Tweede.
+    await expect(habits.rows.nth(0)).toContainText('Eerste');
+
+    await habits.moveUp('Tweede');
+    await expect(habits.rows.nth(0)).toContainText('Tweede');
+    await expect(habits.rows.nth(1)).toContainText('Eerste');
+  });
+
+  test('exports habits and restores them after a wipe', async ({ habits, settings, page }, testInfo) => {
+    await habits.create({ name: 'Mediteren', schedule: { kind: 'daily' } });
+    await habits.toggle('Mediteren'); // a log to round-trip too
+
+    // Export → capture the downloaded JSON.
+    await settings.goto();
+    const download = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Exporteer data' }).click(),
+    ]).then(([d]) => d);
+    const file = testInfo.outputPath('habits-export.json');
+    await download.saveAs(file);
+
+    // Wipe everything, confirm the habit is gone.
+    await settings.clearAll();
+    await habits.goto();
+    await expect(habits.row('Mediteren')).toHaveCount(0);
+
+    // Import (replace) → habit and its log return.
+    await settings.goto();
+    await page.locator('input[type="file"]').setInputFiles(file);
+    await page.getByRole('button', { name: /Vervangen/ }).click();
+    await page.getByRole('button', { name: 'Sluiten' }).click();
+
+    await habits.goto();
+    await expect(habits.row('Mediteren')).toBeVisible();
+    // The log survived: the habit is still ticked today.
+    await expect(habits.row('Mediteren').getByRole('button', { name: /Afvink/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
   test('the dashboard shows today\'s habits and lets you check them off', async ({ habits, page }) => {
     await habits.create({ name: 'Stretchen', schedule: { kind: 'daily' } });
 
