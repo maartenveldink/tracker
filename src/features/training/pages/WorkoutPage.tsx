@@ -20,7 +20,9 @@ import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { groupSupersets, supersetBlocks } from '../lib/superset';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
+import { bestOneRMForExercise, previousBestOneRM } from '../lib/progression';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
+import { CelebrationBurst } from '../components/CelebrationBurst';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
@@ -480,6 +482,34 @@ export function WorkoutPage() {
     }
   }, [workout?.status, workoutId, navigate]);
 
+  // Celebrate the moment an exercise is finished with a better best-1RM than the
+  // previous session. The nonce re-triggers the (remounted) burst per exercise.
+  const celebratedRef = useRef<Set<number>>(new Set());
+  const [celebrateNonce, setCelebrateNonce] = useState(0);
+  useEffect(() => {
+    celebratedRef.current = new Set();
+  }, [workoutId]);
+  useEffect(() => {
+    if (!workout || workout.status === 'completed') return;
+    const formula = settings.oneRMFormula;
+    for (const we of workout.exercises) {
+      const done = we.sets.length > 0 && we.sets.every(s => s.completed || s.skipped);
+      const hasCompleted = we.sets.some(
+        s => s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0,
+      );
+      if (!done || !hasCompleted) {
+        // Not finished (or edited back open) — let it celebrate again later.
+        celebratedRef.current.delete(we.exerciseId);
+        continue;
+      }
+      if (celebratedRef.current.has(we.exerciseId)) continue;
+      celebratedRef.current.add(we.exerciseId);
+      const current = bestOneRMForExercise(workout, we.exerciseId, formula);
+      const previous = previousBestOneRM(completedWorkouts, workoutId, we.exerciseId, formula);
+      if (previous !== null && current > previous) setCelebrateNonce(n => n + 1);
+    }
+  }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
+
   // NAV-01: scroll to exercise. Deferred across two animation frames so the
   // expand/collapse that accompanies advancing to the next exercise (which
   // shrinks the card above the target) is committed and laid out first —
@@ -759,6 +789,7 @@ export function WorkoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <CelebrationBurst key={celebrateNonce} play={celebrateNonce > 0} />
       {/* Minimal header for active training (NF-05) */}
       <header className="sticky top-0 z-40 bg-card border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">

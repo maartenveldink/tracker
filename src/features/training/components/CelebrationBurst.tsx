@@ -34,6 +34,7 @@ export function CelebrationBurst({ play, durationMs = 1600 }: CelebrationBurstPr
 
   return (
     <div
+      data-testid="celebration"
       className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
       aria-hidden="true"
     >

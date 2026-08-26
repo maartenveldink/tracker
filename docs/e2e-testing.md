@@ -117,6 +117,7 @@ are semantic and style-independent.
 | `quick-reps`      | the quick-rep bar of the active set  | detecting the expanded card, logging reps |
 | `set-weight`      | the weight input of a set            | entering weight |
 | `rest-timer`      | the rest countdown bar               | asserting rest starts (only) after a round |
+| `celebration`     | the progress-celebration overlay     | asserting the burst plays on a better session |
 
 > "The expanded card" is derived, not tagged: only the expanded exercise renders
 > its set grid, so the expanded card is *the `exercise-card` that contains a

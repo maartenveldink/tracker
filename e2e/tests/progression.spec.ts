@@ -43,6 +43,24 @@ test.describe('Progression', () => {
     await expect(page.getByText('Persoonlijk record!')).toBeVisible();
   });
 
+  test('celebrates in the workout when an exercise beats the previous session', async ({
+    startWorkout,
+    workout,
+    page,
+  }) => {
+    await freeWorkout(startWorkout, workout, 60); // baseline
+
+    await startWorkout.goto();
+    await startWorkout.startFree();
+    await workout.addExercise(A);
+    // Trim to a single set so completing it finishes the exercise.
+    await workout.removeLastSet();
+    await workout.removeLastSet();
+    await workout.completeActiveSet(70, 10); // heavier -> a better session
+
+    await expect(page.getByTestId('celebration')).toBeVisible();
+  });
+
   test('the progression tab lists an exercise with its 1RM change', async ({
     startWorkout,
     workout,
