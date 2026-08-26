@@ -16,6 +16,9 @@ import { WorkoutSummaryPage } from './features/training/pages/WorkoutSummaryPage
 import { StartWorkoutPage } from './features/training/pages/StartWorkoutPage';
 import { SuggestWorkoutPage } from './features/training/pages/SuggestWorkoutPage';
 import { WorkoutHistoryPage } from './features/training/pages/WorkoutHistoryPage';
+import { HabitsPage } from './features/habits/pages/HabitsPage';
+import { HabitFormPage } from './features/habits/pages/HabitFormPage';
+import { HabitDetailPage } from './features/habits/pages/HabitDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DashboardPage } from './pages/DashboardPage';
 
@@ -44,6 +47,10 @@ export function App() {
           <Route path="/schemas/:id/edit" element={<SchemaFormPage />} />
           <Route path="/start" element={<StartWorkoutPage />} />
           <Route path="/start/history" element={<WorkoutHistoryPage />} />
+          <Route path="/habits" element={<HabitsPage />} />
+          <Route path="/habits/new" element={<HabitFormPage />} />
+          <Route path="/habits/:id" element={<HabitDetailPage />} />
+          <Route path="/habits/:id/edit" element={<HabitFormPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/start" replace />} />

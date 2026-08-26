@@ -4,6 +4,8 @@ import {
   type TrainingSchema,
   type Workout,
   type BodyWeightEntry,
+  type Habit,
+  type HabitLog,
   type AppSettings,
 } from '@/db/index';
 
@@ -16,6 +18,8 @@ export interface TrackerExport {
   schemas: TrainingSchema[];
   workouts: Workout[];
   bodyWeights: BodyWeightEntry[];
+  habits: Habit[];
+  habitLogs: HabitLog[];
   settings: AppSettings | undefined;
 }
 
@@ -24,12 +28,14 @@ export interface TrackerExport {
  * Default (seed) exercises are excluded — only user-created exercises are exported.
  */
 export async function exportAllData(): Promise<TrackerExport> {
-  const [allExercises, schemas, workouts, bodyWeights, settings] =
+  const [allExercises, schemas, workouts, bodyWeights, habits, habitLogs, settings] =
     await Promise.all([
       db.exercises.toArray(),
       db.schemas.toArray(),
       db.workouts.toArray(),
       db.bodyWeights.toArray(),
+      db.habits.toArray(),
+      db.habitLogs.toArray(),
       db.settings.get(1),
     ]);
 
@@ -43,6 +49,8 @@ export async function exportAllData(): Promise<TrackerExport> {
     schemas,
     workouts,
     bodyWeights,
+    habits,
+    habitLogs,
     settings,
   };
 }

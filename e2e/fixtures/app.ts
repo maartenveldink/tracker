@@ -10,6 +10,7 @@ import { WorkoutPage } from '../pages/WorkoutPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { ProgressPage, WorkoutHistoryPage } from '../pages/ProgressPage';
+import { HabitsPage } from '../pages/HabitsPage';
 
 /**
  * Custom fixtures that hand each test ready-made page objects. Because every
@@ -29,6 +30,7 @@ type AppFixtures = {
   dashboard: DashboardPage;
   progress: ProgressPage;
   history: WorkoutHistoryPage;
+  habits: HabitsPage;
 };
 
 export const test = base.extend<AppFixtures>({
@@ -67,6 +69,9 @@ export const test = base.extend<AppFixtures>({
   },
   history: async ({ page }, use) => {
     await use(new WorkoutHistoryPage(page));
+  },
+  habits: async ({ page }, use) => {
+    await use(new HabitsPage(page));
   },
 });
 

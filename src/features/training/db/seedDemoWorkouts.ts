@@ -29,12 +29,18 @@ const SETTINGS_DEFAULTS: AppSettings = {
  * Called by the "Alles wissen" button in Settings.
  */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', [db.exercises, db.schemas, db.workouts, db.bodyWeights, db.settings], async () => {
-    await db.workouts.clear();
-    await db.schemas.clear();
-    await db.exercises.clear();
-    await db.bodyWeights.clear();
-    await db.settings.put(SETTINGS_DEFAULTS);
-  });
+  await db.transaction(
+    'rw',
+    [db.exercises, db.schemas, db.workouts, db.bodyWeights, db.habits, db.habitLogs, db.settings],
+    async () => {
+      await db.workouts.clear();
+      await db.schemas.clear();
+      await db.exercises.clear();
+      await db.bodyWeights.clear();
+      await db.habits.clear();
+      await db.habitLogs.clear();
+      await db.settings.put(SETTINGS_DEFAULTS);
+    },
+  );
   await seedDatabase();
 }

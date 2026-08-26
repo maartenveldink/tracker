@@ -4,6 +4,8 @@ import {
   type TrainingSchema,
   type Workout,
   type BodyWeightEntry,
+  type Habit,
+  type HabitLog,
 } from '@/db/index';
 import { EXPORT_VERSION, type TrackerExport } from './exportData';
 import { seedDatabase } from '@/features/training/db/seed';
@@ -51,6 +53,8 @@ export interface ImportResult {
   schemas: number;
   workouts: number;
   bodyWeights: number;
+  habits: number;
+  habitLogs: number;
 }
 
 /**
@@ -75,19 +79,23 @@ export async function importData(
   data: TrackerExport,
   mode: ImportMode,
 ): Promise<ImportResult> {
-  // bodyWeights is optional for backward compatibility with older exports.
+  // bodyWeights, habits and habitLogs are optional for backward compatibility.
   const bodyWeights = data.bodyWeights ?? [];
+  const habits = data.habits ?? [];
+  const habitLogs = data.habitLogs ?? [];
 
   const result: ImportResult = {
     exercises: data.exercises.length,
     schemas: data.schemas.length,
     workouts: data.workouts.length,
     bodyWeights: bodyWeights.length,
+    habits: habits.length,
+    habitLogs: habitLogs.length,
   };
 
   await db.transaction(
     'rw',
-    [db.exercises, db.schemas, db.workouts, db.bodyWeights, db.settings],
+    [db.exercises, db.schemas, db.workouts, db.bodyWeights, db.habits, db.habitLogs, db.settings],
     async () => {
       if (mode === 'replace') {
         // Wipe all tables
@@ -95,12 +103,16 @@ export async function importData(
         await db.schemas.clear();
         await db.workouts.clear();
         await db.bodyWeights.clear();
+        await db.habits.clear();
+        await db.habitLogs.clear();
 
         // Insert with original IDs preserved (bulkPut accepts explicit keys)
         await db.exercises.bulkPut(data.exercises as Exercise[]);
         await db.schemas.bulkPut(data.schemas as TrainingSchema[]);
         await db.workouts.bulkPut(data.workouts as Workout[]);
         await db.bodyWeights.bulkPut(bodyWeights as BodyWeightEntry[]);
+        await db.habits.bulkPut(habits as Habit[]);
+        await db.habitLogs.bulkPut(habitLogs as HabitLog[]);
 
         // Restore settings if present, otherwise keep defaults
         if (data.settings) {
@@ -158,6 +170,24 @@ export async function importData(
         // Step 4: add body weights (no foreign keys; strip IDs for fresh keys)
         if (bodyWeights.length > 0) {
           await db.bodyWeights.bulkAdd(bodyWeights.map(stripId) as BodyWeightEntry[]);
+        }
+
+        // Step 5: add habits, build old → new ID map, then remap habit logs
+        const habitIdMap = new Map<number, number>();
+        if (habits.length > 0) {
+          const newIds = await db.habits.bulkAdd(habits.map(stripId) as Habit[], { allKeys: true });
+          habits.forEach((h, i) => {
+            const oldId = h.id;
+            const newId = (newIds as number[])[i];
+            if (oldId !== undefined && newId !== undefined) habitIdMap.set(oldId, newId);
+          });
+        }
+        if (habitLogs.length > 0) {
+          const remappedLogs = habitLogs.map(log => ({
+            ...stripId(log),
+            habitId: habitIdMap.get(log.habitId) ?? log.habitId,
+          }));
+          await db.habitLogs.bulkAdd(remappedLogs as HabitLog[]);
         }
 
         // In merge mode we do not overwrite settings

@@ -9,6 +9,7 @@ import { calculateStreak, statsForWeek, recentPRs } from '../features/training/l
 import { useSettings } from '../hooks/useSettings';
 import { todayISO } from '../lib/dateUtils';
 import { PageHeader } from '../components/PageHeader';
+import { HabitsTodayCard } from '../features/habits/components/HabitsTodayCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,6 +67,9 @@ export function DashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Today's habits */}
+        <HabitsTodayCard />
 
         {/* Streak + this-week stats */}
         <div className="grid grid-cols-3 gap-3">

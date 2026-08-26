@@ -164,6 +164,39 @@ export interface BodyWeightEntry {
   createdAt: Date;
 }
 
+// --- Habits ---
+
+/** How often a habit is expected. Weekday index convention: 0=Mon … 6=Sun. */
+export type HabitSchedule =
+  | { kind: 'daily' }
+  | { kind: 'interval'; everyDays: number; anchor: string } // anchor = YYYY-MM-DD
+  | { kind: 'weekdays'; days: number[] }                    // 0=Mon … 6=Sun
+  | { kind: 'monthdays'; days: number[] };                  // 1 … 31
+
+export type HabitType = 'boolean' | 'count';
+
+export interface Habit {
+  id?: number;
+  name: string;
+  emoji?: string;
+  color?: string;
+  type: HabitType;
+  /** Target count for `count` habits (≥1). Ignored for `boolean`. */
+  target?: number;
+  schedule: HabitSchedule;
+  order: number;
+  archived: boolean;
+  createdAt: Date;
+}
+
+export interface HabitLog {
+  id?: number;
+  habitId: number;
+  date: string;   // YYYY-MM-DD (local)
+  value: number;  // 0/1 for boolean, the counted amount for count
+  createdAt: Date;
+}
+
 // --- App Settings ---
 
 /** Sizing/spacing of the live-workout set controls (buttons + inputs). */
@@ -204,6 +237,8 @@ class TrackerDB extends Dexie {
   workouts!: EntityTable<Workout, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
   bodyWeights!: EntityTable<BodyWeightEntry, 'id'>;
+  habits!: EntityTable<Habit, 'id'>;
+  habitLogs!: EntityTable<HabitLog, 'id'>;
 
   constructor() {
     super('TrackerDB');
@@ -485,6 +520,12 @@ class TrackerDB extends Dexie {
         delete s.macroGoals;
         delete s.features;
       });
+    });
+
+    // Habit tracker: daily habits + per-day logs (no data migration needed).
+    this.version(16).stores({
+      habits: '++id, order, archived',
+      habitLogs: '++id, habitId, date, [habitId+date]',
     });
   }
 }

@@ -597,6 +597,7 @@ export function SettingsPage() {
               {importPreview.schemas.length > 0 && <li>{importPreview.schemas.length} schema&apos;s</li>}
               {importPreview.exercises.length > 0 && <li>{importPreview.exercises.length} oefeningen</li>}
               {(importPreview.bodyWeights?.length ?? 0) > 0 && <li>{importPreview.bodyWeights!.length} gewicht-metingen</li>}
+              {(importPreview.habits?.length ?? 0) > 0 && <li>{importPreview.habits!.length} habits</li>}
             </ul>
           )}
           <p className="text-sm text-muted-foreground">
@@ -638,6 +639,7 @@ export function SettingsPage() {
               {importResult.schemas > 0 && <li>{importResult.schemas} schema&apos;s</li>}
               {importResult.exercises > 0 && <li>{importResult.exercises} oefeningen</li>}
               {importResult.bodyWeights > 0 && <li>{importResult.bodyWeights} gewicht-metingen</li>}
+              {importResult.habits > 0 && <li>{importResult.habits} habits</li>}
             </ul>
           )}
           <DialogFooter>

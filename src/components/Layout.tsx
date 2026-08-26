@@ -7,6 +7,7 @@ import {
   Play,
   TrendingUp,
   Settings,
+  ListChecks,
   MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ import {
 const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/start', label: 'Train', icon: Play },
+  { to: '/habits', label: 'Habits', icon: ListChecks },
   { to: '/progress', label: 'Progressie', icon: TrendingUp },
 ];
 
