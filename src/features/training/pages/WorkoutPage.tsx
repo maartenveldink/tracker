@@ -22,6 +22,7 @@ import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/
 import { volumePerMuscleGroup } from '../lib/metrics';
 import { bestOneRMForExercise, previousBestOneRM } from '../lib/progression';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
+import { ExerciseForm } from '../components/ExerciseForm';
 import { CelebrationBurst } from '../components/CelebrationBurst';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -349,6 +350,9 @@ export function WorkoutPage() {
   const [elapsed, setElapsed] = useState(0);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
+  // When set, the add-exercise sheet shows the full "new exercise" form,
+  // prefilled with this name, instead of the search list.
+  const [creatingExercise, setCreatingExercise] = useState<string | null>(null);
   const [showFinish, setShowFinish] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<number | null>(null);
   const [workoutNotesOpen, setWorkoutNotesOpen] = useState(false);
@@ -771,6 +775,7 @@ export function WorkoutPage() {
     await addWorkoutExercise(workoutId, exerciseId);
     setShowAddExercise(false);
     setExerciseSearch('');
+    setCreatingExercise(null);
   }
 
   async function handleFinish() {
@@ -1257,7 +1262,13 @@ export function WorkoutPage() {
         })}
 
         {/* Add exercise via Sheet */}
-        <Sheet open={showAddExercise} onOpenChange={(open) => { setShowAddExercise(open); if (!open) setExerciseSearch(''); }}>
+        <Sheet
+          open={showAddExercise}
+          onOpenChange={(open) => {
+            setShowAddExercise(open);
+            if (!open) { setExerciseSearch(''); setCreatingExercise(null); }
+          }}
+        >
           <Button
             variant="outline"
             className="w-full border-dashed text-muted-foreground"
@@ -1266,31 +1277,79 @@ export function WorkoutPage() {
             <Plus className="h-4 w-4" />
             Oefening toevoegen
           </Button>
-          <SheetContent side="bottom" className="max-h-[70vh]">
-            <SheetHeader>
-              <SheetTitle>Oefening toevoegen</SheetTitle>
-              <SheetDescription>Selecteer een oefening om toe te voegen aan je training</SheetDescription>
-            </SheetHeader>
-            <div className="mt-4 space-y-3">
-              <Input
-                type="text"
-                value={exerciseSearch}
-                onChange={e => setExerciseSearch(e.target.value)}
-                placeholder="Zoek oefening..."
-                autoFocus
-              />
-              <div className="h-48 overflow-y-auto space-y-1">
-                {filteredAddExercises.map(ex => (
-                  <button
-                    key={ex.id}
-                    onClick={() => handleAddExercise(ex.id!)}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+            {creatingExercise !== null ? (
+              <>
+                <SheetHeader>
+                  <SheetTitle>Nieuwe oefening</SheetTitle>
+                  <SheetDescription>
+                    De oefening wordt aangemaakt en meteen aan je training toegevoegd.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mb-3 -ml-2 text-xs text-muted-foreground"
+                    onClick={() => setCreatingExercise(null)}
                   >
-                    {ex.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <ChevronDown className="h-4 w-4 rotate-90" />
+                    Terug naar zoeken
+                  </Button>
+                  <ExerciseForm
+                    initialName={creatingExercise}
+                    submitLabel="Aanmaken & toevoegen"
+                    onSaved={(exerciseId) => handleAddExercise(exerciseId)}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <SheetHeader>
+                  <SheetTitle>Oefening toevoegen</SheetTitle>
+                  <SheetDescription>Selecteer een oefening om toe te voegen aan je training</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-3">
+                  <Input
+                    type="text"
+                    value={exerciseSearch}
+                    onChange={e => setExerciseSearch(e.target.value)}
+                    placeholder="Zoek oefening..."
+                    autoFocus
+                  />
+                  <div className="h-48 overflow-y-auto space-y-1">
+                    {filteredAddExercises.map(ex => (
+                      <button
+                        key={ex.id}
+                        onClick={() => handleAddExercise(ex.id!)}
+                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                      >
+                        {ex.name}
+                      </button>
+                    ))}
+                    {/* Create a brand-new exercise when the search term matches no
+                        existing exercise by name — opens the full form prefilled. */}
+                    {exerciseSearch.trim() &&
+                      !allExercises.some(
+                        e => e.name.toLowerCase() === exerciseSearch.trim().toLowerCase(),
+                      ) && (
+                        <button
+                          onClick={() => setCreatingExercise(exerciseSearch.trim())}
+                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-accent transition-colors"
+                        >
+                          <Plus className="h-4 w-4 shrink-0" />
+                          <span>
+                            Nieuwe oefening "<span className="font-medium">{exerciseSearch.trim()}</span>" aanmaken
+                          </span>
+                        </button>
+                      )}
+                    {filteredAddExercises.length === 0 && !exerciseSearch.trim() && (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">Nog geen oefeningen.</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </SheetContent>
         </Sheet>
 

@@ -67,6 +67,20 @@ export class WorkoutPage {
     await this.page.getByRole('button', { name, exact: true }).click();
   }
 
+  /**
+   * Creates a brand-new exercise from inside the add-exercise sheet and adds it
+   * to the workout: searches for a name that doesn't exist, opens the full form
+   * (prefilled with that name), then submits. `description` is optional.
+   */
+  async createAndAddExercise(name: string, description?: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();
+    await this.page.getByPlaceholder('Zoek oefening...').fill(name);
+    await this.page.getByRole('button', { name: `Nieuwe oefening "${name}" aanmaken` }).click();
+    // The form is prefilled with the searched name.
+    if (description) await this.page.locator('#exercise-description').fill(description);
+    await this.page.getByRole('button', { name: 'Aanmaken & toevoegen' }).click();
+  }
+
   async pause(): Promise<void> {
     await this.page.getByRole('button', { name: 'Pauze' }).click();
   }
