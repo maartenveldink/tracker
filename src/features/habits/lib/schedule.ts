@@ -47,6 +47,9 @@ export function doneByDateForHabit(
 export function isHabitDone(habit: Pick<Habit, 'type' | 'target'>, value: number | undefined): boolean {
   if (value == null) return false;
   if (habit.type === 'count') return value >= Math.max(1, habit.target ?? 1);
+  // An amount habit with a target uses it as a threshold; without one, any
+  // logged value counts as "tracked" that day.
+  if (habit.type === 'amount') return habit.target != null ? value >= habit.target : value > 0;
   return value >= 1;
 }
 

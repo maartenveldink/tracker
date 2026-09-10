@@ -173,7 +173,11 @@ export type HabitSchedule =
   | { kind: 'weekdays'; days: number[] }                    // 0=Mon … 6=Sun
   | { kind: 'monthdays'; days: number[] };                  // 1 … 31
 
-export type HabitType = 'boolean' | 'count';
+/**
+ * `boolean` = done/not done, `count` = a small tally you step up/down, `amount`
+ * = a numeric value you type in (e.g. 160 g protein) measured against a target.
+ */
+export type HabitType = 'boolean' | 'count' | 'amount';
 
 export interface Habit {
   id?: number;
@@ -181,8 +185,10 @@ export interface Habit {
   emoji?: string;
   color?: string;
   type: HabitType;
-  /** Target count for `count` habits (≥1). Ignored for `boolean`. */
+  /** Target for `count`/`amount` habits (≥1). Ignored for `boolean`. */
   target?: number;
+  /** Optional unit shown next to `amount` values, e.g. "g", "ml", "km". */
+  unit?: string;
   schedule: HabitSchedule;
   order: number;
   archived: boolean;
@@ -193,7 +199,7 @@ export interface HabitLog {
   id?: number;
   habitId: number;
   date: string;   // YYYY-MM-DD (local)
-  value: number;  // 0/1 for boolean, the counted amount for count
+  value: number;  // 0/1 for boolean, the counted/entered amount otherwise
   createdAt: Date;
 }
 
