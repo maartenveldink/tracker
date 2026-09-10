@@ -84,6 +84,13 @@ test.describe('Habit tracker', () => {
     await habits.create({ name: 'Mediteren', schedule: { kind: 'daily' } });
     await habits.toggle('Mediteren'); // a log to round-trip too
 
+    // Wait for the log write to land (reflected by the pressed toggle) before
+    // exporting, otherwise the export can race ahead of the IndexedDB commit.
+    await expect(habits.row('Mediteren').getByRole('button', { name: /Afvink/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
     // Export → capture the downloaded JSON.
     await settings.goto();
     const download = await Promise.all([
