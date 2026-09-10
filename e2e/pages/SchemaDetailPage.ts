@@ -14,6 +14,6 @@ export class SchemaDetailPage {
 
   async edit(): Promise<void> {
     await this.page.getByRole('button', { name: 'Bewerken' }).click();
-    await this.page.waitForURL(/\/schemas\/\d+\/edit$/);
+    await this.page.waitForURL(/\/schemas\/[^\/]+\/edit$/);
   }
 }

@@ -21,7 +21,7 @@ const WEEKDAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']; // index 0..6
 
 export function HabitFormPage() {
   const { id } = useParams<{ id: string }>();
-  const habitId = id ? Number(id) : undefined;
+  const habitId = id || undefined;
   const existing = useHabit(habitId);
   const navigate = useNavigate();
 

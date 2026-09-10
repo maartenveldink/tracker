@@ -29,3 +29,6 @@ dev-dist/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Local data exports (personal data)
+tracker-export-*.json

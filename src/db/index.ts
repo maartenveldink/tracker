@@ -1,5 +1,55 @@
 import Dexie, { type EntityTable } from 'dexie';
 
+// --- Sync metadata ---
+
+/**
+ * Fields every synchronised record carries so the offline-first sync engine can
+ * reconcile devices (see `docs/design.multi-user-sync.md`).
+ * - `clientUpdatedAt`: epoch ms of the last local write; basis for last-write-wins.
+ * - `deleted`: tombstone flag — deletes are soft so they propagate on sync.
+ * - `dirty`: 1 when changed locally since the last successful push, else 0.
+ */
+export interface SyncMeta {
+  clientUpdatedAt: number;
+  deleted: boolean;
+  dirty: 0 | 1;
+}
+
+/**
+ * Generates a record id that is valid both locally and as a PocketBase record id
+ * (15 lowercase-alphanumeric chars). Client-generated so local id == server id,
+ * which keeps the sync engine simple. Used for all synced entity ids; ids that
+ * only live inside JSON (schema day ids, superset groups) may stay UUIDs.
+ */
+const ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+export function newId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(15));
+  let s = '';
+  for (let i = 0; i < 15; i++) s += ID_ALPHABET[bytes[i]! % 36];
+  return s;
+}
+
+/** Stamp for a brand-new local write: current time, not deleted, needs pushing. */
+export function freshSyncMeta(now = Date.now()): SyncMeta {
+  return { clientUpdatedAt: now, deleted: false, dirty: 1 };
+}
+
+/**
+ * Patch to merge into an existing record on any local update, so the change is
+ * picked up by the next sync (bumps the last-write time and marks it dirty).
+ */
+export function touchSyncMeta(now = Date.now()): { clientUpdatedAt: number; dirty: 1 } {
+  return { clientUpdatedAt: now, dirty: 1 };
+}
+
+/**
+ * Soft-delete a record: mark it as a tombstone so the deletion syncs to other
+ * devices. Reads filter these out. Use instead of `table.delete(id)`.
+ */
+export function tombstonePatch(now = Date.now()): { deleted: true; clientUpdatedAt: number; dirty: 1 } {
+  return { deleted: true, clientUpdatedAt: now, dirty: 1 };
+}
+
 // --- Types ---
 
 export interface MuscleGroup {
@@ -9,8 +59,8 @@ export interface MuscleGroup {
   level: 'global' | 'detailed';
 }
 
-export interface Exercise {
-  id?: number;
+export interface Exercise extends SyncMeta {
+  id: string;
   name: string;
   description: string;
   primaryMuscles: string[];   // MuscleGroup ids
@@ -52,7 +102,7 @@ export interface WeightStepSetting {
 }
 
 export interface SchemaExercise {
-  exerciseId: number;
+  exerciseId: string;
   /** Lower bound / target reps per set. */
   repsPerSet: number;
   sets: number;
@@ -89,8 +139,8 @@ export interface SchemaDay {
   order: number;
 }
 
-export interface TrainingSchema {
-  id?: number;
+export interface TrainingSchema extends SyncMeta {
+  id: string;
   name: string;
   /** Legacy flat exercise list — used when days is undefined/empty (single-day schema). */
   exercises: SchemaExercise[];
@@ -107,7 +157,7 @@ export interface TrainingSchema {
 }
 
 export interface WorkoutSet {
-  exerciseId: number;
+  exerciseId: string;
   setNumber: number;
   plannedReps: number | null;
   /** Optional upper bound when the schema prescribed a rep range (e.g. 8–12). */
@@ -126,7 +176,7 @@ export interface WorkoutSet {
 }
 
 export interface WorkoutExercise {
-  exerciseId: number;
+  exerciseId: string;
   order: number;
   sets: WorkoutSet[];
   notes: string;
@@ -141,9 +191,9 @@ export interface WorkoutExercise {
 
 export type WorkoutStatus = 'active' | 'paused' | 'completed';
 
-export interface Workout {
-  id?: number;
-  schemaId: number | null;    // null = ad-hoc
+export interface Workout extends SyncMeta {
+  id: string;
+  schemaId: string | null;    // null = ad-hoc
   schemaName: string | null;
   schemaDayId: string | null; // null = ad-hoc or single-day schema
   schemaDayName: string | null;
@@ -156,8 +206,8 @@ export interface Workout {
   notes: string;
 }
 
-export interface BodyWeightEntry {
-  id?: number;
+export interface BodyWeightEntry extends SyncMeta {
+  id: string;
   date: string;        // YYYY-MM-DD
   weightKg: number;
   note?: string;
@@ -179,8 +229,8 @@ export type HabitSchedule =
  */
 export type HabitType = 'boolean' | 'count' | 'amount';
 
-export interface Habit {
-  id?: number;
+export interface Habit extends SyncMeta {
+  id: string;
   name: string;
   emoji?: string;
   color?: string;
@@ -195,9 +245,9 @@ export interface Habit {
   createdAt: Date;
 }
 
-export interface HabitLog {
-  id?: number;
-  habitId: number;
+export interface HabitLog extends SyncMeta {
+  id: string;
+  habitId: string;
   date: string;   // YYYY-MM-DD (local)
   value: number;  // 0/1 for boolean, the counted/entered amount otherwise
   createdAt: Date;
@@ -233,6 +283,13 @@ export interface AppSettings {
    * one. Used by the schema time estimate.
    */
   exerciseTransitionSeconds: number;
+  /**
+   * Sync metadata. Settings stays a local singleton (id=1) but syncs as one
+   * per-user record; `deleted` is not meaningful here so we only track the
+   * last-write time and the dirty flag. Optional for rows saved before v17.
+   */
+  clientUpdatedAt?: number;
+  dirty?: 0 | 1;
 }
 
 // --- Database ---
@@ -533,7 +590,140 @@ class TrackerDB extends Dexie {
       habits: '++id, order, archived',
       habitLogs: '++id, habitId, date, [habitId+date]',
     });
+
+    // -----------------------------------------------------------------------
+    // Multi-user sync: switch from device-local auto-increment number keys to
+    // client-generated string ids, and add sync metadata to every record.
+    // See `docs/design.multi-user-sync.md`.
+    //
+    // IndexedDB cannot change a store's primary key in place, so we do it in
+    // four steps: (17) stash all rows — transformed to the new shape — into a
+    // temp store; (18) drop the old stores; (19) recreate them with string
+    // keys and restore from the stash; (20) drop the temp store.
+    // -----------------------------------------------------------------------
+    this.version(17).stores({
+      // Keep the existing stores so we can still read them here, plus a temp
+      // holder keyed by table name.
+      exercises: '++id, name, *primaryMuscles, *secondaryMuscles',
+      schemas: '++id, name',
+      workouts: '++id, status, startedAt, schemaId, schemaDayId',
+      bodyWeights: '++id, date',
+      habits: '++id, order, archived',
+      habitLogs: '++id, habitId, date, [habitId+date]',
+      _syncMigration: 'table',
+    }).upgrade(async tx => {
+      const now = Date.now();
+      const meta = () => ({ clientUpdatedAt: now, deleted: false, dirty: 1 as const });
+
+      // Read everything up front.
+      const [exercises, schemas, workouts, bodyWeights, habits, habitLogs] =
+        await Promise.all([
+          tx.table('exercises').toArray(),
+          tx.table('schemas').toArray(),
+          tx.table('workouts').toArray(),
+          tx.table('bodyWeights').toArray(),
+          tx.table('habits').toArray(),
+          tx.table('habitLogs').toArray(),
+        ]);
+
+      // old numeric id -> new string id
+      const exId = new Map<number, string>();
+      for (const e of exercises) {
+        exId.set(e.id, e.isDefault ? defaultExerciseId(e.name) : newId());
+      }
+      const habitId = new Map<number, string>();
+      for (const h of habits) habitId.set(h.id, newId());
+
+      const remapEx = (id: number): string => exId.get(id) ?? String(id);
+
+      const newExercises = exercises.map(e => ({ ...e, id: exId.get(e.id)!, ...meta(), dirty: (e.isDefault ? 0 : 1) as 0 | 1 }));
+
+      const newSchemas = schemas.map(s => ({
+        ...s,
+        id: newId(),
+        exercises: (s.exercises ?? []).map((x: { exerciseId: number }) => ({ ...x, exerciseId: remapEx(x.exerciseId) })),
+        days: s.days?.map((d: { exercises: { exerciseId: number }[] }) => ({
+          ...d,
+          exercises: d.exercises.map(x => ({ ...x, exerciseId: remapEx(x.exerciseId) })),
+        })),
+        ...meta(),
+      }));
+
+      const newWorkouts = workouts.map(w => ({
+        ...w,
+        id: newId(),
+        schemaId: null, // legacy numeric schema link no longer resolves; history keeps schemaName
+        exercises: (w.exercises ?? []).map((x: { exerciseId: number; sets: { exerciseId: number }[] }) => ({
+          ...x,
+          exerciseId: remapEx(x.exerciseId),
+          sets: x.sets.map(st => ({ ...st, exerciseId: remapEx(st.exerciseId) })),
+        })),
+        ...meta(),
+      }));
+
+      const newBodyWeights = bodyWeights.map(b => ({ ...b, id: newId(), ...meta() }));
+      const newHabits = habits.map(h => ({ ...h, id: habitId.get(h.id)!, ...meta() }));
+      const newHabitLogs = habitLogs.map(l => ({
+        ...l,
+        id: newId(),
+        habitId: habitId.get(l.habitId) ?? String(l.habitId),
+        ...meta(),
+      }));
+
+      await tx.table('_syncMigration').bulkPut([
+        { table: 'exercises', rows: newExercises },
+        { table: 'schemas', rows: newSchemas },
+        { table: 'workouts', rows: newWorkouts },
+        { table: 'bodyWeights', rows: newBodyWeights },
+        { table: 'habits', rows: newHabits },
+        { table: 'habitLogs', rows: newHabitLogs },
+      ]);
+
+      // Stamp the settings singleton with sync metadata.
+      await tx.table('settings').toCollection().modify(s => {
+        if (s.clientUpdatedAt === undefined) s.clientUpdatedAt = now;
+        if (s.dirty === undefined) s.dirty = 1;
+      });
+    });
+
+    // Drop the old number-keyed stores (data already stashed in _syncMigration).
+    this.version(18).stores({
+      exercises: null,
+      schemas: null,
+      workouts: null,
+      bodyWeights: null,
+      habits: null,
+      habitLogs: null,
+    });
+
+    // Recreate the stores with string primary keys + sync indexes, then restore.
+    this.version(19).stores({
+      exercises: 'id, name, dirty, *primaryMuscles, *secondaryMuscles',
+      schemas: 'id, name, dirty',
+      workouts: 'id, status, startedAt, schemaId, schemaDayId, dirty',
+      bodyWeights: 'id, date, dirty',
+      habits: 'id, order, archived, dirty',
+      habitLogs: 'id, habitId, date, [habitId+date], dirty',
+    }).upgrade(async tx => {
+      const stash = await tx.table('_syncMigration').toArray();
+      for (const { table, rows } of stash) {
+        if (rows.length > 0) await tx.table(table).bulkPut(rows);
+      }
+    });
+
+    // Drop the temp store.
+    this.version(20).stores({ _syncMigration: null });
   }
+}
+
+/**
+ * Deterministic, stable string id for a seeded default exercise. Every device
+ * seeds defaults with the same id so synced schemas/workouts that reference a
+ * default resolve everywhere (defaults themselves are never synced). See
+ * `docs/design.multi-user-sync.md`.
+ */
+export function defaultExerciseId(name: string): string {
+  return 'def-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
 /**

@@ -20,7 +20,7 @@ function formatDate(date: Date): string {
 export function WorkoutHistory() {
   const navigate = useNavigate();
   const workouts = useCompletedWorkouts();
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; date: Date } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date } | null>(null);
 
   // Newest first
   const items = useMemo(() => workouts.slice().reverse(), [workouts]);

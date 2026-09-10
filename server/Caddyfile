@@ -1,0 +1,40 @@
+# Production Caddyfile — the single public entry point for Tracker.
+#
+# Caddy fronts PocketBase and serves the built PWA from the same origin, so the
+# client can use same-origin /api requests and cookies. TLS certificates are
+# obtained and renewed automatically via Let's Encrypt.
+#
+# Configuration:
+#   - The domain is read from the TRACKER_DOMAIN env var (set in .env, passed to
+#     the caddy container in docker-compose.yml). Point that domain's A/AAAA
+#     records at the VPS before deploying, and open ports 80 + 443.
+#   - TRACKER_TLS_EMAIL (optional) is the Let's Encrypt account e-mail.
+#
+# Local testing without a real domain? Set TRACKER_DOMAIN=localhost in .env;
+# Caddy then serves a self-signed cert (no Let's Encrypt).
+
+{
+	# Let's Encrypt account e-mail (optional but recommended for expiry notices).
+	email {$TRACKER_TLS_EMAIL}
+}
+
+{$TRACKER_DOMAIN} {
+	encode zstd gzip
+
+	# API + admin UI → PocketBase (internal compose network).
+	handle /api/* {
+		reverse_proxy pocketbase:8090
+	}
+	handle /_/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	# Everything else → the static PWA build. dist/ is mounted at /srv/tracker
+	# (see docker-compose.yml). SPA fallback: unknown paths serve index.html so
+	# client-side routing (React Router) works on deep links / refresh.
+	handle {
+		root * /srv/tracker
+		try_files {path} /index.html
+		file_server
+	}
+}

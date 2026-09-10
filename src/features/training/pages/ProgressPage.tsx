@@ -56,13 +56,13 @@ function ExerciseDetail({
   exerciseName,
   onBack,
 }: {
-  exerciseId: number;
+  exerciseId: string;
   exerciseName: string;
   onBack: () => void;
 }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodFilter>('3m');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; date: Date } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const settings = useSettings();
@@ -282,11 +282,11 @@ function ComparisonView() {
   const formula = settings.oneRMFormula;
 
   const [period, setPeriod] = useState<PeriodFilter>('3m');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const nameById = useMemo(
-    () => new Map(exercises.map(e => [e.id!, e.name])),
+    () => new Map(exercises.map(e => [e.id, e.name])),
     [exercises],
   );
 
@@ -295,11 +295,11 @@ function ComparisonView() {
     () =>
       withSessions
         .map(({ id }) => ({ id, name: nameById.get(id) }))
-        .filter((e): e is { id: number; name: string } => Boolean(e.name)),
+        .filter((e): e is { id: string; name: string } => Boolean(e.name)),
     [withSessions, nameById],
   );
 
-  function toggle(id: number) {
+  function toggle(id: string) {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
     );
@@ -478,7 +478,7 @@ function ComparisonView() {
 // ── Progression overview ───────────────────────────────────────────────────────
 
 interface ProgressionRow {
-  id: number;
+  id: string;
   name: string;
   first: number;
   last: number;
@@ -486,7 +486,7 @@ interface ProgressionRow {
   sessions: number;
 }
 
-function ProgressionOverview({ onSelect }: { onSelect: (id: number) => void }) {
+function ProgressionOverview({ onSelect }: { onSelect: (id: string) => void }) {
   const workouts = useCompletedWorkouts();
   const withSessions = useExercisesWithLastSession();
   const exercises = useExercises();
@@ -598,7 +598,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 export function ProgressPage() {
   const exercises = useExercises();
-  const [selectedId, setSelectedId] = useState<number | undefined>();
+  const [selectedId, setSelectedId] = useState<string | undefined>();
   const [tab, setTab] = useState<ProgressTab>('exercises');
   const [exerciseView, setExerciseView] = useState<'list' | 'compare'>('list');
 
@@ -607,7 +607,7 @@ export function ProgressPage() {
     [exercises, selectedId],
   );
 
-  function openExercise(id: number) {
+  function openExercise(id: string) {
     setSelectedId(id);
     setTab('exercises');
   }

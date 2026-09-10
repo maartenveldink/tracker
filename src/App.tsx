@@ -1,8 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { SchemaImportHandler } from './components/SchemaImportHandler';
+import { useAuth } from './features/auth/AuthContext';
+import { LoginPage } from './features/auth/LoginPage';
+import { startSync } from './lib/sync';
 
 // Core training pages — eager, this is the main flow
 import { ExercisesPage } from './features/training/pages/ExercisesPage';
@@ -26,6 +29,20 @@ import { DashboardPage } from './pages/DashboardPage';
 const ProgressPage = lazy(() => import('./features/training/pages/ProgressPage').then(m => ({ default: m.ProgressPage })));
 
 export function App() {
+  const { mode } = useAuth();
+
+  // Start the sync engine only when signed in (and stop it on sign-out / local).
+  useEffect(() => {
+    if (mode !== 'authed') return;
+    return startSync();
+  }, [mode]);
+
+  // The login screen only appears when a backend is configured and the user
+  // hasn't signed in or chosen to continue locally. In `local` mode (no backend,
+  // or "continue without account") the app runs fully on IndexedDB. An expired
+  // token never gates the app either — see the auth design.
+  if (mode === 'needs-login') return <LoginPage />;
+
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
       <Routes>

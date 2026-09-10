@@ -4,7 +4,7 @@ import { steppedWeight, weightStepForExercise } from './weightStep';
 
 /** Minimal exercise prescription needed to build loggable workout sets. */
 export interface BuildableExercise {
-  exerciseId: number;
+  exerciseId: string;
   sets: number;
   repsPerSet: number;
   repsMax?: number;
@@ -20,7 +20,7 @@ export interface BuildableExercise {
  */
 export function buildWorkoutExercises(
   exercises: BuildableExercise[],
-  exerciseById: Map<number, Exercise>,
+  exerciseById: Map<string, Exercise>,
 ): WorkoutExercise[] {
   return exercises.map((se, order) => {
     const isUnilateral = exerciseById.get(se.exerciseId)?.laterality === 'unilateral';
@@ -66,7 +66,7 @@ export function buildWorkoutExercises(
 export function seedHistoryWeights(
   exercises: WorkoutExercise[],
   completedWorkouts: Workout[],
-  exerciseById: Map<number, Exercise>,
+  exerciseById: Map<string, Exercise>,
   settings: Pick<AppSettings, 'oneRMFormula' | 'weightSteps'>,
 ): WorkoutExercise[] {
   return exercises.map(we => {

@@ -48,7 +48,7 @@ const MIN_TARGET = 15;
 const MAX_TARGET = 120;
 const STEP_TARGET = 5;
 
-function newSchemaExercise(exerciseId: number, order: number): SchemaExercise {
+function newSchemaExercise(exerciseId: string, order: number): SchemaExercise {
   return { exerciseId, sets: 3, repsPerSet: 8, repsMax: 12, order };
 }
 
@@ -76,10 +76,10 @@ export function SuggestWorkoutPage() {
   const settings = useSettings();
   const navigate = useNavigate();
 
-  const exerciseById = useMemo(() => new Map(exercises.map(e => [e.id!, e])), [exercises]);
+  const exerciseById = useMemo(() => new Map(exercises.map(e => [e.id, e])), [exercises]);
 
   const hasHistory = useMemo(() => {
-    const ids = new Set<number>();
+    const ids = new Set<string>();
     for (const w of completedWorkouts) {
       for (const we of w.exercises) {
         if (we.sets.some(isCompletedSet)) ids.add(we.exerciseId);
@@ -193,12 +193,12 @@ export function SuggestWorkoutPage() {
     });
   }
 
-  function swapAt(index: number, exerciseId: number) {
+  function swapAt(index: number, exerciseId: string) {
     setItems(prev => prev.map((it, i) => (i === index ? { ...it, exerciseId } : it)));
     setSwapIndex(null);
   }
 
-  function addExercise(exerciseId: number) {
+  function addExercise(exerciseId: string) {
     setItems(prev => reindex([...prev, newSchemaExercise(exerciseId, prev.length)]));
     setShowAdd(false);
     setSearch('');
@@ -465,7 +465,7 @@ export function SuggestWorkoutPage() {
                 <button
                   key={e.id}
                   type="button"
-                  onClick={() => swapAt(swapIndex!, e.id!)}
+                  onClick={() => swapAt(swapIndex!, e.id)}
                   className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
                 >
                   {e.name}
@@ -496,7 +496,7 @@ export function SuggestWorkoutPage() {
                 <button
                   key={e.id}
                   type="button"
-                  onClick={() => addExercise(e.id!)}
+                  onClick={() => addExercise(e.id)}
                   className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
                 >
                   {e.name}

@@ -11,7 +11,7 @@ export class StartWorkoutPage {
   /** Starts a single-day schema by name and waits for the live workout to open. */
   async start(schemaName: string): Promise<void> {
     await this.page.getByText(schemaName, { exact: true }).click();
-    await this.page.waitForURL(/\/workout\/\d+$/);
+    await this.page.waitForURL(/\/workout\/[^\/]+$/);
     // Wait until the exercise cards have rendered so callers can assert on the
     // set grid immediately.
     await this.page.getByTestId('exercise-card').first().waitFor({ state: 'visible' });
@@ -20,7 +20,7 @@ export class StartWorkoutPage {
   /** Starts an ad-hoc ("Vrije training") workout with no schema. */
   async startFree(): Promise<void> {
     await this.page.getByText('Vrije training', { exact: true }).click();
-    await this.page.waitForURL(/\/workout\/\d+$/);
+    await this.page.waitForURL(/\/workout\/[^\/]+$/);
   }
 
   /** Opens the suggested-workout screen (`/start/suggestion`). */
@@ -34,6 +34,6 @@ export class StartWorkoutPage {
     await this.page.getByText(schemaName, { exact: true }).click(); // expands day selection
     await this.page.getByText(dayName, { exact: true }).click();    // pick the day
     await this.page.getByRole('button', { name: new RegExp(`^Start ${dayName}`) }).click();
-    await this.page.waitForURL(/\/workout\/\d+$/);
+    await this.page.waitForURL(/\/workout\/[^\/]+$/);
   }
 }

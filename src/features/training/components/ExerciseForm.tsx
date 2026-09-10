@@ -113,7 +113,7 @@ interface ExerciseFormProps {
   /** Prefill the name field for a new exercise (e.g. a search term). */
   initialName?: string;
   /** Called with the created/updated exercise id after a successful save. */
-  onSaved: (exerciseId: number) => void;
+  onSaved: (exerciseId: string) => void;
   /** Label for the submit button. Defaults based on create/edit mode. */
   submitLabel?: string;
 }

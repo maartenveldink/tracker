@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Workout, type WorkoutSet } from '../../../db/index';
+import { db, tombstonePatch, type Workout, type WorkoutSet } from '../../../db/index';
 
 // --- 1RM formulas (E4-02, E8-01) ---
 
@@ -57,7 +57,7 @@ export interface SessionSet {
 }
 
 export interface ExerciseSession {
-  workoutId: number;
+  workoutId: string;
   date: Date;
   schemaName: string | null;
   sets: SessionSet[];
@@ -71,14 +71,17 @@ export type PeriodFilter = '4w' | '3m' | 'all';
 
 export function useCompletedWorkouts() {
   return useLiveQuery(
-    () => db.workouts.where('status').equals('completed').sortBy('startedAt'),
+    async () => {
+      const done = await db.workouts.where('status').equals('completed').sortBy('startedAt');
+      return done.filter(w => !w.deleted);
+    },
   ) ?? [];
 }
 
 /** Pure: builds the session history for one exercise from a list of workouts. */
 export function computeExerciseSessions(
   workouts: Workout[],
-  exerciseId: number | undefined,
+  exerciseId: string | undefined,
   formula: OneRMFormula = 'epley',
 ): ExerciseSession[] {
   if (!exerciseId || !workouts.length) return [];
@@ -91,7 +94,7 @@ export function computeExerciseSessions(
 }
 
 export function useProgress(
-  exerciseId: number | undefined,
+  exerciseId: string | undefined,
   formula: OneRMFormula = 'epley',
 ) {
   const workouts = useCompletedWorkouts();
@@ -106,7 +109,7 @@ export function useProgress(
 
 function workoutToSession(
   workout: Workout,
-  exerciseId: number,
+  exerciseId: string,
   formula: OneRMFormula,
 ): ExerciseSession | null {
   const workoutExercise = workout.exercises.find(e => e.exerciseId === exerciseId);
@@ -132,7 +135,7 @@ function workoutToSession(
   );
 
   return {
-    workoutId: workout.id!,
+    workoutId: workout.id,
     date: workout.startedAt,
     schemaName: workout.schemaName,
     sets: sessionSets,
@@ -148,7 +151,7 @@ function isCompletedSet(s: WorkoutSet): boolean {
 // --- Exercises sorted by last session date ---
 
 export interface ExerciseWithLastSession {
-  id: number;
+  id: string;
   lastSessionAt: Date;
 }
 
@@ -157,7 +160,7 @@ export function useExercisesWithLastSession(): ExerciseWithLastSession[] {
 
   return useMemo(() => {
     // Build a map: exerciseId → most recent startedAt
-    const lastSeen = new Map<number, Date>();
+    const lastSeen = new Map<string, Date>();
 
     for (const workout of workouts) {
       for (const ex of workout.exercises) {
@@ -181,12 +184,12 @@ export function useExercisesWithLastSession(): ExerciseWithLastSession[] {
  * Maps each exercise id to its most recently registered 1RM (best set of the
  * latest completed session containing that exercise). Reactive.
  */
-export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<number, number> {
+export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<string, number> {
   const workouts = useCompletedWorkouts();
 
   return useMemo(() => {
-    const latestDate = new Map<number, Date>();
-    const latest1RM = new Map<number, number>();
+    const latestDate = new Map<string, Date>();
+    const latest1RM = new Map<string, number>();
 
     for (const w of workouts) {
       for (const ex of w.exercises) {
@@ -208,9 +211,9 @@ export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<n
   }, [workouts, formula]);
 }
 
-/** Delete an entire workout (E4-06). */
-export async function deleteWorkout(id: number): Promise<void> {
-  await db.workouts.delete(id);
+/** Delete an entire workout (E4-06). Soft-delete so it syncs as a tombstone. */
+export async function deleteWorkout(id: string): Promise<void> {
+  await db.workouts.update(id, tombstonePatch());
 }
 
 /** Filter sessions by period. */

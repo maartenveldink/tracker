@@ -76,13 +76,13 @@ export function StartWorkoutPage() {
     seedHistoryWeights(ex, completedWorkouts, exerciseById, settings);
 
   // Expanded schema card (for day selection on multi-day schemas)
-  const [expandedSchemaId, setExpandedSchemaId] = useState<number | null>(null);
+  const [expandedSchemaId, setExpandedSchemaId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   // Completed multi-day sessions per schema — the position in the rhythm cycle.
   // Derived from already-loaded completedWorkouts (avoids N+1 queries).
   const completedCountBySchema = useMemo(() => {
-    const map = new Map<number, number>();
+    const map = new Map<string, number>();
     for (const w of completedWorkouts) {
       if (w.schemaId === null || !w.schemaDayId) continue;
       map.set(w.schemaId, (map.get(w.schemaId) ?? 0) + 1);
@@ -92,7 +92,7 @@ export function StartWorkoutPage() {
 
   // CT-02: last session date per schema
   const lastSessionBySchema = useMemo(() => {
-    const map = new Map<number, Date>();
+    const map = new Map<string, Date>();
     for (const w of completedWorkouts) {
       if (w.schemaId === null) continue;
       const existing = map.get(w.schemaId);

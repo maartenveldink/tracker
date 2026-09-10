@@ -1,11 +1,11 @@
-import { db, type Exercise, UNILATERAL_DEFAULT_EXERCISES, COMPOUND_DEFAULT_EXERCISES, DEFAULT_EXERCISE_EQUIPMENT } from '../../../db/index';
+import { db, defaultExerciseId, type Exercise, UNILATERAL_DEFAULT_EXERCISES, COMPOUND_DEFAULT_EXERCISES, DEFAULT_EXERCISE_EQUIPMENT } from '../../../db/index';
 import { detectEquipment } from '../lib/weightStep';
 
 /**
  * Seed data: 25 common exercises with muscle group mappings (E1-02).
  * Uses global muscle group IDs.
  */
-const DEFAULT_EXERCISES: Omit<Exercise, 'id' | 'createdAt'>[] = [
+const DEFAULT_EXERCISES: Omit<Exercise, 'id' | 'createdAt' | 'clientUpdatedAt' | 'deleted' | 'dirty'>[] = [
   // Compound movements
   {
     name: 'Barbell Back Squat',
@@ -196,8 +196,11 @@ export async function seedDatabase(): Promise<void> {
   if (count > 0) return; // Already seeded
 
   const now = new Date();
-  const exercises = DEFAULT_EXERCISES.map((e): Omit<Exercise, 'id'> => ({
+  const exercises = DEFAULT_EXERCISES.map((e): Exercise => ({
     ...e,
+    // Deterministic, stable id so every device seeds identical default ids and
+    // synced schemas/workouts that reference them resolve everywhere.
+    id: defaultExerciseId(e.name),
     // LAT-03: laterality from the shared mapping (unilateral set + bilateral fallback)
     laterality: UNILATERAL_DEFAULT_EXERCISES.has(e.name) ? 'unilateral' : 'bilateral',
     // Movement type from the shared mapping (compound set + isolation fallback)
@@ -205,7 +208,11 @@ export async function seedDatabase(): Promise<void> {
     // Equipment: curated per default exercise, keyword-detected as fallback
     equipment: DEFAULT_EXERCISE_EQUIPMENT[e.name] ?? detectEquipment(`${e.name} ${e.description}`),
     createdAt: now,
+    // Defaults are never synced (filtered by isDefault), so they start clean.
+    clientUpdatedAt: now.getTime(),
+    deleted: false,
+    dirty: 0,
   }));
 
-  await db.exercises.bulkAdd(exercises);
+  await db.exercises.bulkPut(exercises);
 }

@@ -124,7 +124,7 @@ export function weeklyVolumeSeries(workouts: Workout[]): WeekVolumePoint[] {
  */
 export function volumePerMuscleGroup(
   workouts: Workout[],
-  exerciseMap: Map<number, Exercise>,
+  exerciseMap: Map<string, Exercise>,
 ): Map<string, number> {
   const vol = new Map<string, number>();
   for (const w of workouts) {
@@ -145,7 +145,7 @@ export function volumePerMuscleGroup(
 // --- Personal records ---
 
 export interface PRRecord {
-  exerciseId: number;
+  exerciseId: string;
   best1RM: number;
   reps: number;
   weight: number;
@@ -157,7 +157,7 @@ export interface PRRecord {
  * Sorted by most recently achieved first.
  */
 export function allTimePRs(workouts: Workout[], formula: OneRMFormula): PRRecord[] {
-  const best = new Map<number, PRRecord>();
+  const best = new Map<string, PRRecord>();
 
   for (const w of workouts) {
     for (const ex of w.exercises) {

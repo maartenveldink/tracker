@@ -70,7 +70,7 @@ export const NEVER_TRAINED_DAYS = 999;
  */
 export function muscleStaleness(
   completedWorkouts: Workout[],
-  exerciseById: Map<number, Exercise>,
+  exerciseById: Map<string, Exercise>,
   level: MuscleLevel,
   now: Date = new Date(),
 ): GroupStaleness[] {
@@ -115,7 +115,7 @@ export function muscleStaleness(
 /** {@link muscleStaleness} keyed by group id, for quick lookup. */
 export function stalenessByGroup(
   completedWorkouts: Workout[],
-  exerciseById: Map<number, Exercise>,
+  exerciseById: Map<string, Exercise>,
   level: MuscleLevel,
   now?: Date,
 ): Map<string, GroupStaleness> {
@@ -151,7 +151,7 @@ interface SuggestionInput {
   targetSeconds: number;
   settings: EstimateSettings;
   /** Exercise ids that have logged history — preferred so weight prefill works. */
-  hasHistory: Set<number>;
+  hasHistory: Set<string>;
   seed?: number;
   now?: Date;
 }
@@ -161,7 +161,7 @@ function exercisesForGroup(exercises: Exercise[], groupId: string, level: Muscle
   return exercises.filter(ex => ex.primaryMuscles.some(m => toTargetId(m, level) === groupId));
 }
 
-function toSchemaExercise(exerciseId: number, order: number): SchemaExercise {
+function toSchemaExercise(exerciseId: string, order: number): SchemaExercise {
   return {
     exerciseId,
     sets: DEFAULT_SETS,
@@ -178,7 +178,7 @@ function toSchemaExercise(exerciseId: number, order: number): SchemaExercise {
  */
 export function suggestWorkout(input: SuggestionInput): SchemaExercise[] {
   const { completedWorkouts, exercises, level, targetSeconds, settings, hasHistory, seed = 1, now } = input;
-  const exerciseById = new Map(exercises.map(e => [e.id!, e]));
+  const exerciseById = new Map(exercises.map(e => [e.id, e]));
   const rng = makeRng(seed);
 
   const stale = muscleStaleness(completedWorkouts, exerciseById, level, now)
@@ -190,20 +190,20 @@ export function suggestWorkout(input: SuggestionInput): SchemaExercise[] {
   const fallbackGroups = stale.map(g => g.groupId);
   const orderedGroups = candidateGroups.length > 0 ? candidateGroups : fallbackGroups;
 
-  const chosen: number[] = [];
-  const chosenSet = new Set<number>();
+  const chosen: string[] = [];
+  const chosenSet = new Set<string>();
 
-  function pickForGroup(groupId: string): number | undefined {
-    const pool = exercisesForGroup(exercises, groupId, level).filter(e => !chosenSet.has(e.id!));
+  function pickForGroup(groupId: string): string | undefined {
+    const pool = exercisesForGroup(exercises, groupId, level).filter(e => !chosenSet.has(e.id));
     if (pool.length === 0) return undefined;
     // Prefer exercises with history so weight prefill works; shuffle within tier.
-    const withHist = pool.filter(e => hasHistory.has(e.id!));
+    const withHist = pool.filter(e => hasHistory.has(e.id));
     const tier = withHist.length > 0 ? withHist : pool;
     const pick = tier[Math.floor(rng() * tier.length)]!;
-    return pick.id!;
+    return pick.id;
   }
 
-  function estimate(ids: number[]): number {
+  function estimate(ids: string[]): number {
     return estimateExercisesSeconds(ids.map(toSchemaExercise), exerciseById, settings);
   }
 
@@ -246,16 +246,16 @@ export function suggestWorkout(input: SuggestionInput): SchemaExercise[] {
 export function findSimilarExercises(
   exercise: Exercise,
   all: Exercise[],
-  exclude: Set<number> = new Set(),
+  exclude: Set<string> = new Set(),
 ): Exercise[] {
   const primary = new Set(exercise.primaryMuscles);
   const sharesPrimary = (e: Exercise) => e.primaryMuscles.some(m => primary.has(m));
 
   const pool = all.filter(
-    e => e.id !== exercise.id && !exclude.has(e.id!) && sharesPrimary(e),
+    e => e.id !== exercise.id && !exclude.has(e.id) && sharesPrimary(e),
   );
 
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const tiers: ((e: Exercise) => boolean)[] = [
     e => e.movementType === exercise.movementType && e.laterality === exercise.laterality,
     e => e.movementType === exercise.movementType,
@@ -265,9 +265,9 @@ export function findSimilarExercises(
   const result: Exercise[] = [];
   for (const match of tiers) {
     for (const e of pool) {
-      if (seen.has(e.id!)) continue;
+      if (seen.has(e.id)) continue;
       if (match(e)) {
-        seen.add(e.id!);
+        seen.add(e.id);
         result.push(e);
       }
     }

@@ -41,7 +41,7 @@ interface MuscleAnalysis {
 
 function computeMuscleAnalysis(
   exercises: SchemaExercise[],
-  exerciseMap: Map<number, Exercise>,
+  exerciseMap: Map<string, Exercise>,
   muscleDetailLevel: 'global' | 'detailed' = 'global',
 ): MuscleAnalysis {
   const statsMap = new Map<string, MuscleStats>();
@@ -85,7 +85,7 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
   analysis: MuscleAnalysis;
   allExercises: Exercise[];
   exercises: SchemaExercise[];
-  exerciseMap: Map<number, Exercise>;
+  exerciseMap: Map<string, Exercise>;
 }) {
   const [selected, setSelected] = useState<MuscleStats | null>(null);
 
@@ -261,13 +261,13 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
 
 export function SchemaDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const schema = useSchema(id ? Number(id) : undefined);
+  const schema = useSchema(id || undefined);
   const allExercises = useExercises();
   const navigate = useNavigate();
 
   const exerciseMap = useMemo(() => {
-    const map = new Map<number, Exercise>();
-    allExercises.forEach(e => map.set(e.id!, e));
+    const map = new Map<string, Exercise>();
+    allExercises.forEach(e => map.set(e.id, e));
     return map;
   }, [allExercises]);
 
@@ -320,7 +320,7 @@ export function SchemaDetailPage() {
 
   async function openShare() {
     if (!schema) return;
-    const names = new Map<number, string>();
+    const names = new Map<string, string>();
     exerciseMap.forEach((ex, id) => names.set(id, ex.name));
     const shared = buildSharedSchema(schema, names);
     const url = encodeSchemaShareUrl(shared, import.meta.env.BASE_URL);

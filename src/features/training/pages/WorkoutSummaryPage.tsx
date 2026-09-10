@@ -178,7 +178,7 @@ function buildSummarySvg(data: {
 
 export function WorkoutSummaryPage() {
   const { id } = useParams<{ id: string }>();
-  const workoutId = id ? Number(id) : undefined;
+  const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
   const allExercises = useExercises();
   const completedWorkouts = useCompletedWorkouts();
@@ -190,8 +190,8 @@ export function WorkoutSummaryPage() {
   const [showShare, setShowShare] = useState(false);
 
   const exerciseMap = useMemo(() => {
-    const map = new Map<number, Exercise>();
-    allExercises.forEach(e => map.set(e.id!, e));
+    const map = new Map<string, Exercise>();
+    allExercises.forEach(e => map.set(e.id, e));
     return map;
   }, [allExercises]);
 
@@ -203,8 +203,8 @@ export function WorkoutSummaryPage() {
 
   // MF-03: PR detection per exercise
   const prExercises = useMemo(() => {
-    if (!workout) return new Set<number>();
-    const prSet = new Set<number>();
+    if (!workout) return new Set<string>();
+    const prSet = new Set<string>();
 
     for (const we of workout.exercises) {
       // Best 1RM from this session
@@ -240,7 +240,7 @@ export function WorkoutSummaryPage() {
   // Feature 4: exercises that improved over the previous session (1RM up), but
   // are not an all-time PR. PR takes precedence over this lighter status.
   const improvedExerciseIds = useMemo(() => {
-    if (!workout) return new Set<number>();
+    if (!workout) return new Set<string>();
     return improvedExercises(workout, completedWorkouts, settings.oneRMFormula);
   }, [workout, completedWorkouts, settings.oneRMFormula]);
 

@@ -1,0 +1,69 @@
+# Tracker backend — self-hosted PocketBase behind Caddy (see
+# docs/design.multi-user-sync.md).
+#
+# Two containers:
+#   - pocketbase : the API + admin UI + SQLite. `pb_data` (SQLite + uploads)
+#     lives on a named volume so it survives restarts. `pb_migrations` is
+#     bind-mounted so the collection schema is reproducible from git and applied
+#     automatically on start. It is NOT published to the host — only Caddy talks
+#     to it over the internal compose network.
+#   - caddy : the single public entry point. Terminates TLS (automatic Let's
+#     Encrypt), reverse-proxies /api/* and /_/* to PocketBase and serves the
+#     built PWA (SPA) for everything else. Certs persist in named volumes.
+#
+# Usage (see also deploy.sh and README.md):
+#   cp .env.example .env      # then edit the values (incl. TRACKER_DOMAIN)
+#   ./deploy.sh               # idempotent: pull + up + wait + bootstrap admin
+
+services:
+  pocketbase:
+    # Pin a specific version for reproducible deploys.
+    image: ghcr.io/muchobien/pocketbase:0.28.4
+    restart: unless-stopped
+    # No host `ports:` — PocketBase is only reachable inside the compose network
+    # (Caddy is the sole public entry point). Reachable as `pocketbase:8090`.
+    expose:
+      - '8090'
+    environment:
+      # Random key PocketBase uses to encrypt settings at rest.
+      - PB_ENCRYPTION_KEY=${PB_ENCRYPTION_KEY}
+    volumes:
+      - pb_data:/pb/pb_data
+      - ./pb_migrations:/pb/pb_migrations
+    command:
+      - serve
+      - --http=0.0.0.0:8090
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8090/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    # Pin the Caddy version too for reproducible deploys.
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      - pocketbase
+    ports:
+      # The only ports published to the host / public internet.
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3 (QUIC)
+    environment:
+      # Domain is substituted into the Caddyfile as {$TRACKER_DOMAIN}. Set it in
+      # .env. TRACKER_TLS_EMAIL is optional (Let's Encrypt account e-mail).
+      - TRACKER_DOMAIN=${TRACKER_DOMAIN}
+      - TRACKER_TLS_EMAIL=${TRACKER_TLS_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The built PWA (dist/) goes here — see README "Where to put the PWA build".
+      - ./dist:/srv/tracker:ro
+      # Persist certs + Caddy state so we don't re-request certs on every deploy.
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pb_data:
+  caddy_data:
+  caddy_config:

@@ -60,6 +60,6 @@ export class SuggestWorkoutPage {
 
   async start(): Promise<void> {
     await this.page.getByRole('button', { name: 'Start training' }).click();
-    await this.page.waitForURL(/\/workout\/\d+$/);
+    await this.page.waitForURL(/\/workout\/[^\/]+$/);
   }
 }

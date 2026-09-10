@@ -15,7 +15,7 @@ function isCompletedSet(s: WorkoutSet): boolean {
 /** Highest estimated 1RM across the completed sets of one exercise in a workout. */
 export function bestOneRMForExercise(
   workout: Workout,
-  exerciseId: number,
+  exerciseId: string,
   formula: OneRMFormula,
 ): number {
   const we = workout.exercises.find(e => e.exerciseId === exerciseId);
@@ -35,8 +35,8 @@ export function bestOneRMForExercise(
  */
 export function previousBestOneRM(
   workouts: Workout[],
-  currentWorkoutId: number | undefined,
-  exerciseId: number,
+  currentWorkoutId: string | undefined,
+  exerciseId: string,
   formula: OneRMFormula,
 ): number | null {
   // Newest first, skipping the current workout.
@@ -59,8 +59,8 @@ export function improvedExercises(
   workout: Workout,
   workouts: Workout[],
   formula: OneRMFormula,
-): Set<number> {
-  const improved = new Set<number>();
+): Set<string> {
+  const improved = new Set<string>();
   for (const we of workout.exercises) {
     const current = bestOneRMForExercise(workout, we.exerciseId, formula);
     if (current <= 0) continue;

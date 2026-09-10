@@ -37,7 +37,7 @@ export function HabitsPage() {
 
   // Fast lookup of a habit's value on the selected day.
   const valueByHabit = useMemo(() => {
-    const map = new Map<number, number>();
+    const map = new Map<string, number>();
     for (const log of logs) {
       if (log.date === selectedKey) map.set(log.habitId, log.value);
     }
@@ -62,13 +62,13 @@ export function HabitsPage() {
 
   // Swap a habit with its visible neighbour, preserving the order of habits that
   // aren't shown on this day, then persist the full reindexed order.
-  function moveHabit(habitId: number, dir: -1 | 1) {
+  function moveHabit(habitId: string, dir: -1 | 1) {
     const vi = scheduled.findIndex(h => h.id === habitId);
     const neighbour = scheduled[vi + dir];
     if (!neighbour) return;
-    const ids = habits.map(h => h.id!);
+    const ids = habits.map(h => h.id);
     const ia = ids.indexOf(habitId);
-    const ib = ids.indexOf(neighbour.id!);
+    const ib = ids.indexOf(neighbour.id);
     [ids[ia], ids[ib]] = [ids[ib]!, ids[ia]!];
     void reorderHabits(ids);
   }
@@ -121,12 +121,12 @@ export function HabitsPage() {
             <HabitRow
               key={habit.id}
               habit={habit}
-              value={valueByHabit.get(habit.id!) ?? 0}
+              value={valueByHabit.get(habit.id) ?? 0}
               dateKey={selectedKey}
               logs={logs}
               canMoveUp={i > 0}
               canMoveDown={i < scheduled.length - 1}
-              onMove={dir => moveHabit(habit.id!, dir)}
+              onMove={dir => moveHabit(habit.id, dir)}
               onOpen={() => navigate(`/habits/${habit.id}`)}
             />
           ))

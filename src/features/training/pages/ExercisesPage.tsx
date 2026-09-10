@@ -17,7 +17,7 @@ export function ExercisesPage() {
   const settings = useSettings();
   const [search, setSearch] = useState('');
   const [filterMuscle, setFilterMuscle] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string; inUse: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; inUse: boolean } | null>(null);
 
   const muscleGroups = getMuscleGroups(settings.muscleDetailLevel);
 
@@ -32,7 +32,7 @@ export function ExercisesPage() {
     });
   }, [exercises, search, filterMuscle]);
 
-  async function handleDeleteClick(id: number, name: string) {
+  async function handleDeleteClick(id: string, name: string) {
     const inUse = await isExerciseInUse(id);
     setDeleteTarget({ id, name, inUse });
   }
@@ -110,7 +110,7 @@ export function ExercisesPage() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => handleDeleteClick(exercise.id!, exercise.name)}
+                onClick={() => handleDeleteClick(exercise.id, exercise.name)}
                 aria-label={`Verwijder ${exercise.name}`}
               >
                 <Trash2 className="h-4 w-4" />

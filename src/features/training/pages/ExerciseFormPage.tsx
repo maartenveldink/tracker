@@ -6,7 +6,7 @@ import { PageHeader } from '../../../components/PageHeader';
 export function ExerciseFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined;
-  const exerciseId = id ? Number(id) : undefined;
+  const exerciseId = id || undefined;
   const existing = useExercise(exerciseId);
   const navigate = useNavigate();
 

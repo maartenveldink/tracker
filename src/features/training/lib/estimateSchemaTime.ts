@@ -27,7 +27,7 @@ type EstimateSettings = Pick<
  */
 export function estimateExercisesSeconds(
   exercises: SchemaExercise[],
-  exerciseMap: Map<number, Exercise>,
+  exerciseMap: Map<string, Exercise>,
   settings: EstimateSettings,
 ): number {
   let total = 0;

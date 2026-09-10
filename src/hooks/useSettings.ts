@@ -49,6 +49,6 @@ export function useSettings(): AppSettings {
 export async function updateSettings(patch: Partial<Omit<AppSettings, 'id'>>): Promise<void> {
   await db.transaction('rw', db.settings, async () => {
     const current = (await db.settings.get(1)) ?? DEFAULTS;
-    await db.settings.put({ ...current, ...patch, id: 1 });
+    await db.settings.put({ ...current, ...patch, id: 1, clientUpdatedAt: Date.now(), dirty: 1 });
   });
 }

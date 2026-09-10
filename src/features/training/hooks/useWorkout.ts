@@ -1,9 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
+import { db, newId, freshSyncMeta, touchSyncMeta, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
-export function useWorkout(id: number | undefined) {
+export function useWorkout(id: string | undefined) {
   return useLiveQuery(
-    () => (id ? db.workouts.get(id) : undefined),
+    async () => {
+      if (!id) return undefined;
+      const w = await db.workouts.get(id);
+      return w && !w.deleted ? w : undefined;
+    },
     [id],
   );
 }
@@ -16,7 +20,10 @@ export interface ActiveWorkoutState {
 export function useActiveWorkout() {
   return useLiveQuery<ActiveWorkoutState>(
     async () => {
-      const workout = await db.workouts.where('status').anyOf('active', 'paused').first();
+      const workout = await db.workouts
+        .where('status').anyOf('active', 'paused')
+        .filter(w => !w.deleted)
+        .first();
       return { isLoading: false, workout };
     },
     [],
@@ -25,13 +32,15 @@ export function useActiveWorkout() {
 
 /** Start a workout from a schema or ad-hoc (E3-01, E2-11). */
 export async function startWorkout(
-  schemaId: number | null,
+  schemaId: string | null,
   schemaName: string | null,
   exercises: WorkoutExercise[],
   schemaDayId: string | null = null,
   schemaDayName: string | null = null,
-): Promise<number> {
-  const id = await db.workouts.add({
+): Promise<string> {
+  const id = newId();
+  await db.workouts.add({
+    id,
     schemaId,
     schemaName,
     exercises,
@@ -43,13 +52,14 @@ export async function startWorkout(
     totalPausedMs: 0,
     completedAt: null,
     notes: '',
+    ...freshSyncMeta(),
   });
-  return id as number;
+  return id;
 }
 
 /** Update a single set within a workout exercise (E3-02, E3-04). */
 export async function updateWorkoutSet(
-  workoutId: number,
+  workoutId: string,
   exerciseIndex: number,
   setIndex: number,
   update: Partial<WorkoutSet>,
@@ -69,13 +79,13 @@ export async function updateWorkoutSet(
     sets[setIndex] = { ...existing, ...update };
     exercises[exerciseIndex] = { ...exercise, sets };
 
-    await db.workouts.update(workoutId, { exercises });
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
 
 /** Add an extra set to a workout exercise (E3-05). */
 export async function addWorkoutSet(
-  workoutId: number,
+  workoutId: string,
   exerciseIndex: number,
 ): Promise<void> {
   await db.transaction('rw', db.workouts, async () => {
@@ -109,13 +119,13 @@ export async function addWorkoutSet(
       sets: [...exercise.sets, ...newSets],
     };
 
-    await db.workouts.update(workoutId, { exercises });
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
 
 /** Remove a set from a workout exercise, renumbering the remaining sets. */
 export async function removeWorkoutSet(
-  workoutId: number,
+  workoutId: string,
   exerciseIndex: number,
   setIndex: number,
 ): Promise<void> {
@@ -132,13 +142,13 @@ export async function removeWorkoutSet(
       .map((set, i) => ({ ...set, setNumber: i + 1 }));
 
     exercises[exerciseIndex] = { ...exercise, sets };
-    await db.workouts.update(workoutId, { exercises });
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
 
 /** Remove an entire exercise from the workout, reindexing the remaining order. */
 export async function removeWorkoutExercise(
-  workoutId: number,
+  workoutId: string,
   exerciseIndex: number,
 ): Promise<void> {
   await db.transaction('rw', db.workouts, async () => {
@@ -149,14 +159,14 @@ export async function removeWorkoutExercise(
       .filter((_, i) => i !== exerciseIndex)
       .map((ex, i) => ({ ...ex, order: i }));
 
-    await db.workouts.update(workoutId, { exercises });
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
 
 /** Add an ad-hoc exercise to the current workout. */
 export async function addWorkoutExercise(
-  workoutId: number,
-  exerciseId: number,
+  workoutId: string,
+  exerciseId: string,
   sets: number = 3,
   reps: number = 10,
 ): Promise<void> {
@@ -181,13 +191,14 @@ export async function addWorkoutExercise(
 
     await db.workouts.update(workoutId, {
       exercises: [...workout.exercises, newExercise],
+      ...touchSyncMeta(),
     });
   });
 }
 
 /** Update exercise-level notes (E3-09). */
 export async function updateExerciseNotes(
-  workoutId: number,
+  workoutId: string,
   exerciseIndex: number,
   notes: string,
 ): Promise<void> {
@@ -200,39 +211,40 @@ export async function updateExerciseNotes(
     if (!exercise) return;
 
     exercises[exerciseIndex] = { ...exercise, notes };
-    await db.workouts.update(workoutId, { exercises });
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
 
 /** Update workout-level notes (E3-09). */
 export async function updateWorkoutNotes(
-  workoutId: number,
+  workoutId: string,
   notes: string,
 ): Promise<void> {
-  await db.workouts.update(workoutId, { notes });
+  await db.workouts.update(workoutId, { notes, ...touchSyncMeta() });
 }
 
 /** Update an entire workout's exercises and notes (E4-08). */
 export async function updateWorkout(
-  workoutId: number,
+  workoutId: string,
   exercises: WorkoutExercise[],
   notes: string,
 ): Promise<void> {
   await db.transaction('rw', db.workouts, async () => {
-    await db.workouts.update(workoutId, { exercises, notes });
+    await db.workouts.update(workoutId, { exercises, notes, ...touchSyncMeta() });
   });
 }
 
 /** Pause a workout (E3-07). */
-export async function pauseWorkout(workoutId: number): Promise<void> {
+export async function pauseWorkout(workoutId: string): Promise<void> {
   await db.workouts.update(workoutId, {
     status: 'paused',
     pausedAt: new Date(),
+    ...touchSyncMeta(),
   });
 }
 
 /** Resume a paused workout (E3-07). */
-export async function resumeWorkout(workoutId: number): Promise<void> {
+export async function resumeWorkout(workoutId: string): Promise<void> {
   await db.transaction('rw', db.workouts, async () => {
     const workout = await db.workouts.get(workoutId);
     if (!workout || !workout.pausedAt) return;
@@ -242,12 +254,13 @@ export async function resumeWorkout(workoutId: number): Promise<void> {
       status: 'active',
       pausedAt: null,
       totalPausedMs: workout.totalPausedMs + pauseDuration,
+      ...touchSyncMeta(),
     });
   });
 }
 
 /** Complete a workout (E3-06, E3-08). */
-export async function completeWorkout(workoutId: number): Promise<void> {
+export async function completeWorkout(workoutId: string): Promise<void> {
   await db.transaction('rw', db.workouts, async () => {
     const workout = await db.workouts.get(workoutId);
     if (!workout) return;
@@ -262,6 +275,7 @@ export async function completeWorkout(workoutId: number): Promise<void> {
       completedAt: new Date(),
       pausedAt: null,
       totalPausedMs,
+      ...touchSyncMeta(),
     });
   });
 }

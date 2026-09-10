@@ -39,6 +39,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Never let the SW navigation fallback or precache intercept PocketBase
+        // API calls — they must always hit the network (or fail → offline sync).
+        navigateFallbackDenylist: [/^\/api\//, /^\/_\//],
       },
     }),
   ],

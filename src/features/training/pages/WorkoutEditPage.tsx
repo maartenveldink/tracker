@@ -38,7 +38,7 @@ function formatTime(date: Date): string {
 
 export function WorkoutEditPage() {
   const { id } = useParams<{ id: string }>();
-  const workoutId = id ? Number(id) : undefined;
+  const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
   const allExercises = useExercises();
   const navigate = useNavigate();
@@ -69,8 +69,8 @@ export function WorkoutEditPage() {
   }, [workout]);
 
   const exerciseMap = useMemo(() => {
-    const map = new Map<number, Exercise>();
-    allExercises.forEach(e => map.set(e.id!, e));
+    const map = new Map<string, Exercise>();
+    allExercises.forEach(e => map.set(e.id, e));
     return map;
   }, [allExercises]);
 
@@ -194,7 +194,7 @@ export function WorkoutEditPage() {
     markDirty();
   }
 
-  function handleAddExercise(exerciseId: number) {
+  function handleAddExercise(exerciseId: string) {
     setExercises(prev => {
       const next = structuredClone(prev);
       const newExercise: WorkoutExercise = {

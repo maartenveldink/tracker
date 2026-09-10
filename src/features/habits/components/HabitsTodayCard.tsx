@@ -25,7 +25,7 @@ export function HabitsTodayCard() {
   );
 
   const valueByHabit = useMemo(() => {
-    const map = new Map<number, number>();
+    const map = new Map<string, number>();
     for (const log of logs) {
       if (log.date === todayKey) map.set(log.habitId, log.value);
     }
@@ -34,7 +34,7 @@ export function HabitsTodayCard() {
 
   if (scheduled.length === 0) return null;
 
-  const doneCount = scheduled.filter(h => isHabitDone(h, valueByHabit.get(h.id!) ?? 0)).length;
+  const doneCount = scheduled.filter(h => isHabitDone(h, valueByHabit.get(h.id) ?? 0)).length;
 
   return (
     <Card>
@@ -60,7 +60,7 @@ export function HabitsTodayCard() {
                 {habit.emoji && <span>{habit.emoji}</span>}
                 {habit.name}
               </span>
-              <HabitControl habit={habit} value={valueByHabit.get(habit.id!) ?? 0} dateKey={todayKey} />
+              <HabitControl habit={habit} value={valueByHabit.get(habit.id) ?? 0} dateKey={todayKey} />
             </li>
           ))}
         </ul>

@@ -18,13 +18,13 @@ export class SchemasPage {
 
   async open(name: string): Promise<void> {
     await this.card(name).click();
-    await this.page.waitForURL(/\/schemas\/\d+$/);
+    await this.page.waitForURL(/\/schemas\/[^\/]+$/);
   }
 
   /** Duplicates a schema; the app opens the copy's editor. */
   async copy(name: string): Promise<void> {
     await this.page.getByRole('button', { name: `Kopieer ${name}` }).click();
-    await this.page.waitForURL(/\/schemas\/\d+\/edit$/);
+    await this.page.waitForURL(/\/schemas\/[^\/]+\/edit$/);
   }
 
   async delete(name: string): Promise<void> {

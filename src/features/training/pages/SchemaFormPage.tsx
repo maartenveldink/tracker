@@ -151,7 +151,7 @@ function StepperRow({
 export function SchemaFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined;
-  const schemaId = id ? Number(id) : undefined;
+  const schemaId = id || undefined;
   const existing = useSchema(schemaId);
   const allExercises = useExercises();
   const settings = useSettings();
@@ -160,7 +160,7 @@ export function SchemaFormPage() {
 
   /** Suggested start weight from the latest 1RM and the rep-range lower bound. */
   const suggestStartWeight = useCallback(
-    (exerciseId: number, repsMin: number): number | null => {
+    (exerciseId: string, repsMin: number): number | null => {
       const oneRM = latestOneRM.get(exerciseId);
       if (!oneRM || oneRM <= 0) return null;
       return roundToStep(estimateWeightForReps(oneRM, repsMin, settings.oneRMFormula));
@@ -193,9 +193,9 @@ export function SchemaFormPage() {
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   // Which exercise cards are expanded (by exerciseId). Added exercises start collapsed
   // so more fit on screen; the header toggles expansion.
-  const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set());
+  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
 
-  function toggleExpanded(exerciseId: number) {
+  function toggleExpanded(exerciseId: string) {
     setExpandedExercises(prev => {
       const next = new Set(prev);
       if (next.has(exerciseId)) next.delete(exerciseId);
@@ -235,14 +235,14 @@ export function SchemaFormPage() {
   }, [isEditing, name, exercises, days, rotation]);
 
   const exerciseMap = useMemo(() => {
-    const map = new Map<number, string>();
-    allExercises.forEach(e => map.set(e.id!, e.name));
+    const map = new Map<string, string>();
+    allExercises.forEach(e => map.set(e.id, e.name));
     return map;
   }, [allExercises]);
 
   const exerciseById = useMemo(() => {
-    const map = new Map<number, Exercise>();
-    allExercises.forEach(e => map.set(e.id!, e));
+    const map = new Map<string, Exercise>();
+    allExercises.forEach(e => map.set(e.id, e));
     return map;
   }, [allExercises]);
 
@@ -387,7 +387,7 @@ export function SchemaFormPage() {
     }
   }
 
-  function addExercise(exerciseId: number) {
+  function addExercise(exerciseId: string) {
     const targetDayId = pickerDayId;
 
     const updater = (prev: SchemaExercise[]): SchemaExercise[] => [
@@ -1013,7 +1013,7 @@ export function SchemaFormPage() {
                   <button
                     key={ex.id}
                     type="button"
-                    onClick={() => addExercise(ex.id!)}
+                    onClick={() => addExercise(ex.id)}
                     className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
                   >
                     {ex.name}

@@ -89,9 +89,9 @@ interface PreviousSessionRef {
 }
 
 function findPreviousSession(
-  exerciseId: number,
+  exerciseId: string,
   completedWorkouts: Workout[],
-  currentWorkoutId: number | undefined,
+  currentWorkoutId: string | undefined,
   formula: OneRMFormula,
 ): PreviousSessionRef | null {
   // Walk workouts from newest to oldest, skip the current workout
@@ -339,7 +339,7 @@ function truncateName(name: string, max: number = 12): string {
 
 export function WorkoutPage() {
   const { id } = useParams<{ id: string }>();
-  const workoutId = id ? Number(id) : undefined;
+  const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
   const allExercises = useExercises();
   const completedWorkouts = useCompletedWorkouts();
@@ -370,7 +370,7 @@ export function WorkoutPage() {
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
 
   // Per-exercise rest override for this session (exerciseId -> seconds)
-  const [exerciseRest, setExerciseRest] = useState<Record<number, number>>({});
+  const [exerciseRest, setExerciseRest] = useState<Record<string, number>>({});
   // Confirm dialog for deleting a whole exercise
   const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
   // NAV-07: which exercise card is expanded. Defaults to the active exercise;
@@ -386,15 +386,15 @@ export function WorkoutPage() {
   }, [workoutId]);
 
   const exerciseMap = useMemo(() => {
-    const map = new Map<number, Exercise>();
-    allExercises.forEach(e => map.set(e.id!, e));
+    const map = new Map<string, Exercise>();
+    allExercises.forEach(e => map.set(e.id, e));
     return map;
   }, [allExercises]);
 
   // Build previous session references for each exercise in the workout (E3-10)
   const previousSessions = useMemo(() => {
-    if (!workout) return new Map<number, PreviousSessionRef | null>();
-    const map = new Map<number, PreviousSessionRef | null>();
+    if (!workout) return new Map<string, PreviousSessionRef | null>();
+    const map = new Map<string, PreviousSessionRef | null>();
     for (const ex of workout.exercises) {
       if (!map.has(ex.exerciseId)) {
         map.set(
@@ -488,7 +488,7 @@ export function WorkoutPage() {
 
   // Celebrate the moment an exercise is finished with a better best-1RM than the
   // previous session. The nonce re-triggers the (remounted) burst per exercise.
-  const celebratedRef = useRef<Set<number>>(new Set());
+  const celebratedRef = useRef<Set<string>>(new Set());
   const [celebrateNonce, setCelebrateNonce] = useState(0);
   useEffect(() => {
     celebratedRef.current = new Set();
@@ -562,7 +562,7 @@ export function WorkoutPage() {
 
   // Effective rest time (E3-15): session override -> schema exercise -> per-exercise
   // default -> laterality default -> global.
-  function getRest(exerciseId: number): number {
+  function getRest(exerciseId: string): number {
     const override = exerciseRest[exerciseId];
     if (override !== undefined) return override;
     const schemaRestSeconds = workout?.exercises.find(e => e.exerciseId === exerciseId)?.restSeconds;
@@ -638,7 +638,7 @@ export function WorkoutPage() {
     // The rest duration comes from the just-finished exercise; `displayExIdx`
     // decides which (expanded) card shows the timer bar.
     const startRest = (displayExIdx: number) => {
-      const rest = getRest(exercises[exerciseIndex]?.exerciseId ?? -1);
+      const rest = getRest(exercises[exerciseIndex]?.exerciseId ?? '');
       setRestTimer({
         exerciseIdx: displayExIdx,
         setIdx: setIndex,
@@ -703,7 +703,7 @@ export function WorkoutPage() {
   }
 
   // Adjust this exercise's rest time for the session (15s steps, 15–600)
-  function adjustRest(exerciseId: number, delta: number) {
+  function adjustRest(exerciseId: string, delta: number) {
     setExerciseRest(prev => {
       const current = prev[exerciseId] ?? getRest(exerciseId);
       const next = Math.min(600, Math.max(15, current + delta));
@@ -712,7 +712,7 @@ export function WorkoutPage() {
   }
 
   // Persist the current rest time as this exercise's default
-  async function saveRestAsDefault(exerciseId: number) {
+  async function saveRestAsDefault(exerciseId: string) {
     await updateExercise(exerciseId, { restTimerSeconds: getRest(exerciseId) });
     // Clear the session override so it now reads from the saved default
     setExerciseRest(prev => {
@@ -770,7 +770,7 @@ export function WorkoutPage() {
     await updateWorkoutSet(workoutId, exerciseIndex, setIndex, { actualReps: newReps });
   }
 
-  async function handleAddExercise(exerciseId: number) {
+  async function handleAddExercise(exerciseId: string) {
     if (!workoutId) return;
     await addWorkoutExercise(workoutId, exerciseId);
     setShowAddExercise(false);
@@ -1408,7 +1408,7 @@ export function WorkoutPage() {
         title="Oefening verwijderen"
         message={
           deleteExerciseIdx !== null
-            ? `Wil je "${exerciseMap.get(workout.exercises[deleteExerciseIdx]?.exerciseId ?? -1)?.name ?? 'deze oefening'}" uit de training verwijderen? De gelogde sets gaan verloren.`
+            ? `Wil je "${exerciseMap.get(workout.exercises[deleteExerciseIdx]?.exerciseId ?? '')?.name ?? 'deze oefening'}" uit de training verwijderen? De gelogde sets gaan verloren.`
             : ''
         }
         confirmLabel="Verwijderen"

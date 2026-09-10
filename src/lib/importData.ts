@@ -1,5 +1,7 @@
 import {
   db,
+  newId,
+  freshSyncMeta,
   type Exercise,
   type TrainingSchema,
   type Workout,
@@ -58,11 +60,11 @@ export interface ImportResult {
 }
 
 /**
- * Strips the `id` property from a record so Dexie generates a new auto-increment key.
+ * Assigns a fresh string id and fresh sync metadata to a record (used by merge
+ * mode so imported data gets brand-new keys and is pushed to the account).
  */
-function stripId<T extends { id?: number }>(record: T): Omit<T, 'id'> {
-  const { id: _, ...rest } = record;
-  return rest;
+function withNewId<T extends { id: string }>(record: T): T {
+  return { ...record, id: newId(), ...freshSyncMeta() };
 }
 
 /**
@@ -106,45 +108,40 @@ export async function importData(
         await db.habits.clear();
         await db.habitLogs.clear();
 
-        // Insert with original IDs preserved (bulkPut accepts explicit keys)
-        await db.exercises.bulkPut(data.exercises as Exercise[]);
-        await db.schemas.bulkPut(data.schemas as TrainingSchema[]);
-        await db.workouts.bulkPut(data.workouts as Workout[]);
-        await db.bodyWeights.bulkPut(bodyWeights as BodyWeightEntry[]);
-        await db.habits.bulkPut(habits as Habit[]);
-        await db.habitLogs.bulkPut(habitLogs as HabitLog[]);
+        // Insert with original IDs preserved (bulkPut accepts explicit keys).
+        // Mark everything dirty so the import syncs up to the account.
+        const dirtyMeta = () => freshSyncMeta();
+        await db.exercises.bulkPut(data.exercises.map(e => ({ ...e, ...dirtyMeta() })) as Exercise[]);
+        await db.schemas.bulkPut(data.schemas.map(s => ({ ...s, ...dirtyMeta() })) as TrainingSchema[]);
+        await db.workouts.bulkPut(data.workouts.map(w => ({ ...w, ...dirtyMeta() })) as Workout[]);
+        await db.bodyWeights.bulkPut(bodyWeights.map(b => ({ ...b, ...dirtyMeta() })) as BodyWeightEntry[]);
+        await db.habits.bulkPut(habits.map(h => ({ ...h, ...dirtyMeta() })) as Habit[]);
+        await db.habitLogs.bulkPut(habitLogs.map(l => ({ ...l, ...dirtyMeta() })) as HabitLog[]);
 
         // Restore settings if present, otherwise keep defaults
         if (data.settings) {
-          await db.settings.put({ ...data.settings, id: 1 });
+          await db.settings.put({ ...data.settings, id: 1, clientUpdatedAt: Date.now(), dirty: 1 });
         }
       } else {
         // -------------------------------------------------------------------
-        // Merge: strip IDs so Dexie auto-generates new ones, then remap
-        // exerciseId references so schemas/workouts stay consistent.
+        // Merge: assign fresh string ids, then remap the foreign-key
+        // references so schemas/workouts/habit logs stay consistent.
         // -------------------------------------------------------------------
 
-        // Step 1: add exercises, build old → new ID map
-        const exerciseIdMap = new Map<number, number>();
-        if (data.exercises.length > 0) {
-          const newIds = await db.exercises.bulkAdd(
-            data.exercises.map(stripId) as Exercise[],
-            { allKeys: true },
-          );
-          data.exercises.forEach((ex, i) => {
-            const oldId = ex.id;
-            const newId = (newIds as number[])[i];
-            if (oldId !== undefined && newId !== undefined) {
-              exerciseIdMap.set(oldId, newId);
-            }
-          });
-        }
-        const remapExId = (id: number): number => exerciseIdMap.get(id) ?? id;
+        // Step 1: add exercises with fresh ids, build old → new id map
+        const exerciseIdMap = new Map<string, string>();
+        const newExercises = data.exercises.map(ex => {
+          const withId = withNewId(ex);
+          exerciseIdMap.set(ex.id, withId.id);
+          return withId;
+        });
+        if (newExercises.length > 0) await db.exercises.bulkAdd(newExercises as Exercise[]);
+        const remapExId = (id: string): string => exerciseIdMap.get(id) ?? id;
 
         // Step 2: add schemas with remapped exerciseIds
         if (data.schemas.length > 0) {
           const remappedSchemas = data.schemas.map(schema => ({
-            ...stripId(schema),
+            ...withNewId(schema),
             exercises: schema.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
             days: schema.days?.map(day => ({
               ...day,
@@ -157,7 +154,7 @@ export async function importData(
         // Step 3: add workouts with remapped exerciseIds (exercises and sets)
         if (data.workouts.length > 0) {
           const remappedWorkouts = data.workouts.map(workout => ({
-            ...stripId(workout),
+            ...withNewId(workout),
             exercises: workout.exercises.map(e => ({
               ...e,
               exerciseId: remapExId(e.exerciseId),
@@ -167,24 +164,22 @@ export async function importData(
           await db.workouts.bulkAdd(remappedWorkouts as Workout[]);
         }
 
-        // Step 4: add body weights (no foreign keys; strip IDs for fresh keys)
+        // Step 4: add body weights (no foreign keys; fresh ids)
         if (bodyWeights.length > 0) {
-          await db.bodyWeights.bulkAdd(bodyWeights.map(stripId) as BodyWeightEntry[]);
+          await db.bodyWeights.bulkAdd(bodyWeights.map(withNewId) as BodyWeightEntry[]);
         }
 
-        // Step 5: add habits, build old → new ID map, then remap habit logs
-        const habitIdMap = new Map<number, number>();
-        if (habits.length > 0) {
-          const newIds = await db.habits.bulkAdd(habits.map(stripId) as Habit[], { allKeys: true });
-          habits.forEach((h, i) => {
-            const oldId = h.id;
-            const newId = (newIds as number[])[i];
-            if (oldId !== undefined && newId !== undefined) habitIdMap.set(oldId, newId);
-          });
-        }
+        // Step 5: add habits with fresh ids, build old → new map, remap logs
+        const habitIdMap = new Map<string, string>();
+        const newHabits = habits.map(h => {
+          const withId = withNewId(h);
+          habitIdMap.set(h.id, withId.id);
+          return withId;
+        });
+        if (newHabits.length > 0) await db.habits.bulkAdd(newHabits as Habit[]);
         if (habitLogs.length > 0) {
           const remappedLogs = habitLogs.map(log => ({
-            ...stripId(log),
+            ...withNewId(log),
             habitId: habitIdMap.get(log.habitId) ?? log.habitId,
           }));
           await db.habitLogs.bulkAdd(remappedLogs as HabitLog[]);

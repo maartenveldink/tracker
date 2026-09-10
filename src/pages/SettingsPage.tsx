@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { clearAllData } from '@/features/training/db/seedDemoWorkouts';
+import { AccountCard } from '@/features/auth/AccountCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
 import {
   WEIGHT_STEP_PRESETS,
@@ -149,6 +150,9 @@ export function SettingsPage() {
           {feedback.message}
         </div>
       )}
+
+      {/* Account + sync status */}
+      <AccountCard />
 
       {/* E8-01: 1RM formula */}
       <Card>

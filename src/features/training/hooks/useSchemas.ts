@@ -1,13 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type TrainingSchema, type SchemaExercise, type SchemaDay } from '../../../db/index';
+import { db, newId, freshSyncMeta, touchSyncMeta, tombstonePatch, type TrainingSchema, type SchemaExercise, type SchemaDay } from '../../../db/index';
 
 export function useSchemas() {
-  return useLiveQuery(() => db.schemas.orderBy('name').toArray()) ?? [];
+  return useLiveQuery(
+    () => db.schemas.orderBy('name').filter(s => !s.deleted).toArray(),
+  ) ?? [];
 }
 
-export function useSchema(id: number | undefined) {
+export function useSchema(id: string | undefined) {
   return useLiveQuery(
-    () => (id ? db.schemas.get(id) : undefined),
+    async () => {
+      if (!id) return undefined;
+      const s = await db.schemas.get(id);
+      return s && !s.deleted ? s : undefined;
+    },
     [id],
   );
 }
@@ -55,32 +61,35 @@ export async function createSchema(
   exercises: SchemaExercise[] = [],
   days?: SchemaDay[],
   rotation?: string[],
-): Promise<number> {
+): Promise<string> {
   const now = new Date();
   const isMulti = Boolean(days && days.length > 0);
-  const id = await db.schemas.add({
+  const id = newId();
+  await db.schemas.add({
+    id,
     name,
     exercises: isMulti ? [] : exercises,
     days,
     rotation: isMulti ? rotation : undefined,
     createdAt: now,
     updatedAt: now,
+    ...freshSyncMeta(now.getTime()),
   });
-  return id as number;
+  return id;
 }
 
 export async function updateSchema(
-  id: number,
+  id: string,
   data: Partial<Pick<TrainingSchema, 'name' | 'exercises' | 'days' | 'rotation'>>,
 ): Promise<void> {
-  await db.schemas.update(id, { ...data, updatedAt: new Date() });
+  await db.schemas.update(id, { ...data, updatedAt: new Date(), ...touchSyncMeta() });
 }
 
-export async function deleteSchema(id: number): Promise<void> {
-  await db.schemas.delete(id);
+export async function deleteSchema(id: string): Promise<void> {
+  await db.schemas.update(id, tombstonePatch());
 }
 
-export async function copySchema(id: number): Promise<number> {
+export async function copySchema(id: string): Promise<string> {
   const original = await db.schemas.get(id);
   if (!original) throw new Error('Schema niet gevonden');
 
@@ -97,13 +106,16 @@ export async function copySchema(id: number): Promise<number> {
     ?.map(id => idMap.get(id))
     .filter((id): id is string => id !== undefined);
 
-  const newId = await db.schemas.add({
+  const copyId = newId();
+  await db.schemas.add({
+    id: copyId,
     name: `${original.name} (kopie)`,
     exercises: [...original.exercises],
     days: copiedDays,
     rotation: copiedRotation && copiedRotation.length > 0 ? copiedRotation : undefined,
     createdAt: now,
     updatedAt: now,
+    ...freshSyncMeta(now.getTime()),
   });
-  return newId as number;
+  return copyId;
 }

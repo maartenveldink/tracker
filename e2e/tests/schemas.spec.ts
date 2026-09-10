@@ -63,7 +63,7 @@ test.describe('Training schemas', () => {
     // Visiting the share URL offers to import the schema.
     await page.goto(url);
     await page.getByRole('button', { name: 'Importeren' }).click();
-    await page.waitForURL(/\/schemas\/\d+$/);
+    await page.waitForURL(/\/schemas\/[^\/]+$/);
 
     // A same-named import is de-duplicated with a "(geïmporteerd)" suffix.
     await expect(page.getByRole('heading', { name: 'E2E Shared (geïmporteerd)' })).toBeVisible();

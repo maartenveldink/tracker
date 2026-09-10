@@ -39,18 +39,18 @@ export async function exportAllData(): Promise<TrackerExport> {
       db.settings.get(1),
     ]);
 
-  // Only export user-created exercises (isDefault === false)
-  const exercises = allExercises.filter((e) => !e.isDefault);
+  // Only export user-created, non-deleted exercises; drop tombstones everywhere.
+  const exercises = allExercises.filter((e) => !e.isDefault && !e.deleted);
 
   return {
     exportVersion: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     exercises,
-    schemas,
-    workouts,
-    bodyWeights,
-    habits,
-    habitLogs,
+    schemas: schemas.filter((s) => !s.deleted),
+    workouts: workouts.filter((w) => !w.deleted),
+    bodyWeights: bodyWeights.filter((b) => !b.deleted),
+    habits: habits.filter((h) => !h.deleted),
+    habitLogs: habitLogs.filter((l) => !l.deleted),
     settings,
   };
 }
@@ -61,10 +61,10 @@ export async function exportAllData(): Promise<TrackerExport> {
 export async function hasExportableData(): Promise<boolean> {
   const [workoutCount, schemaCount, bodyWeightCount, habitCount] =
     await Promise.all([
-      db.workouts.count(),
-      db.schemas.count(),
-      db.bodyWeights.count(),
-      db.habits.count(),
+      db.workouts.filter(w => !w.deleted).count(),
+      db.schemas.filter(s => !s.deleted).count(),
+      db.bodyWeights.filter(b => !b.deleted).count(),
+      db.habits.filter(h => !h.deleted).count(),
     ]);
   return workoutCount + schemaCount + bodyWeightCount + habitCount > 0;
 }

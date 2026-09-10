@@ -19,7 +19,7 @@ const PERIODS: { value: Period; label: string }[] = [
 
 export function HabitDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const habitId = id ? Number(id) : undefined;
+  const habitId = id || undefined;
   const habit = useHabit(habitId);
   const logs = useHabitLogs();
   const navigate = useNavigate();

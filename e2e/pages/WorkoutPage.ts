@@ -116,6 +116,6 @@ export class WorkoutPage {
   async finish(): Promise<void> {
     await this.page.getByRole('button', { name: 'Afronden', exact: true }).first().click();
     await this.page.getByRole('dialog').getByRole('button', { name: 'Afronden' }).click();
-    await this.page.waitForURL(/\/workout\/\d+\/summary$/);
+    await this.page.waitForURL(/\/workout\/[^\/]+\/summary$/);
   }
 }

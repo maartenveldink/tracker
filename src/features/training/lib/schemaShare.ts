@@ -1,8 +1,8 @@
-import { db, type TrainingSchema, type SchemaExercise, type SchemaDay } from '../../../db/index';
+import { db, newId, freshSyncMeta, type TrainingSchema, type SchemaExercise, type SchemaDay } from '../../../db/index';
 import { createSchema } from '../hooks/useSchemas';
 
-// A share payload references exercises by NAME, because the numeric exerciseId
-// is auto-incremented per device and won't match across devices.
+// A share payload references exercises by NAME, because exercise ids are
+// per-device/per-account and won't match across devices.
 
 interface SharedExercise {
   n: string; // exercise name
@@ -48,7 +48,7 @@ function fromBase64Url(s: string): string {
 
 export function buildSharedSchema(
   schema: TrainingSchema,
-  exerciseNameById: Map<number, string>,
+  exerciseNameById: Map<string, string>,
 ): SharedSchema {
   // Encode supersets compactly: map each distinct group id within a list to a
   // small integer, so `g` marks which exercises belong together.
@@ -128,27 +128,30 @@ export function summarizeSharedSchema(shared: SharedSchema): string {
  * Imports a shared schema, resolving exercises by name against the local
  * database and creating any that are missing. Returns the new schema id.
  */
-export async function importSharedSchema(shared: SharedSchema): Promise<number> {
-  // Build a name -> id map of local exercises (case-insensitive)
-  const local = await db.exercises.toArray();
-  const idByName = new Map<string, number>();
+export async function importSharedSchema(shared: SharedSchema): Promise<string> {
+  // Build a name -> id map of local (non-deleted) exercises (case-insensitive)
+  const local = await db.exercises.filter(e => !e.deleted).toArray();
+  const idByName = new Map<string, string>();
   for (const ex of local) {
-    if (ex.id) idByName.set(ex.name.trim().toLowerCase(), ex.id);
+    idByName.set(ex.name.trim().toLowerCase(), ex.id);
   }
 
-  async function resolveId(name: string): Promise<number> {
+  async function resolveId(name: string): Promise<string> {
     const key = name.trim().toLowerCase();
     const existing = idByName.get(key);
     if (existing) return existing;
     // Create a minimal exercise so the schema stays complete
-    const id = (await db.exercises.add({
+    const id = newId();
+    await db.exercises.add({
+      id,
       name: name.trim(),
       description: '',
       primaryMuscles: [],
       secondaryMuscles: [],
       isDefault: false,
       createdAt: new Date(),
-    })) as number;
+      ...freshSyncMeta(),
+    });
     idByName.set(key, id);
     return id;
   }
@@ -178,7 +181,7 @@ export async function importSharedSchema(shared: SharedSchema): Promise<number> 
   }
 
   // Avoid confusing duplicate names
-  const existingNames = new Set((await db.schemas.toArray()).map(s => s.name));
+  const existingNames = new Set((await db.schemas.filter(s => !s.deleted).toArray()).map(s => s.name));
   let name = shared.name;
   if (existingNames.has(name)) name = `${name} (geïmporteerd)`;
 

@@ -70,6 +70,6 @@ export class SchemaEditorPage {
   /** Saves the schema and waits for the redirect to its detail page. */
   async save(): Promise<void> {
     await this.page.getByRole('button', { name: /Aanmaken|Opslaan/ }).click();
-    await this.page.waitForURL(/\/schemas\/\d+$/);
+    await this.page.waitForURL(/\/schemas\/[^\/]+$/);
   }
 }

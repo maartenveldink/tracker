@@ -23,7 +23,7 @@ export class ExercisesPage {
 
   async open(name: string): Promise<void> {
     await this.card(name).click();
-    await this.page.waitForURL(/\/exercises\/\d+\/edit$/);
+    await this.page.waitForURL(/\/exercises\/[^\/]+\/edit$/);
   }
 
   async delete(name: string): Promise<void> {

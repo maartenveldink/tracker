@@ -23,6 +23,6 @@ test.describe('Dashboard', () => {
     await expect(dashboard.resumeButton).toBeVisible();
 
     await dashboard.resumeButton.click();
-    await expect(page).toHaveURL(/\/workout\/\d+$/);
+    await expect(page).toHaveURL(/\/workout\/[^\/]+$/);
   });
 });

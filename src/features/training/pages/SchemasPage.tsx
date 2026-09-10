@@ -10,9 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 export function SchemasPage() {
   const schemas = useSchemas();
   const navigate = useNavigate();
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  async function handleCopy(id: number) {
+  async function handleCopy(id: string) {
     const newId = await copySchema(id);
     navigate(`/schemas/${newId}/edit`);
   }
@@ -63,7 +63,7 @@ export function SchemasPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground"
-                  onClick={() => handleCopy(schema.id!)}
+                  onClick={() => handleCopy(schema.id)}
                   aria-label={`Kopieer ${schema.name}`}
                 >
                   <Copy className="h-4 w-4" />
@@ -81,7 +81,7 @@ export function SchemasPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => setDeleteTarget({ id: schema.id!, name: schema.name })}
+                  onClick={() => setDeleteTarget({ id: schema.id, name: schema.name })}
                   aria-label={`Verwijder ${schema.name}`}
                 >
                   <Trash2 className="h-4 w-4" />

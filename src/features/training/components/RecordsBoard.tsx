@@ -10,7 +10,7 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: number) => void }) {
+export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: string) => void }) {
   const workouts = useCompletedWorkouts();
   const exercises = useExercises();
   const settings = useSettings();

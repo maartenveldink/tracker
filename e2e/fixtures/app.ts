@@ -34,6 +34,8 @@ type AppFixtures = {
 };
 
 export const test = base.extend<AppFixtures>({
+  // No backend is configured in e2e (no VITE_PB_URL), so the app runs in local
+  // mode: no login gate, no sync — it drives the real app + IndexedDB directly.
   exercises: async ({ page }, use) => {
     await use(new ExercisesPage(page));
   },
