@@ -746,6 +746,9 @@ function detectEquipmentFromText(text: string): Equipment {
  */
 export const UNILATERAL_DEFAULT_EXERCISES = new Set<string>([
   'Bulgarian Split Squat',
+  'Single Arm Cable Row',
+  'Single-Arm Dumbbell Shoulder Press',
+  'Walking Lunge',
 ]);
 
 /**
@@ -768,6 +771,17 @@ export const COMPOUND_DEFAULT_EXERCISES = new Set<string>([
   'Leg Press',
   'Bulgarian Split Squat',
   'Hip Thrust',
+  'Good Morning',
+  'T-Bar Row',
+  'Chest-Supported Row',
+  'Upright Row',
+  'Single Arm Cable Row',
+  'Front Squat',
+  'Arnold Press',
+  'Single-Arm Dumbbell Shoulder Press',
+  'Close-Grip Dumbbell Press',
+  'Lat Pulldown (Behind Neck)',
+  'Walking Lunge',
 ]);
 
 /**
@@ -784,11 +798,21 @@ export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
   'Seated Cable Row': 'cable',
   'Face Pull': 'cable',
   'Tricep Pushdown': 'cable',
+  'Single Arm Cable Row': 'cable',
+  'Lat Pulldown (Behind Neck)': 'cable',
   // Dumbbell (halter)
   'Incline Dumbbell Press': 'dumbbell',
   'Lateral Raise': 'dumbbell',
   'Hammer Curl': 'dumbbell',
   'Bulgarian Split Squat': 'dumbbell',
+  'Front Raise': 'dumbbell',
+  'Front Squat': 'dumbbell',
+  'Arnold Press': 'dumbbell',
+  'Around The World': 'dumbbell',
+  'Single-Arm Dumbbell Shoulder Press': 'dumbbell',
+  'Overhead Tricep Extension': 'dumbbell',
+  'Close-Grip Dumbbell Press': 'dumbbell',
+  'Walking Lunge': 'dumbbell',
   // Barbell / EZ-bar / plate-loaded (halterschijven)
   'Barbell Back Squat': 'plates',
   'Barbell Bench Press': 'plates',
@@ -803,6 +827,14 @@ export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
   'Standing Calf Raise': 'plates',
   'Leg Curl': 'plates',
   'Leg Extension': 'plates',
+  'Seated Calf Raise': 'plates',
+  'Hip Abduction': 'plates',
+  'Lying Leg Curl': 'plates',
+  'Good Morning': 'plates',
+  'T-Bar Row': 'plates',
+  'Chest-Supported Row': 'plates',
+  'Barbell Shrug': 'plates',
+  'Upright Row': 'plates',
   // Bodyweight (overig, 1 kg add-on steps)
   'Dips': 'other',
   'Pull-up': 'other',

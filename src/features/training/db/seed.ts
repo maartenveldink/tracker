@@ -189,11 +189,149 @@ const DEFAULT_EXERCISES: Omit<Exercise, 'id' | 'createdAt' | 'clientUpdatedAt' |
     secondaryMuscles: [],
     isDefault: true,
   },
+  // --- Aanvullingen: dekken gaten in de standaardbibliotheek ---
+  {
+    name: 'Seated Calf Raise',
+    description: 'Kuitoefening zittend; legt meer nadruk op de soleus.',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Hip Abduction',
+    description: 'Bilspierisolatie op de abductiemachine (heup naar buiten).',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Lying Leg Curl',
+    description: 'Hamstringisolatie liggend op de machine.',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Good Morning',
+    description: 'Voorover buigen met barbell op de rug; hamstrings en onderrug.',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['back', 'glutes'],
+    isDefault: true,
+  },
+  {
+    name: 'T-Bar Row',
+    description: 'Horizontale trek met de T-bar, gebukt.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Chest-Supported Row',
+    description: 'Rijen met de borst ondersteund op een schuine bank/machine.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Barbell Shrug',
+    description: 'Schouders optrekken met barbell; trapezius.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['shoulders'],
+    isDefault: true,
+  },
+  {
+    name: 'Front Raise',
+    description: 'Isolatie voor de voorste schouder met dumbbells.',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Upright Row',
+    description: 'Verticale trek langs het lichaam; schouders en bovenrug.',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['back'],
+    isDefault: true,
+  },
+  {
+    name: 'Single Arm Cable Row',
+    description: 'Eenarmige horizontale kabelrij; rug per zijde.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps'],
+    isDefault: true,
+  },
+  // --- Aanvullingen op basis van bestaand trainingsschema ---
+  {
+    name: 'Front Squat',
+    description: 'Squat met het gewicht vóór het lichaam; quad-focus.',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes', 'core'],
+    isDefault: true,
+  },
+  {
+    name: 'Back Extension',
+    description: 'Hyperextensie op de bank; onderrug, bilspieren en hamstrings.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    isDefault: true,
+  },
+  {
+    name: 'Arnold Press',
+    description: 'Schouderpers met draaiende dumbbells (Arnold-variant).',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['triceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Around The World',
+    description: 'Dumbbells in een boog van heup naar boven; schouders en borst.',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['chest'],
+    isDefault: true,
+  },
+  {
+    name: 'Single-Arm Dumbbell Shoulder Press',
+    description: 'Eenarmige schouderpers met dumbbell; per zijde.',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['triceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Overhead Tricep Extension',
+    description: 'Triceps-extensie boven het hoofd met dumbbell.',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Close-Grip Dumbbell Press',
+    description: 'Bankdruk met dumbbells dicht bij elkaar; borst en triceps.',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Lat Pulldown (Behind Neck)',
+    description: 'Lat pulldown met de stang achter de nek.',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps'],
+    isDefault: true,
+  },
+  {
+    name: 'Walking Lunge',
+    description: 'Lopende uitvalspas met dumbbells/kettlebells; per been.',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    isDefault: true,
+  },
 ];
 
 export async function seedDatabase(): Promise<void> {
-  const count = await db.exercises.count();
-  if (count > 0) return; // Already seeded
+  // Additive & idempotent: add only the default exercises that aren't present
+  // yet (matched on their deterministic id). This seeds a fresh install and also
+  // lets existing users pick up newly-shipped defaults, without touching their
+  // edits or reviving defaults they deleted (a tombstone keeps the id present).
+  const existingIds = new Set((await db.exercises.toArray()).map((e) => e.id));
 
   const now = new Date();
   const exercises = DEFAULT_EXERCISES.map((e): Exercise => ({
@@ -212,7 +350,7 @@ export async function seedDatabase(): Promise<void> {
     clientUpdatedAt: now.getTime(),
     deleted: false,
     dirty: 0,
-  }));
+  })).filter((e) => !existingIds.has(e.id));
 
-  await db.exercises.bulkPut(exercises);
+  if (exercises.length > 0) await db.exercises.bulkPut(exercises);
 }
