@@ -11,8 +11,9 @@ type Schedule =
 interface CreateHabit {
   name: string;
   emoji?: string;
-  type?: 'boolean' | 'count';
+  type?: 'boolean' | 'count' | 'amount';
   target?: number;
+  unit?: string;
   schedule?: Schedule;
 }
 
@@ -29,7 +30,7 @@ export class HabitsPage {
   }
 
   /** Fills the habit form and saves; returns to the day view. */
-  async create({ name, emoji, type = 'boolean', target, schedule = { kind: 'daily' } }: CreateHabit): Promise<void> {
+  async create({ name, emoji, type = 'boolean', target, unit, schedule = { kind: 'daily' } }: CreateHabit): Promise<void> {
     await this.gotoNew();
     if (emoji) await this.page.getByLabel('Emoji').fill(emoji);
     await this.page.getByLabel('Naam').fill(name);
@@ -37,6 +38,11 @@ export class HabitsPage {
     if (type === 'count') {
       await this.page.getByRole('button', { name: 'Teller', exact: true }).click();
       if (target != null) await this.page.getByLabel('Doel').fill(String(target));
+    } else if (type === 'amount') {
+      await this.page.getByRole('button', { name: 'Getal', exact: true }).click();
+      // Target is optional for amount habits; clear the default when none given.
+      await this.page.getByLabel('Doel').fill(target != null ? String(target) : '');
+      if (unit != null) await this.page.getByLabel('Eenheid').fill(unit);
     }
 
     switch (schedule.kind) {
@@ -79,6 +85,11 @@ export class HabitsPage {
 
   async increment(name: string): Promise<void> {
     await this.row(name).getByRole('button', { name: 'Meer' }).click();
+  }
+
+  /** Types a value into an `amount` habit's input on the current day. */
+  async setAmount(name: string, value: number): Promise<void> {
+    await this.row(name).getByLabel('Waarde').fill(String(value));
   }
 
   async prevDay(): Promise<void> {

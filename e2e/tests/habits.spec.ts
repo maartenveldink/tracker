@@ -31,6 +31,33 @@ test.describe('Habit tracker', () => {
     await expect(row).toContainText('3/3');
   });
 
+  test('logs an amount habit and marks it done once the target is met', async ({ habits }) => {
+    await habits.create({ name: 'Eiwitten', type: 'amount', target: 160, unit: 'g', schedule: { kind: 'daily' } });
+
+    const row = habits.row('Eiwitten');
+    await expect(row).toContainText('/ 160 g');
+
+    // Below target: not done, no streak yet.
+    await habits.setAmount('Eiwitten', 120);
+    await expect(row).not.toHaveClass(/border-primary/);
+
+    // Reaching the target completes it (card gets the done border).
+    await habits.setAmount('Eiwitten', 160);
+    await expect(row).toHaveClass(/border-primary/);
+  });
+
+  test('an amount habit without a target just tracks the value', async ({ habits }) => {
+    await habits.create({ name: 'Water', type: 'amount', unit: 'ml', schedule: { kind: 'daily' } });
+
+    const row = habits.row('Water');
+    // No target → no "/ n" threshold shown, only the unit.
+    await expect(row).not.toContainText('/');
+
+    // Any logged value counts as tracked for the day.
+    await habits.setAmount('Water', 500);
+    await expect(row).toHaveClass(/border-primary/);
+  });
+
   test('a weekday habit shows only on its scheduled days', async ({ habits }) => {
     const other = (todayWeekday() + 1) % 7; // a weekday that is not today
 

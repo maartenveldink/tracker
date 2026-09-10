@@ -27,6 +27,7 @@ export interface HabitInput {
   color?: string;
   type: HabitType;
   target?: number;
+  unit?: string;
   schedule: HabitSchedule;
 }
 

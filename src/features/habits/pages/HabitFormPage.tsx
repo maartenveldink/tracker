@@ -28,7 +28,8 @@ export function HabitFormPage() {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('');
   const [type, setType] = useState<HabitType>('boolean');
-  const [target, setTarget] = useState(8);
+  const [target, setTarget] = useState('8');
+  const [unit, setUnit] = useState('');
   const [kind, setKind] = useState<ScheduleKind>('daily');
   const [everyDays, setEveryDays] = useState(2);
   const [weekdays, setWeekdays] = useState<number[]>([]);
@@ -41,7 +42,8 @@ export function HabitFormPage() {
     setName(existing.name);
     setEmoji(existing.emoji ?? '');
     setType(existing.type);
-    setTarget(existing.target ?? 8);
+    setTarget(existing.target != null ? String(existing.target) : '');
+    setUnit(existing.unit ?? '');
     setKind(existing.schedule.kind);
     if (existing.schedule.kind === 'interval') setEveryDays(existing.schedule.everyDays);
     if (existing.schedule.kind === 'weekdays') setWeekdays(existing.schedule.days);
@@ -68,8 +70,16 @@ export function HabitFormPage() {
     }
   }
 
+  // Parsed target: empty text means "no target". Count requires one; amount
+  // treats it as optional (leave blank to just track the value).
+  const targetText = target.trim();
+  const targetNum = targetText === '' ? undefined : Number(targetText);
+  const targetOk = targetNum != null && Number.isFinite(targetNum) && targetNum >= 1;
+
   const schedule = buildSchedule();
-  const valid = name.trim().length > 0 && schedule !== null && (type !== 'count' || target >= 1);
+  const targetValid =
+    type === 'count' ? targetOk : type === 'amount' ? targetText === '' || targetOk : true;
+  const valid = name.trim().length > 0 && schedule !== null && targetValid;
 
   async function save() {
     if (!valid || !schedule) return;
@@ -77,7 +87,8 @@ export function HabitFormPage() {
       name: name.trim(),
       emoji: emoji.trim() || undefined,
       type,
-      target: type === 'count' ? target : undefined,
+      target: type === 'count' || type === 'amount' ? (targetOk ? targetNum : undefined) : undefined,
+      unit: type === 'amount' ? unit.trim() || undefined : undefined,
       schedule,
     };
     if (habitId != null) {
@@ -119,28 +130,48 @@ export function HabitFormPage() {
         <div className="space-y-2">
           <p className="text-sm font-medium">Type</p>
           <div className="flex gap-2">
-            {(['boolean', 'count'] as HabitType[]).map(t => (
+            {(['boolean', 'count', 'amount'] as HabitType[]).map(t => (
               <Button
                 key={t}
                 variant={type === t ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setType(t)}
               >
-                {t === 'boolean' ? 'Aan/uit' : 'Teller'}
+                {t === 'boolean' ? 'Aan/uit' : t === 'count' ? 'Teller' : 'Getal'}
               </Button>
             ))}
           </div>
-          {type === 'count' && (
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-sm text-muted-foreground">Doel per dag</span>
-              <Input
-                type="number"
-                min={1}
-                value={target}
-                onChange={e => setTarget(Math.max(1, Number(e.target.value) || 1))}
-                aria-label="Doel"
-                className="w-20"
-              />
+          {(type === 'count' || type === 'amount') && (
+            <div className="space-y-1 pt-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {type === 'amount' ? 'Doel per dag (optioneel)' : 'Doel per dag'}
+                </span>
+                <Input
+                  type="number"
+                  min={1}
+                  value={target}
+                  onChange={e => setTarget(e.target.value)}
+                  placeholder={type === 'amount' ? 'geen' : undefined}
+                  aria-label="Doel"
+                  className="w-20"
+                />
+                {type === 'amount' && (
+                  <Input
+                    value={unit}
+                    onChange={e => setUnit(e.target.value)}
+                    placeholder="eenheid"
+                    aria-label="Eenheid"
+                    maxLength={8}
+                    className="w-24"
+                  />
+                )}
+              </div>
+              {type === 'amount' && (
+                <p className="text-xs text-muted-foreground">
+                  Zonder doel houd je de waarde alleen bij, zonder gehaald/niet-gehaald.
+                </p>
+              )}
             </div>
           )}
         </div>
