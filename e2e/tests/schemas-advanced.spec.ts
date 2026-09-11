@@ -23,6 +23,30 @@ test.describe('Schemas — advanced', () => {
     await expect(page.getByRole('heading', { name: B })).toBeVisible();
   });
 
+  test('creates a brand-new exercise while building a schema and adds it', async ({
+    schemaEditor,
+    exercises,
+    page,
+  }) => {
+    const NEW = 'E2E Cable Pullover';
+
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('E2E Inline Create');
+
+    // The exercise does not exist yet — create it in full from the picker sheet.
+    await schemaEditor.createAndAddExercise(NEW, 'Geïsoleerde lat-stretch');
+
+    // It lands in the schema's exercise list right away.
+    await expect(schemaEditor.exerciseRow(NEW)).toBeVisible();
+
+    await schemaEditor.save();
+    await expect(page.getByText(NEW, { exact: true })).toBeVisible();
+
+    // It was really persisted as a reusable exercise, not just added to the schema.
+    await exercises.goto();
+    await expect(page.getByText(NEW, { exact: true })).toBeVisible();
+  });
+
   test('shows the muscle-coverage breakdown on the detail page', async ({ schemaEditor, page }) => {
     await schemaEditor.gotoNew();
     await schemaEditor.setName('E2E Coverage');

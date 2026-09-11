@@ -189,6 +189,10 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // This form can be rendered inside another form (e.g. the schema editor's
+    // picker sheet). Stop the submit here so it never bubbles up the React tree
+    // and triggers an ancestor form's onSubmit.
+    e.stopPropagation();
     if (!name.trim()) return;
 
     const data = {

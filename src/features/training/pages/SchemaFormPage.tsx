@@ -11,6 +11,7 @@ import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { groupSupersets, normalizeSupersets, supersetBlocks } from '../lib/superset';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '../../../components/PageHeader';
+import { ExerciseForm } from '../components/ExerciseForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -187,6 +188,8 @@ export function SchemaFormPage() {
   );
   const [showPicker, setShowPicker] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
+  // Prefilled name when creating a brand-new exercise inline (null = picker mode)
+  const [creatingExercise, setCreatingExercise] = useState<string | null>(null);
   // Which day ID is currently active for exercise picker (null = single-day mode)
   const [pickerDayId, setPickerDayId] = useState<string | null>(null);
   // Editing day name
@@ -411,6 +414,7 @@ export function SchemaFormPage() {
     setShowPicker(false);
     setExerciseSearch('');
     setPickerDayId(null);
+    setCreatingExercise(null);
   }
 
   function removeExercise(index: number) {
@@ -994,36 +998,83 @@ export function SchemaFormPage() {
         </div>
 
         {/* Exercise picker via Sheet (mobile bottom sheet) */}
-        <Sheet open={showPicker} onOpenChange={(open) => { setShowPicker(open); if (!open) { setExerciseSearch(''); setPickerDayId(null); } }}>
-          <SheetContent side="bottom" className="max-h-[70vh]">
-            <SheetHeader>
-              <SheetTitle>Oefening toevoegen</SheetTitle>
-              <SheetDescription>Selecteer een oefening om aan {isMultiDay && pickerDayId ? days.find(d => d.id === pickerDayId)?.name ?? 'de dag' : 'het schema'} toe te voegen</SheetDescription>
-            </SheetHeader>
-            <div className="mt-4 space-y-3">
-              <Input
-                type="text"
-                value={exerciseSearch}
-                onChange={e => setExerciseSearch(e.target.value)}
-                placeholder="Zoek oefening..."
-                autoFocus
-              />
-              <div className="h-48 overflow-y-auto space-y-1">
-                {filteredExercises.map(ex => (
-                  <button
-                    key={ex.id}
+        <Sheet open={showPicker} onOpenChange={(open) => { setShowPicker(open); if (!open) { setExerciseSearch(''); setPickerDayId(null); setCreatingExercise(null); } }}>
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+            {creatingExercise !== null ? (
+              <>
+                <SheetHeader>
+                  <SheetTitle>Nieuwe oefening</SheetTitle>
+                  <SheetDescription>
+                    De oefening wordt aangemaakt en meteen aan {isMultiDay && pickerDayId ? days.find(d => d.id === pickerDayId)?.name ?? 'de dag' : 'het schema'} toegevoegd.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-4">
+                  <Button
                     type="button"
-                    onClick={() => addExercise(ex.id)}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="mb-3 -ml-2 text-xs text-muted-foreground"
+                    onClick={() => setCreatingExercise(null)}
                   >
-                    {ex.name}
-                  </button>
-                ))}
-                {filteredExercises.length === 0 && (
-                  <p className="text-muted-foreground text-xs text-center py-2">Geen oefeningen gevonden.</p>
-                )}
-              </div>
-            </div>
+                    <ChevronDown className="h-4 w-4 rotate-90" />
+                    Terug naar zoeken
+                  </Button>
+                  <ExerciseForm
+                    initialName={creatingExercise}
+                    submitLabel="Aanmaken & toevoegen"
+                    onSaved={(exerciseId) => addExercise(exerciseId)}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <SheetHeader>
+                  <SheetTitle>Oefening toevoegen</SheetTitle>
+                  <SheetDescription>Selecteer een oefening om aan {isMultiDay && pickerDayId ? days.find(d => d.id === pickerDayId)?.name ?? 'de dag' : 'het schema'} toe te voegen</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-3">
+                  <Input
+                    type="text"
+                    value={exerciseSearch}
+                    onChange={e => setExerciseSearch(e.target.value)}
+                    placeholder="Zoek oefening..."
+                    autoFocus
+                  />
+                  <div className="h-48 overflow-y-auto space-y-1">
+                    {filteredExercises.map(ex => (
+                      <button
+                        key={ex.id}
+                        type="button"
+                        onClick={() => addExercise(ex.id)}
+                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                      >
+                        {ex.name}
+                      </button>
+                    ))}
+                    {/* Create a brand-new exercise when the search term matches no
+                        existing exercise by name — opens the full form prefilled. */}
+                    {exerciseSearch.trim() &&
+                      !allExercises.some(
+                        e => e.name.toLowerCase() === exerciseSearch.trim().toLowerCase(),
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={() => setCreatingExercise(exerciseSearch.trim())}
+                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-accent transition-colors"
+                        >
+                          <Plus className="h-4 w-4 shrink-0" />
+                          <span>
+                            Nieuwe oefening "<span className="font-medium">{exerciseSearch.trim()}</span>" aanmaken
+                          </span>
+                        </button>
+                      )}
+                    {filteredExercises.length === 0 && !exerciseSearch.trim() && (
+                      <p className="text-muted-foreground text-xs text-center py-2">Nog geen oefeningen.</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </SheetContent>
         </Sheet>
 
