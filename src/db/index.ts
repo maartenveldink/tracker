@@ -749,6 +749,7 @@ export const UNILATERAL_DEFAULT_EXERCISES = new Set<string>([
   'Single Arm Cable Row',
   'Single-Arm Dumbbell Shoulder Press',
   'Walking Lunge',
+  'Concentration Curl',
 ]);
 
 /**
@@ -800,6 +801,7 @@ export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
   'Tricep Pushdown': 'cable',
   'Single Arm Cable Row': 'cable',
   'Lat Pulldown (Behind Neck)': 'cable',
+  'Cable Crunch': 'cable',
   // Dumbbell (halter)
   'Incline Dumbbell Press': 'dumbbell',
   'Lateral Raise': 'dumbbell',
@@ -813,6 +815,7 @@ export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
   'Overhead Tricep Extension': 'dumbbell',
   'Close-Grip Dumbbell Press': 'dumbbell',
   'Walking Lunge': 'dumbbell',
+  'Concentration Curl': 'dumbbell',
   // Barbell / EZ-bar / plate-loaded (halterschijven)
   'Barbell Back Squat': 'plates',
   'Barbell Bench Press': 'plates',
@@ -820,6 +823,7 @@ export const DEFAULT_EXERCISE_EQUIPMENT: Record<string, Equipment> = {
   'Overhead Press': 'plates',
   'Barbell Row': 'plates',
   'Barbell Curl': 'plates',
+  'Preacher Curl': 'plates',
   'Skull Crusher': 'plates',
   'Romanian Deadlift': 'plates',
   'Leg Press': 'plates',

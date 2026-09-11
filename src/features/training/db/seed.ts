@@ -324,6 +324,42 @@ const DEFAULT_EXERCISES: Omit<Exercise, 'id' | 'createdAt' | 'clientUpdatedAt' |
     secondaryMuscles: ['glutes', 'hamstrings'],
     isDefault: true,
   },
+  // --- Extra core- en biceps-oefeningen ---
+  {
+    name: 'Plank',
+    description: 'Isometrische core-oefening; houd de plankpositie vast.',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Cable Crunch',
+    description: 'Core-crunch knielend aan het kabelstation.',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Russian Twist',
+    description: 'Zittende romprotatie voor de schuine buikspieren.',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Preacher Curl',
+    description: 'Bicepscurl met de bovenarm op de preacher-bank.',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
+  {
+    name: 'Concentration Curl',
+    description: 'Eenarmige bicepscurl met de elleboog op het bovenbeen.',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    isDefault: true,
+  },
 ];
 
 export async function seedDatabase(): Promise<void> {
