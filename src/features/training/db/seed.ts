@@ -362,12 +362,27 @@ const DEFAULT_EXERCISES: Omit<Exercise, 'id' | 'createdAt' | 'clientUpdatedAt' |
   },
 ];
 
+/** Normalise a name for duplicate detection: lowercase, letters+digits only. */
+function normalizeExerciseName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 export async function seedDatabase(): Promise<void> {
-  // Additive & idempotent: add only the default exercises that aren't present
-  // yet (matched on their deterministic id). This seeds a fresh install and also
-  // lets existing users pick up newly-shipped defaults, without touching their
-  // edits or reviving defaults they deleted (a tombstone keeps the id present).
-  const existingIds = new Set((await db.exercises.toArray()).map((e) => e.id));
+  // Additive & idempotent. Add only the default exercises that aren't present
+  // yet — matched both on their deterministic id AND on a normalised name, so a
+  // default is skipped when the user already has an exercise with effectively
+  // the same name (case/spelling/spacing-insensitive), e.g. a custom
+  // "Cable crunch" suppresses the standard "Cable Crunch". This seeds a fresh
+  // install and lets existing users pick up newly-shipped defaults, without
+  // creating name-duplicates, reviving defaults they deleted (a tombstone keeps
+  // the id present), or touching their edits.
+  const existing = await db.exercises.toArray();
+  const existingIds = new Set(existing.map((e) => e.id));
+  // Only non-deleted exercises block a default by name; a deleted custom lets
+  // the standard one seed normally.
+  const existingNames = new Set(
+    existing.filter((e) => !e.deleted).map((e) => normalizeExerciseName(e.name)),
+  );
 
   const now = new Date();
   const exercises = DEFAULT_EXERCISES.map((e): Exercise => ({
@@ -386,7 +401,7 @@ export async function seedDatabase(): Promise<void> {
     clientUpdatedAt: now.getTime(),
     deleted: false,
     dirty: 0,
-  })).filter((e) => !existingIds.has(e.id));
+  })).filter((e) => !existingIds.has(e.id) && !existingNames.has(normalizeExerciseName(e.name)));
 
   if (exercises.length > 0) await db.exercises.bulkPut(exercises);
 }
