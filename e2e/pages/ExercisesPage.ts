@@ -30,4 +30,15 @@ export class ExercisesPage {
     await this.page.getByRole('button', { name: `Verwijder ${name}` }).click();
     await this.page.getByRole('button', { name: 'Verwijderen' }).click();
   }
+
+  /** Merge `source` into `target`: source is removed, its data moves to target. */
+  async mergeInto(source: string, target: string): Promise<void> {
+    await this.page.getByRole('button', { name: `Samenvoegen ${source}` }).click();
+    const sheet = this.page.getByRole('dialog');
+    await sheet.getByPlaceholder('Zoek oefening...').fill(target);
+    await sheet.getByRole('button', { name: target, exact: true }).click();
+    await sheet.getByRole('button', { name: 'Samenvoegen', exact: true }).click();
+    // The merge is async (a Dexie transaction); wait for the sheet to unmount.
+    await sheet.waitFor({ state: 'detached' });
+  }
 }

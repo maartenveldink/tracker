@@ -41,4 +41,40 @@ test.describe('Exercise library', () => {
 
     await expect(exercises.card('E2E Deletable')).toHaveCount(0);
   });
+
+  test('merges an exercise into another, moving its logged history', async ({
+    schemaEditor,
+    startWorkout,
+    workout,
+    exercises,
+    progress,
+    page,
+  }) => {
+    const SOURCE = 'Barbell Bench Press';
+    const TARGET = 'Incline Dumbbell Press';
+
+    // Log a workout for SOURCE so there is history to move.
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('E2E Merge schema');
+    await schemaEditor.addExercise(SOURCE);
+    await schemaEditor.save();
+    await startWorkout.goto();
+    await startWorkout.start('E2E Merge schema');
+    await workout.completeActiveSet(60, 10);
+    await workout.finish();
+
+    // Merge SOURCE into TARGET.
+    await exercises.goto();
+    await exercises.mergeInto(SOURCE, TARGET);
+
+    // SOURCE is gone from the library…
+    await exercises.search(SOURCE);
+    await expect(exercises.card(SOURCE)).toHaveCount(0);
+
+    // …and the logged session now lives under TARGET in the records board.
+    await progress.goto();
+    await progress.openTab('Overzicht');
+    await expect(page.getByText(TARGET).first()).toBeVisible();
+    await expect(page.getByText(SOURCE)).toHaveCount(0);
+  });
 });
