@@ -12,6 +12,7 @@ import { ExercisesPage } from './features/training/pages/ExercisesPage';
 import { ExerciseFormPage } from './features/training/pages/ExerciseFormPage';
 import { SchemasPage } from './features/training/pages/SchemasPage';
 import { SchemaFormPage } from './features/training/pages/SchemaFormPage';
+import { SchemaImportPage } from './features/training/pages/SchemaImportPage';
 import { SchemaDetailPage } from './features/training/pages/SchemaDetailPage';
 import { WorkoutPage } from './features/training/pages/WorkoutPage';
 import { WorkoutEditPage } from './features/training/pages/WorkoutEditPage';
@@ -60,6 +61,7 @@ export function App() {
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
           <Route path="/schemas" element={<SchemasPage />} />
           <Route path="/schemas/new" element={<SchemaFormPage />} />
+          <Route path="/schemas/import" element={<SchemaImportPage />} />
           <Route path="/schemas/:id" element={<SchemaDetailPage />} />
           <Route path="/schemas/:id/edit" element={<SchemaFormPage />} />
           <Route path="/start" element={<StartWorkoutPage />} />

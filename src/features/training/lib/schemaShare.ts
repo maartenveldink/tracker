@@ -4,16 +4,17 @@ import { createSchema } from '../hooks/useSchemas';
 // A share payload references exercises by NAME, because exercise ids are
 // per-device/per-account and won't match across devices.
 
-interface SharedExercise {
+export interface SharedExercise {
   n: string; // exercise name
   s: number; // sets
   r: number; // reps per set (lower bound / target)
   rm?: number; // optional upper bound for a rep range
   w?: number; // optional start weight (kg)
+  rs?: number; // optional rest between sets (seconds)
   g?: number; // optional superset group index within this list
 }
 
-interface SharedDay {
+export interface SharedDay {
   id: string;
   name: string;
   order: number;
@@ -66,6 +67,7 @@ export function buildSharedSchema(
         r: e.repsPerSet,
         ...(e.repsMax != null ? { rm: e.repsMax } : {}),
         ...(e.startWeight != null ? { w: e.startWeight } : {}),
+        ...(e.restSeconds != null ? { rs: e.restSeconds } : {}),
         ...(g != null ? { g } : {}),
       };
     });
@@ -173,6 +175,7 @@ export async function importSharedSchema(shared: SharedSchema): Promise<string> 
         repsPerSet: e.r,
         ...(e.rm != null ? { repsMax: e.rm } : {}),
         ...(e.w != null ? { startWeight: e.w } : {}),
+        ...(e.rs != null ? { restSeconds: e.rs } : {}),
         ...(supersetGroup ? { supersetGroup } : {}),
         order: i,
       });
