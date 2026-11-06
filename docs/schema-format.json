@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tracker.local/schema-format.json",
   "title": "Tracker training schema",
-  "description": "A strength-training schema. Use EITHER `exercises` (one training day) OR `days` (several days, e.g. Push/Pull/Legs), never both. Mirrors the SchemaJson type in src/features/training/lib/schemaJson.ts; keep both in sync.",
+  "description": "A strength-training schema. Use EITHER `exercises` (one training day) OR `days` (several days, e.g. Push/Pull/Legs), never both (enforced by the app validator, as are repsMax >= reps and consecutive superset groups). Mirrors the SchemaJson type in src/features/training/lib/schemaJson.ts; keep both in sync.",
   "type": "object",
   "required": ["name"],
   "additionalProperties": false,
@@ -11,6 +11,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 100,
+      "pattern": "\\S",
       "description": "Name of the schema."
     },
     "exercises": {
@@ -29,7 +30,7 @@
     },
     "rotation": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": { "type": "string", "minLength": 1, "maxLength": 100 },
       "description": "Optional training rhythm for multi-day schemas, as day names from `days` (a day may repeat), e.g. [\"Push\", \"Pull\", \"Push\", \"Legs\"]. Without it days rotate in order."
     }
   },
@@ -43,6 +44,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 100,
+          "pattern": "\\S",
           "description": "Exercise name. Matched case-insensitively against the user's exercise library; prefer existing names. Unknown names are created as new exercises."
         },
         "sets": {
@@ -71,9 +73,9 @@
         },
         "restSeconds": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 3600,
-          "description": "Rest between sets in seconds. Omit to use the app defaults."
+          "minimum": 15,
+          "maximum": 600,
+          "description": "Rest between sets in seconds (15-600). Omit to use the app defaults."
         },
         "supersetGroup": {
           "type": ["string", "integer"],
@@ -93,6 +95,8 @@
         "name": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 100,
+          "pattern": "\\S",
           "description": "Day name, unique within the schema (e.g. \"Push\")."
         },
         "exercises": {

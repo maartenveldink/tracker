@@ -1,4 +1,5 @@
 import { newId } from '../../../db/index';
+import { REST_MAX, REST_MIN } from './restTime';
 import type { SharedDay, SharedExercise, SharedSchema } from './schemaShare';
 
 /**
@@ -80,10 +81,13 @@ function describe(v: unknown): string {
 
 // --- Parsing raw text ---
 
-/** Strips a surrounding markdown code fence (```json … ```) that AIs love to add. */
+/**
+ * Extracts the JSON from a markdown code fence (```json … ```) that AIs love
+ * to add, also when the fence is surrounded by explanatory text.
+ */
 function stripFence(text: string): string {
   const t = text.trim();
-  const m = /^```[a-zA-Z]*\s*\n?([\s\S]*?)\n?\s*```$/.exec(t);
+  const m = /```[a-zA-Z]*[ \t]*\r?\n?([\s\S]*?)```/.exec(t);
   return (m ? m[1]! : t).trim();
 }
 
@@ -136,13 +140,22 @@ function compactToReadable(raw: Obj): Obj {
   delete out.v;
   if ('exercises' in out) out.exercises = compactList(out.exercises);
   if (Array.isArray(raw.days)) {
+    // The app allows duplicate day names (rotation uses ids); the readable
+    // format needs unique names, so suffix repeats: "Push", "Push (2)".
     const nameById = new Map<string, string>();
-    for (const d of raw.days) {
-      if (isObj(d) && typeof d.id === 'string' && typeof d.name === 'string') nameById.set(d.id, d.name);
-    }
-    out.days = raw.days.map(d => {
+    const used = new Set<string>();
+    const uniqueNames = raw.days.map(d => {
+      if (!isObj(d) || typeof d.name !== 'string') return undefined;
+      let name = d.name;
+      for (let n = 2; used.has(name.trim().toLowerCase()); n++) name = `${d.name} (${n})`;
+      used.add(name.trim().toLowerCase());
+      if (typeof d.id === 'string') nameById.set(d.id, name);
+      return name;
+    });
+    out.days = raw.days.map((d, i) => {
       if (!isObj(d)) return d;
       const day = renameKeys(d, {}, ['id', 'order']);
+      if (uniqueNames[i] !== undefined) day.name = uniqueNames[i];
       if ('exercises' in day) day.exercises = compactList(day.exercises);
       return day;
     });
@@ -232,7 +245,7 @@ function validateExercise(c: Collector, path: string, raw: unknown): SchemaJsonE
     if (w != null) out.startWeight = w;
   }
   if (raw.restSeconds != null) {
-    const r = readNumber(c, `${path}.restSeconds`, raw.restSeconds, { integer: true, min: 0, max: 3600 });
+    const r = readNumber(c, `${path}.restSeconds`, raw.restSeconds, { integer: true, min: REST_MIN, max: REST_MAX });
     if (r != null) out.restSeconds = r;
   }
   if (raw.supersetGroup != null) {
@@ -316,8 +329,10 @@ export function validateSchemaJson(input: unknown): SchemaJsonResult {
     if (name.length > 100) c.error('name', 'naam is te lang (maximaal 100 tekens)');
   }
 
-  const hasDays = raw.days != null;
-  const hasFlat = raw.exercises != null;
+  // An empty list counts as absent when the other form is present (models emit `days: []`).
+  const isEmptyList = (v: unknown) => Array.isArray(v) && v.length === 0;
+  const hasDays = raw.days != null && !(isEmptyList(raw.days) && raw.exercises != null);
+  const hasFlat = raw.exercises != null && !(isEmptyList(raw.exercises) && raw.days != null);
   const schema: SchemaJson = { name };
 
   if (hasDays && hasFlat) {
@@ -354,6 +369,7 @@ export function validateSchemaJson(input: unknown): SchemaJsonResult {
           c.error(`${path}.name`, 'ontbreekt of is leeg; geef de dag een naam (bijv. "Push")');
         } else {
           dayName = d.name.trim();
+          if (dayName.length > 100) c.error(`${path}.name`, 'naam is te lang (maximaal 100 tekens)');
           const key = dayName.toLowerCase();
           if (seen.has(key)) c.error(`${path}.name`, `dagnaam "${dayName}" komt dubbel voor; dagnamen moeten uniek zijn`);
           seen.add(key);

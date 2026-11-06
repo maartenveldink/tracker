@@ -29,18 +29,18 @@ export function SchemasPage() {
         title="Schema's"
         actions={
           <>
-          <Button asChild size="sm" variant="outline">
-            <Link to="/schemas/import" aria-label="Importeer schema">
-              <Upload className="h-4 w-4" />
-              Importeer
-            </Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/schemas/new">
-              <Plus className="h-4 w-4" />
-              Nieuw
-            </Link>
-          </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/schemas/import" aria-label="Importeer schema">
+                <Upload className="h-4 w-4" />
+                Importeer
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/schemas/new">
+                <Plus className="h-4 w-4" />
+                Nieuw
+              </Link>
+            </Button>
           </>
         }
       />

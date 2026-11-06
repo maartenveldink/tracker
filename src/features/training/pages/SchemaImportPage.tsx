@@ -6,7 +6,8 @@ import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useExercises } from '../hooks/useExercises';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../../db/index';
 import { importSharedSchema, summarizeSharedSchema } from '../lib/schemaShare';
 import {
   parseSchemaJsonText,
@@ -18,7 +19,8 @@ import {
 /** Paste or upload a schema as JSON, see validation + a summary, then import. */
 export function SchemaImportPage() {
   const navigate = useNavigate();
-  const exercises = useExercises();
+  // undefined while loading, so we don't flag everything as "nieuw" for a moment.
+  const exercises = useLiveQuery(() => db.exercises.filter(e => !e.deleted).toArray());
   const fileInput = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -28,7 +30,7 @@ export function SchemaImportPage() {
   const result = useMemo(() => (text.trim() === '' ? null : parseSchemaJsonText(text)), [text]);
 
   const unknown = useMemo(() => {
-    if (!result?.ok) return new Set<string>();
+    if (!result?.ok || !exercises) return new Set<string>();
     return new Set(
       findUnknownExercises(result.schema, exercises.map(e => e.name)).map(n => n.trim().toLowerCase()),
     );
@@ -170,7 +172,7 @@ export function SchemaImportPage() {
               </CardContent>
             </Card>
 
-            <Button className="w-full" onClick={() => setConfirming(true)}>
+            <Button className="w-full" disabled={!exercises} onClick={() => setConfirming(true)}>
               Importeren
             </Button>
           </>
@@ -190,7 +192,7 @@ export function SchemaImportPage() {
             : ''
         }
         confirmLabel={busy ? 'Bezig…' : 'Importeren'}
-        onConfirm={() => void confirmImport()}
+        onConfirm={() => { if (!busy) void confirmImport(); }}
         onCancel={() => setConfirming(false)}
       />
     </div>

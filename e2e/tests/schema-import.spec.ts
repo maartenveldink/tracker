@@ -38,6 +38,10 @@ test.describe('Schema JSON import', () => {
 
     await schemaImport.importAndConfirm();
     await expect(page.getByRole('heading', { name: 'E2E Coach Split' })).toBeVisible();
+    // Rep range, start weight and rotation were persisted.
+    await expect(page.getByText('3x8-12').first()).toBeVisible();
+    await expect(page.getByText('60 kg').first()).toBeVisible();
+    await expect(page.getByText('Ritme: Push → Pull → Push')).toBeVisible();
 
     // Same confirmation + result as a share-link import: shows up in the list,
     // case-insensitive name matching reused the library exercise, superset kept.
@@ -63,7 +67,7 @@ test.describe('Schema JSON import', () => {
         { sets: 3, reps: '8' },
       ],
     });
-    await expect(schemaImport.errors).toContainText('name: ');
+    await expect(schemaImport.errors).toContainText('name: ontbreekt of is leeg');
     await expect(schemaImport.errors).toContainText('exercises[0].sets: moet tussen 1 en 20');
     await expect(schemaImport.errors).toContainText('exercises[1].repsMax: moet minimaal gelijk zijn aan reps (10)');
     await expect(schemaImport.errors).toContainText('exercises[2].exercise: ontbreekt');
@@ -71,7 +75,7 @@ test.describe('Schema JSON import', () => {
     await expect(schemaImport.summary).toHaveCount(0);
     await expect(schemaImport.importButton).toHaveCount(0);
 
-    // Neither days nor exercises, and a rotation naming a missing day.
+    // A rotation naming a missing day.
     await schemaImport.paste({ name: 'X', days: [{ name: 'A', exercises: [{ exercise: 'Barbell Row', sets: 3, reps: 8 }] }], rotation: ['B'] });
     await expect(schemaImport.errors).toContainText('rotation[0]: "B" is geen dag in "days"');
   });
@@ -116,5 +120,51 @@ test.describe('Schema JSON import', () => {
 
     await schemaImport.importAndConfirm();
     await expect(page.getByRole('heading', { name: 'E2E Compact' })).toBeVisible();
+  });
+
+  test('rejects structural mistakes: duplicate days, split supersets, rest out of range, wrong shape', async ({ schemaImport }) => {
+    await schemaImport.goto();
+    const row = (exercise: string, extra: object = {}) => ({ exercise, sets: 3, reps: 8, ...extra });
+
+    await schemaImport.paste({
+      name: 'X',
+      days: [
+        { name: 'Push', exercises: [row('Barbell Row', { supersetGroup: 'A' }), row('Overhead Press'), row('Cable Fly', { supersetGroup: 'A' })] },
+        { name: 'push', exercises: [row('Barbell Row', { restSeconds: 0 })] },
+      ],
+    });
+    await expect(schemaImport.errors).toContainText('days[0].exercises[2].supersetGroup: groep "A" staat niet aaneengesloten');
+    await expect(schemaImport.errors).toContainText('days[1].name: dagnaam "push" komt dubbel voor');
+    await expect(schemaImport.errors).toContainText('days[1].exercises[0].restSeconds: moet tussen 15 en 600');
+
+    await schemaImport.paste('[1, 2]');
+    await expect(schemaImport.errors).toContainText('De JSON moet een object zijn');
+
+    // `days: []` next to a real exercise list is treated as absent; a lone superset label only warns.
+    await schemaImport.paste({ name: 'Y', days: [], exercises: [row('Barbell Row', { supersetGroup: 'Z' })] });
+    await expect(schemaImport.errors).toHaveCount(0);
+    await expect(schemaImport.warnings).toContainText('heeft maar één oefening');
+  });
+
+  test('accepts explanatory text around a fenced answer and a compact multi-day schema', async ({ schemaImport }) => {
+    await schemaImport.goto();
+    const answer = JSON.stringify({ name: 'E2E Chatty', exercises: [{ exercise: 'Barbell Row', sets: 3, reps: 8 }] });
+    await schemaImport.paste(`Hier is je schema:\n\n\`\`\`json\n${answer}\n\`\`\`\n\nSucces!`);
+    await expect(schemaImport.errors).toHaveCount(0);
+    await expect(schemaImport.summary).toContainText('E2E Chatty');
+
+    // Share-format multi-day with duplicate day names and an id-based rotation.
+    await schemaImport.paste({
+      v: 1,
+      name: 'E2E Compact Days',
+      days: [
+        { id: 'd1', name: 'Push', order: 0, exercises: [{ n: 'Barbell Row', s: 3, r: 8 }] },
+        { id: 'd2', name: 'Push', order: 1, exercises: [{ n: 'Cable Fly', s: 3, r: 12 }] },
+      ],
+      rotation: ['d1', 'd2', 'd1'],
+    });
+    await expect(schemaImport.errors).toHaveCount(0);
+    await expect(schemaImport.summary).toContainText('2 dagen · 2 oefeningen');
+    await expect(schemaImport.summary).toContainText('Ritme: Push → Push (2) → Push');
   });
 });
