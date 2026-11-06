@@ -3,7 +3,7 @@ import { useSchemas, deleteSchema, copySchema } from '../hooks/useSchemas';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useState } from 'react';
-import { Plus, Copy, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Copy, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -28,12 +28,20 @@ export function SchemasPage() {
       <PageHeader
         title="Schema's"
         actions={
+          <>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/schemas/import" aria-label="Importeer schema">
+              <Upload className="h-4 w-4" />
+              Importeer
+            </Link>
+          </Button>
           <Button asChild size="sm">
             <Link to="/schemas/new">
               <Plus className="h-4 w-4" />
               Nieuw
             </Link>
           </Button>
+          </>
         }
       />
 

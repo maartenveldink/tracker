@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracker.local/schema-format.json",
+  "title": "Tracker training schema",
+  "description": "A strength-training schema. Use EITHER `exercises` (one training day) OR `days` (several days, e.g. Push/Pull/Legs), never both. Mirrors the SchemaJson type in src/features/training/lib/schemaJson.ts; keep both in sync.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Name of the schema."
+    },
+    "exercises": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": { "$ref": "#/$defs/exercise" },
+      "description": "Single-day schema: ordered list of exercises. Omit when using `days`."
+    },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 14,
+      "items": { "$ref": "#/$defs/day" },
+      "description": "Multi-day schema: one entry per training day. Day names must be unique. Omit when using `exercises`."
+    },
+    "rotation": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Optional training rhythm for multi-day schemas, as day names from `days` (a day may repeat), e.g. [\"Push\", \"Pull\", \"Push\", \"Legs\"]. Without it days rotate in order."
+    }
+  },
+  "$defs": {
+    "exercise": {
+      "type": "object",
+      "required": ["exercise", "sets", "reps"],
+      "additionalProperties": false,
+      "properties": {
+        "exercise": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Exercise name. Matched case-insensitively against the user's exercise library; prefer existing names. Unknown names are created as new exercises."
+        },
+        "sets": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of working sets."
+        },
+        "reps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Target reps per set; the lower bound when `repsMax` is set."
+        },
+        "repsMax": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Upper bound of a rep range (must be >= `reps`). E.g. reps 8 + repsMax 12 = 8-12 reps."
+        },
+        "startWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Suggested starting weight in kg."
+        },
+        "restSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "Rest between sets in seconds. Omit to use the app defaults."
+        },
+        "supersetGroup": {
+          "type": ["string", "integer"],
+          "description": "Label shared by two or more CONSECUTIVE exercises that are trained as a superset (alternating sets), e.g. \"A\". Exercises with the same label must be adjacent."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short rationale for this prescription or change. Informational only; not stored."
+        }
+      }
+    },
+    "day": {
+      "type": "object",
+      "required": ["name", "exercises"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Day name, unique within the schema (e.g. \"Push\")."
+        },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 40,
+          "items": { "$ref": "#/$defs/exercise" }
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short rationale for this day. Informational only; not stored."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Push/Pull",
+      "days": [
+        {
+          "name": "Push",
+          "exercises": [
+            { "exercise": "Barbell Bench Press", "sets": 3, "reps": 8, "repsMax": 12, "startWeight": 60, "restSeconds": 120 },
+            { "exercise": "Overhead Press", "sets": 3, "reps": 10, "supersetGroup": "A" },
+            { "exercise": "Lateral Raise", "sets": 3, "reps": 15, "supersetGroup": "A" }
+          ]
+        },
+        {
+          "name": "Pull",
+          "exercises": [
+            { "exercise": "Barbell Row", "sets": 4, "reps": 8, "reason": "Rug achterop; extra set toegevoegd" }
+          ]
+        }
+      ],
+      "rotation": ["Push", "Pull"]
+    }
+  ]
+}
