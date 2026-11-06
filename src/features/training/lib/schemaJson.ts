@@ -1,4 +1,4 @@
-import { newId } from '../../../db/index';
+import { newId, type SchemaExercise, type TrainingSchema } from '../../../db/index';
 import { REST_MAX, REST_MIN } from './restTime';
 import type { SharedDay, SharedExercise, SharedSchema } from './schemaShare';
 
@@ -487,4 +487,61 @@ export function formatPrescription(e: SchemaJsonExercise): string {
   if (e.startWeight != null) parts.push(`${e.startWeight} kg`);
   if (e.restSeconds != null) parts.push(`rust ${e.restSeconds} s`);
   return parts.join(' · ');
+}
+
+// --- Stored schema → readable form ---
+
+function exercisesToJson(list: SchemaExercise[], nameById: Map<string, string>): SchemaJsonExercise[] {
+  const sorted = [...list].sort((a, b) => a.order - b.order);
+  // Superset labels: only runs of ≥2 consecutive members are real supersets;
+  // give each its own short label ("A", "B", ...).
+  const labels = new Map<number, string>();
+  let next = 0;
+  for (let i = 0; i < sorted.length; ) {
+    const g = sorted[i]!.supersetGroup;
+    let j = i;
+    if (g) while (j + 1 < sorted.length && sorted[j + 1]!.supersetGroup === g) j++;
+    if (g && j > i) {
+      const label = String.fromCharCode(65 + (next++ % 26));
+      for (let k = i; k <= j; k++) labels.set(k, label);
+    }
+    i = j + 1;
+  }
+  return sorted.map((e, i) => ({
+    exercise: nameById.get(e.exerciseId) ?? 'Onbekend',
+    sets: e.sets,
+    reps: e.repsPerSet,
+    ...(e.repsMax != null && e.repsMax > e.repsPerSet ? { repsMax: e.repsMax } : {}),
+    ...(e.startWeight != null ? { startWeight: e.startWeight } : {}),
+    ...(e.restSeconds != null ? { restSeconds: e.restSeconds } : {}),
+    ...(labels.has(i) ? { supersetGroup: labels.get(i)! } : {}),
+  }));
+}
+
+/**
+ * Converts a stored schema into the readable format (the inverse of importing
+ * it), so it can be handed to an AI. Exercises are written by name; duplicate
+ * day names get a "(2)" suffix because the readable format needs unique ones.
+ */
+export function schemaToJson(schema: TrainingSchema, nameById: Map<string, string>): SchemaJson {
+  if (schema.days && schema.days.length > 0) {
+    const days = [...schema.days].sort((a, b) => a.order - b.order);
+    const used = new Set<string>();
+    const nameOfDay = new Map<string, string>();
+    for (const d of days) {
+      let name = d.name;
+      for (let n = 2; used.has(name.trim().toLowerCase()); n++) name = `${d.name} (${n})`;
+      used.add(name.trim().toLowerCase());
+      nameOfDay.set(d.id, name);
+    }
+    const rotation = (schema.rotation ?? [])
+      .map(id => nameOfDay.get(id))
+      .filter((n): n is string => n != null);
+    return {
+      name: schema.name,
+      days: days.map(d => ({ name: nameOfDay.get(d.id)!, exercises: exercisesToJson(d.exercises, nameById) })),
+      ...(rotation.length > 0 ? { rotation } : {}),
+    };
+  }
+  return { name: schema.name, exercises: exercisesToJson(schema.exercises, nameById) };
 }

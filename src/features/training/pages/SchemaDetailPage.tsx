@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { CoachCopySection } from '../components/CoachCopySection';
 import { buildSharedSchema, encodeSchemaShareUrl } from '../lib/schemaShare';
 import type { Exercise, SchemaExercise } from '../../../db/index';
 
@@ -510,6 +511,10 @@ export function SchemaDetailPage() {
       ) : (
         <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} exercises={totalExercises} exerciseMap={exerciseMap} />
       )}
+
+      {/* Copy a training summary for Claude (route A) */}
+      <Separator />
+      <CoachCopySection schema={schema} />
 
       {/* Share via QR / link */}
       <Dialog open={shareUrl !== null} onOpenChange={(open) => { if (!open) { setShareUrl(null); setQrDataUrl(null); } }}>
