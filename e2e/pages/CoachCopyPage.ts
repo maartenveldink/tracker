@@ -30,14 +30,27 @@ export class CoachCopyPage {
     return this.preview.getByLabel('Gekopieerde tekst').inputValue();
   }
 
-  /** Clicks the copy button and returns what ended up on the clipboard. */
+  /**
+   * Clicks the copy button and returns the text the app wrote to the clipboard.
+   * The page's `clipboard.writeText` is wrapped to capture it: the real system
+   * clipboard is shared between parallel browser contexts, so reading it back
+   * would race with other tests.
+   */
   async copy(): Promise<string> {
-    // Empty the clipboard first so a stale copy can never satisfy the poll.
-    await this.page.evaluate(() => navigator.clipboard.writeText(''));
+    type Captured = { __copied?: string };
+    await this.page.evaluate(() => {
+      const w = window as unknown as Captured;
+      w.__copied = undefined;
+      navigator.clipboard.writeText = async (text: string) => {
+        w.__copied = text;
+      };
+    });
     await expect(this.copyButton).toBeEnabled();
     await this.copyButton.click();
-    await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).not.toBe('');
-    return this.page.evaluate(() => navigator.clipboard.readText());
+    await expect
+      .poll(() => this.page.evaluate(() => (window as unknown as Captured).__copied))
+      .toBeTruthy();
+    return this.page.evaluate(() => (window as unknown as Captured).__copied ?? '');
   }
 }
 

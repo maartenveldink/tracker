@@ -2,9 +2,6 @@ import { test, expect } from '../fixtures/app';
 import { extractSummary } from '../pages/CoachCopyPage';
 import { seedTraining, type SeedWorkout } from '../fixtures/seedTraining';
 
-// Reading the clipboard back needs explicit permissions in Chromium.
-test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
-
 const bench = (reps: number[], weight: number, extra: Partial<SeedWorkout['exercises'][number]> = {}) => ({
   name: 'Barbell Bench Press',
   sets: reps.map(r => ({ reps: r, weight, plannedReps: 8, plannedRepsMax: 12 })),
