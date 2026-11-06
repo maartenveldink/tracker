@@ -1,5 +1,6 @@
 import { db, type AppSettings } from '../../../db/index';
 import { seedDatabase } from './seed';
+import { clearCoachConfig } from '../lib/coachConfig';
 
 const SETTINGS_DEFAULTS: AppSettings = {
   id: 1,
@@ -42,5 +43,7 @@ export async function clearAllData(): Promise<void> {
       await db.settings.put(SETTINGS_DEFAULTS);
     },
   );
+  // The coach API key lives outside Dexie (never synced/exported); wipe it too.
+  clearCoachConfig();
   await seedDatabase();
 }

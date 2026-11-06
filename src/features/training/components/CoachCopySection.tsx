@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Check, ClipboardCopy } from 'lucide-react';
+import { Check, ClipboardCopy, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSettings } from '../../../hooks/useSettings';
-import { buildCoachSummary, type CoachPeriodWeeks } from '../lib/coachSummary';
+import type { CoachPeriodWeeks } from '../lib/coachSummary';
 import { buildCoachPrompt } from '../lib/coachPrompt';
-import { db, type TrainingSchema } from '../../../db/index';
+import { useCoachSummary } from '../hooks/useCoachSummary';
+import type { TrainingSchema } from '../../../db/index';
 
 const PERIODS: CoachPeriodWeeks[] = [4, 8];
 
@@ -16,33 +15,15 @@ const PERIODS: CoachPeriodWeeks[] = [4, 8];
  * (JSON only) can be pasted back at "Importeer schema".
  */
 export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
-  const settings = useSettings();
-  // `undefined` = still loading (don't offer a copy of an empty summary).
-  // Exercises include deleted ones so their history still counts.
-  const exercises = useLiveQuery(() => db.exercises.toArray());
-  const workouts = useLiveQuery(() =>
-    db.workouts.where('status').equals('completed').filter(w => !w.deleted).toArray(),
-  );
-  const bodyWeights = useLiveQuery(() => db.bodyWeights.filter(b => !b.deleted).toArray());
-  const loaded = exercises !== undefined && workouts !== undefined && bodyWeights !== undefined;
-
   const [weeks, setWeeks] = useState<CoachPeriodWeeks>(4);
   const [goal, setGoal] = useState('');
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const prompt = useMemo(() => {
-    if (!exercises || !workouts || !bodyWeights) return '';
-    const summary = buildCoachSummary({
-      workouts,
-      exercises,
-      schema,
-      bodyWeights,
-      weeks,
-      oneRMFormula: settings.oneRMFormula,
-    });
-    return buildCoachPrompt({ summary, goal });
-  }, [workouts, exercises, schema, bodyWeights, weeks, settings.oneRMFormula, goal]);
+  // `undefined` = still loading (don't offer a copy of an empty summary).
+  const { summary } = useCoachSummary(schema, weeks);
+  const loaded = summary !== undefined;
+  const prompt = useMemo(() => (summary ? buildCoachPrompt({ summary, goal }) : ''), [summary, goal]);
 
   // "Gekopieerd" only describes the prompt that was copied; reset on any change.
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -70,6 +51,15 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
       <h2 id="coach-copy-heading" className="text-sm font-medium text-muted-foreground">
         Analyse door Claude
       </h2>
+      <Button asChild variant="default" className="w-full my-2">
+        <Link to={`/schemas/${schema.id}/coach`}>
+          <Sparkles className="h-4 w-4" />
+          Laat Claude analyseren
+        </Link>
+      </Button>
+      <p className="text-xs text-muted-foreground/80 mb-2">
+        Of zonder API-key, via claude.ai:
+      </p>
       <p className="text-xs text-muted-foreground/80 mb-3">
         Kopieer een samenvatting van je training (geen ruwe sets of datums; je notities gaan wel letterlijk mee) en plak die in claude.ai.
         Plak het voorgestelde schema daarna terug via{' '}

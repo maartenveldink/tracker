@@ -27,6 +27,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DashboardPage } from './pages/DashboardPage';
 
 // Progress is lazy-loaded so recharts stays out of the initial bundle.
+// The Claude coach (API client + tool schema) is only needed on demand.
+const CoachPage = lazy(() => import('./features/training/pages/CoachPage').then(m => ({ default: m.CoachPage })));
 const ProgressPage = lazy(() => import('./features/training/pages/ProgressPage').then(m => ({ default: m.ProgressPage })));
 
 export function App() {
@@ -64,6 +66,7 @@ export function App() {
           <Route path="/schemas/import" element={<SchemaImportPage />} />
           <Route path="/schemas/:id" element={<SchemaDetailPage />} />
           <Route path="/schemas/:id/edit" element={<SchemaFormPage />} />
+          <Route path="/schemas/:id/coach" element={<CoachPage />} />
           <Route path="/start" element={<StartWorkoutPage />} />
           <Route path="/start/history" element={<WorkoutHistoryPage />} />
           <Route path="/habits" element={<HabitsPage />} />
