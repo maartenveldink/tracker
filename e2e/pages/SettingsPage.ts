@@ -33,4 +33,25 @@ export class SettingsPage {
     await this.page.getByRole('button', { name: 'Ja, alles wissen' }).click();
     await this.page.getByText('Alle data gewist', { exact: false }).waitFor();
   }
+
+  /** Exports the data via the Instellingen button and saves the download to `file`. */
+  async exportTo(file: string): Promise<void> {
+    const [download] = await Promise.all([
+      this.page.waitForEvent('download'),
+      this.page.getByRole('button', { name: 'Exporteer data' }).click(),
+    ]);
+    await download.saveAs(file);
+  }
+
+  /**
+   * Imports a previously exported file in the given mode and waits for the
+   * "Import voltooid" dialog (so the transaction is committed before the
+   * caller navigates away), then closes it.
+   */
+  async importFrom(file: string, mode: 'replace' | 'merge'): Promise<void> {
+    await this.page.locator('input[type="file"]').setInputFiles(file);
+    await this.page.getByRole('button', { name: mode === 'replace' ? /Vervangen/ : /Samenvoegen/ }).click();
+    await this.page.getByText('Import voltooid').waitFor();
+    await this.page.getByRole('button', { name: 'Sluiten' }).click();
+  }
 }
