@@ -26,4 +26,13 @@ export class DashboardPage {
   get resumeButton(): Locator {
     return this.page.getByRole('button', { name: 'Hervat' });
   }
+
+  /** The "overweeg een deload-week" notice. */
+  get deloadCard(): Locator {
+    return this.page.getByTestId('deload-card');
+  }
+
+  get hideDeloadButton(): Locator {
+    return this.deloadCard.getByRole('button', { name: 'Verberg een week' });
+  }
 }

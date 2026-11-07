@@ -9,6 +9,7 @@ import { calculateStreak, statsForWeek, recentPRs } from '../features/training/l
 import { useSettings } from '../hooks/useSettings';
 import { todayISO } from '../lib/dateUtils';
 import { PageHeader } from '../components/PageHeader';
+import { DeloadCard } from '../features/training/components/DeloadCard';
 import { HabitsTodayCard } from '../features/habits/components/HabitsTodayCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,6 +91,8 @@ export function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <DeloadCard />
 
         {/* Recent PRs */}
         {prs.length > 0 && (
