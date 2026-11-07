@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { removeSetAt } from '../lib/sets';
+import { findInsertIndex, insertExerciseAt } from '../lib/insertPosition';
 import { db, newId, freshSyncMeta, touchSyncMeta, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
 export function useWorkout(id: string | undefined) {
@@ -165,20 +166,27 @@ export async function removeWorkoutExercise(
   });
 }
 
-/** Add an ad-hoc exercise to the current workout. */
+/**
+ * Add an ad-hoc exercise to the current workout, directly after the last
+ * finished exercise (see `findInsertIndex`) and renumber `order`. Resolves to the
+ * index the exercise was inserted at, or -1 when the workout doesn't exist, so
+ * callers can shift any index-keyed UI state.
+ */
 export async function addWorkoutExercise(
   workoutId: string,
   exerciseId: string,
   sets: number = 3,
   reps: number = 10,
-): Promise<void> {
-  await db.transaction('rw', db.workouts, async () => {
+): Promise<number> {
+  return db.transaction('rw', db.workouts, async () => {
     const workout = await db.workouts.get(workoutId);
-    if (!workout) return;
+    if (!workout) return -1;
+
+    const insertAt = findInsertIndex(workout.exercises);
 
     const newExercise: WorkoutExercise = {
       exerciseId,
-      order: workout.exercises.length,
+      order: insertAt,
       sets: Array.from({ length: sets }, (_, i) => ({
         exerciseId,
         setNumber: i + 1,
@@ -192,9 +200,10 @@ export async function addWorkoutExercise(
     };
 
     await db.workouts.update(workoutId, {
-      exercises: [...workout.exercises, newExercise],
+      exercises: insertExerciseAt(workout.exercises, newExercise, insertAt),
       ...touchSyncMeta(),
     });
+    return insertAt;
   });
 }
 
