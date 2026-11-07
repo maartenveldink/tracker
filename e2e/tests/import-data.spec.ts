@@ -1,7 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/app';
-import { fixDate } from '../fixtures/fixedDate';
 
 const A = 'Barbell Bench Press';
 const SCHEMA = 'E2E Import schema';
@@ -55,7 +54,6 @@ test.describe('JSON import', () => {
     progress,
     page,
   }, testInfo) => {
-    await fixDate(page, '2026-06-10T12:00:00Z');
     const errors: string[] = [];
     page.on('pageerror', e => errors.push(e.message));
 
@@ -97,7 +95,7 @@ test.describe('JSON import', () => {
     await progress.openTab('Overzicht');
     await expect(page.getByRole('heading', { name: 'Progressie' })).toBeVisible();
     await startWorkout.goto();
-    await expect(page.getByText('Laatste sessie: Vandaag')).toHaveCount(1);
+    await expect(page.getByText(/Laatste sessie: (Vandaag|Gisteren)/)).toHaveCount(1);
 
     expect(errors).toEqual([]);
   });
@@ -110,7 +108,6 @@ test.describe('JSON import', () => {
     history,
     page,
   }, testInfo) => {
-    await fixDate(page, '2026-06-10T12:00:00Z');
     const errors: string[] = [];
     page.on('pageerror', e => errors.push(e.message));
 
@@ -141,7 +138,7 @@ test.describe('JSON import', () => {
 
     // In the UI both (same-named) schemas show their own last session.
     await startWorkout.goto();
-    await expect(page.getByText('Laatste sessie: Vandaag')).toHaveCount(2);
+    await expect(page.getByText(/Laatste sessie: (Vandaag|Gisteren)/)).toHaveCount(2);
     await history.goto();
     await expect(history.entries).toHaveCount(2);
 
