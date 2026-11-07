@@ -8,6 +8,7 @@ import {
   type BodyWeightEntry,
   type Habit,
   type HabitLog,
+  type AppSettings,
 } from '@/db/index';
 import { EXPORT_VERSION, type TrackerExport } from './exportData';
 import { seedDatabase } from '@/features/training/db/seed';
@@ -16,9 +17,64 @@ import { seedDatabase } from '@/features/training/db/seed';
 // Validation
 // ---------------------------------------------------------------------------
 
+type DateField = 'required' | 'nullable';
+
 /**
- * Validates raw parsed JSON against the TrackerExport schema.
- * Throws a descriptive error when the structure is invalid.
+ * Converts a JSON-serialised date (ISO string, or epoch ms) back to a `Date`.
+ * `JSON.parse` leaves these as strings, which later crash `.getTime()` callers.
+ * Throws a Dutch error naming the table/record/field when the value is not a
+ * valid date.
+ */
+function reviveDate(value: unknown, where: string, kind: DateField): Date | null {
+  if (value === null || value === undefined) {
+    if (kind === 'nullable') return null;
+    throw new Error(`Ongeldige datum in ${where}: waarde ontbreekt.`);
+  }
+  // Exports serialise dates as ISO strings (`toISOString`/JSON); only accept
+  // that shape (or epoch ms) so stray values like "5" or 2024 are rejected.
+  const plausible =
+    (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) ||
+    (typeof value === 'number' && Number.isFinite(value));
+  if (plausible) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  throw new Error(`Ongeldige datum in ${where}: ${JSON.stringify(value)}.`);
+}
+
+/**
+ * Returns a copy of every record in `list` with the given date fields revived.
+ * `required` fields must be a valid date; `nullable` ones may also be null.
+ */
+function reviveRecords<T extends object>(
+  list: T[],
+  table: string,
+  fields: Partial<Record<keyof T & string, DateField>>,
+): T[] {
+  return list.map((record, index) => {
+    if (typeof record !== 'object' || record === null || Array.isArray(record)) {
+      throw new Error(`Ongeldig record in "${table}" (nr. ${index + 1}).`);
+    }
+    const copy: Record<string, unknown> = { ...(record as Record<string, unknown>) };
+    for (const [field, kind] of Object.entries(fields) as [string, DateField][]) {
+      copy[field] = reviveDate(copy[field], `${table} #${index + 1}, veld "${field}"`, kind);
+    }
+    return copy as T;
+  });
+}
+
+/** Optional (older exports) tables must be an array when present. */
+function optionalArray<T>(obj: Record<string, unknown>, field: string): T[] {
+  const value = obj[field];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error(`Veld "${field}" is geen array.`);
+  return value as T[];
+}
+
+/**
+ * Validates raw parsed JSON against the TrackerExport schema and restores the
+ * Date fields that JSON turned into strings (per table, see `src/db/index.ts`).
+ * Throws a descriptive (Dutch) error when the structure or a date is invalid.
  */
 export function validateExport(raw: unknown): TrackerExport {
   if (typeof raw !== 'object' || raw === null) {
@@ -41,7 +97,33 @@ export function validateExport(raw: unknown): TrackerExport {
     }
   }
 
-  return raw as TrackerExport;
+  const settings = obj['settings'];
+  if (settings !== undefined && settings !== null && (typeof settings !== 'object' || Array.isArray(settings))) {
+    throw new Error('Veld "settings" is geen object.');
+  }
+
+  // AppSettings has no Date fields, so settings needs no reviving.
+  return {
+    ...(raw as TrackerExport),
+    exercises: reviveRecords(obj['exercises'] as Exercise[], 'exercises', { createdAt: 'required' }),
+    schemas: reviveRecords(obj['schemas'] as TrainingSchema[], 'schemas', {
+      createdAt: 'required',
+      updatedAt: 'required',
+    }),
+    workouts: reviveRecords(obj['workouts'] as Workout[], 'workouts', {
+      startedAt: 'required',
+      pausedAt: 'nullable',
+      completedAt: 'nullable',
+    }),
+    bodyWeights: reviveRecords(optionalArray<BodyWeightEntry>(obj, 'bodyWeights'), 'bodyWeights', {
+      createdAt: 'required',
+    }),
+    habits: reviveRecords(optionalArray<Habit>(obj, 'habits'), 'habits', { createdAt: 'required' }),
+    habitLogs: reviveRecords(optionalArray<HabitLog>(obj, 'habitLogs'), 'habitLogs', {
+      createdAt: 'required',
+    }),
+    settings: settings === null ? undefined : (settings as AppSettings | undefined),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -73,7 +155,7 @@ function withNewId<T extends { id: string }>(record: T): T {
  * - **replace**: clears all tables, then inserts everything using original IDs (bulkPut).
  *   After inserting, re-seeds the default exercise library so seed exercises are present.
  * - **merge**: appends records with new auto-generated IDs (no conflicts with existing data).
- *   Foreign-key references (exerciseId) are remapped to the new IDs.
+ *   Foreign-key references (exerciseId, schemaId, habitId) are remapped to the new IDs.
  *
  * The entire operation runs inside a Dexie transaction so a failure rolls everything back.
  */
@@ -138,29 +220,68 @@ export async function importData(
         if (newExercises.length > 0) await db.exercises.bulkAdd(newExercises as Exercise[]);
         const remapExId = (id: string): string => exerciseIdMap.get(id) ?? id;
 
-        // Step 2: add schemas with remapped exerciseIds
+        // Step 2: add schemas with remapped exerciseIds, build old → new map.
+        // Day ids live inside the schema JSON and are kept as-is (they only
+        // need to be unique within a schema), so schemaDayId needs no remap.
+        const schemaIdMap = new Map<string, string>();
         if (data.schemas.length > 0) {
-          const remappedSchemas = data.schemas.map(schema => ({
-            ...withNewId(schema),
-            exercises: schema.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
-            days: schema.days?.map(day => ({
-              ...day,
-              exercises: day.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
-            })),
-          }));
+          const remappedSchemas = data.schemas.map(schema => {
+            const withId = withNewId(schema);
+            schemaIdMap.set(schema.id, withId.id);
+            return {
+              ...withId,
+              exercises: schema.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
+              days: schema.days?.map(day => ({
+                ...day,
+                exercises: day.exercises.map(e => ({ ...e, exerciseId: remapExId(e.exerciseId) })),
+              })),
+            };
+          });
           await db.schemas.bulkAdd(remappedSchemas as TrainingSchema[]);
         }
 
         // Step 3: add workouts with remapped exerciseIds (exercises and sets)
+        // and a remapped schemaId. Rule for a schemaId that is not in the
+        // export (the schema was deleted before exporting): keep it when a live
+        // schema with that id still exists in this database (a valid link),
+        // otherwise null it (schemaDayId follows: kept only when that day exists), so no dangling
+        // reference is left. The workout keeps its schemaName for display.
         if (data.workouts.length > 0) {
-          const remappedWorkouts = data.workouts.map(workout => ({
-            ...withNewId(workout),
-            exercises: workout.exercises.map(e => ({
-              ...e,
-              exerciseId: remapExId(e.exerciseId),
-              sets: e.sets.map(s => ({ ...s, exerciseId: remapExId(s.exerciseId) })),
-            })),
-          }));
+          const unmapped = [
+            ...new Set(
+              data.workouts
+                .map(w => w.schemaId)
+                .filter((id): id is string => id != null && !schemaIdMap.has(id)),
+            ),
+          ];
+          const liveLocal = new Map<string, TrainingSchema>();
+          for (const sc of await db.schemas.bulkGet(unmapped)) {
+            if (sc && !sc.deleted) liveLocal.set(sc.id, sc);
+          }
+          const remappedWorkouts = data.workouts.map(workout => {
+            const old = workout.schemaId;
+            const mapped = old == null ? undefined : schemaIdMap.get(old);
+            const local = old == null || mapped !== undefined ? undefined : liveLocal.get(old);
+            const schemaId = mapped ?? local?.id ?? null;
+            // Day ids of an imported schema are unchanged; for a kept local
+            // schema the day must still exist there, else it is dropped.
+            const schemaDayId =
+              schemaId === null
+                ? null
+                : local
+                  ? ((local.days ?? []).some(d => d.id === workout.schemaDayId) ? workout.schemaDayId : null)
+                  : (workout.schemaDayId ?? null);
+            return {
+              ...withNewId(workout),
+              schemaId,
+              schemaDayId,
+              exercises: workout.exercises.map(e => ({
+                ...e,
+                exerciseId: remapExId(e.exerciseId),
+                sets: e.sets.map(s => ({ ...s, exerciseId: remapExId(s.exerciseId) })),
+              })),
+            };
+          });
           await db.workouts.bulkAdd(remappedWorkouts as Workout[]);
         }
 
