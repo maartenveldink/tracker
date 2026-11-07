@@ -4,6 +4,7 @@ import { SchemasPage } from '../pages/SchemasPage';
 import { SchemaImportPage } from '../pages/SchemaImportPage';
 import { SchemaDetailPage } from '../pages/SchemaDetailPage';
 import { CoachCopyPage } from '../pages/CoachCopyPage';
+import { CoachPage } from '../pages/CoachPage';
 import { ExercisesPage } from '../pages/ExercisesPage';
 import { ExerciseFormPage } from '../pages/ExerciseFormPage';
 import { StartWorkoutPage } from '../pages/StartWorkoutPage';
@@ -27,6 +28,7 @@ type AppFixtures = {
   schemaDetail: SchemaDetailPage;
   schemaImport: SchemaImportPage;
   coachCopy: CoachCopyPage;
+  coach: CoachPage;
   startWorkout: StartWorkoutPage;
   suggest: SuggestWorkoutPage;
   workout: WorkoutPage;
@@ -60,6 +62,9 @@ export const test = base.extend<AppFixtures>({
   },
   coachCopy: async ({ page }, use) => {
     await use(new CoachCopyPage(page));
+  },
+  coach: async ({ page }, use) => {
+    await use(new CoachPage(page));
   },
   startWorkout: async ({ page }, use) => {
     await use(new StartWorkoutPage(page));
