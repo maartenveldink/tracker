@@ -10,11 +10,14 @@ import { Label } from '@/components/ui/label';
 import { clampRest, formatRest, movementDefaultRest } from '../lib/restTime';
 import {
   detectEquipment,
+  steppedWeight,
   weightStepFor,
+  weightStepForExercise,
   weightStepKey,
   weightStepLabel,
   WEIGHT_STEP_PRESETS,
 } from '../lib/weightStep';
+import { GOAL_WEIGHT_MAX, isValidGoal, parseGoalInput } from '../lib/goalProgress';
 import type { Equipment, Exercise, WeightStepSetting } from '../../../db/index';
 
 const WEIGHT_STEP_OPTIONS = WEIGHT_STEP_PRESETS.map((step) => ({
@@ -120,7 +123,7 @@ interface ExerciseFormProps {
 
 /**
  * The full exercise create/edit form (name, muscles, laterality, movement type,
- * equipment, weight step, rest). Used both by the standalone form page and
+ * equipment, weight step, rest, goal). Used both by the standalone form page and
  * inline while adding an exercise to an active workout.
  */
 export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: ExerciseFormProps) {
@@ -136,6 +139,10 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
   const [equipment, setEquipment] = useState<Equipment>('other');
   // null = inherit the equipment's configured increment.
   const [weightStep, setWeightStep] = useState<WeightStepSetting | null>(null);
+  // Optional weight × reps goal, kept as raw text until submit (both or neither).
+  const [goalWeight, setGoalWeight] = useState('');
+  const [goalReps, setGoalReps] = useState('');
+  const [goalError, setGoalError] = useState<string | null>(null);
   // Once the user picks equipment manually we stop auto-detecting from the text.
   const equipmentTouched = useRef(false);
 
@@ -155,6 +162,10 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
       setRestSeconds(existing.restTimerSeconds ?? null);
       setEquipment(existing.equipment ?? detectEquipment(`${existing.name} ${existing.description}`));
       setWeightStep(existing.weightStep ?? null);
+      // Malformed goals (e.g. from a hand-edited import) start empty.
+      const goal = isValidGoal(existing.goal) ? existing.goal : undefined;
+      setGoalWeight(goal ? String(goal.weight) : '');
+      setGoalReps(goal ? String(goal.reps) : '');
       equipmentTouched.current = true; // keep the saved/derived value; don't auto-flip it
     }
   }, [existing]);
@@ -195,6 +206,13 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
     e.stopPropagation();
     if (!name.trim()) return;
 
+    const parsedGoal = parseGoalInput(goalWeight, goalReps);
+    if (parsedGoal.error !== null) {
+      setGoalError(parsedGoal.error);
+      return;
+    }
+    setGoalError(null);
+
     const data = {
       name: name.trim(),
       description: description.trim(),
@@ -205,6 +223,8 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
       equipment,
       weightStep: weightStep ?? undefined,
       restTimerSeconds: restSeconds ?? undefined,
+      // undefined removes a previously saved goal (Dexie deletes the key).
+      goal: parsedGoal.goal,
     };
 
     if (isEditing && existing?.id) {
@@ -229,6 +249,16 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
 
   function stepRest(delta: number) {
     setRestSeconds(prev => clampRest((prev ?? inheritedRest) + delta));
+  }
+
+  // The goal-weight steppers move in this exercise's weight increment.
+  const goalStep = weightStepForExercise({ weightStep: weightStep ?? undefined, equipment }, settings.weightSteps);
+
+  function stepGoalWeight(dir: 1 | -1) {
+    const current = Number(goalWeight.trim().replace(',', '.'));
+    const next = steppedWeight(Number.isFinite(current) ? current : 0, dir, goalStep);
+    setGoalWeight(next > 0 ? String(Math.min(GOAL_WEIGHT_MAX, next)) : '');
+    setGoalError(null);
   }
 
   return (
@@ -374,6 +404,100 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
             <span className="ml-1 text-xs text-muted-foreground">standaard</span>
           )}
         </div>
+      </div>
+
+      {/* Optional strength goal (weight × reps); progress shows on the Progress page */}
+      <div role="group" aria-labelledby="goal-label" className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span id="goal-label" className="text-sm font-medium leading-none">
+            Doel (optioneel)
+          </span>
+          {(goalWeight !== '' || goalReps !== '') && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground"
+              onClick={() => {
+                setGoalWeight('');
+                setGoalReps('');
+                setGoalError(null);
+              }}
+            >
+              Wis doel
+            </Button>
+          )}
+        </div>
+        <div className="flex items-end gap-2">
+          <div className="flex-1 space-y-1">
+            <Label htmlFor="goal-weight" className="text-xs text-muted-foreground">
+              Gewicht (kg)
+            </Label>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                aria-label="Doelgewicht omlaag"
+                onClick={() => stepGoalWeight(-1)}
+              >
+                -
+              </Button>
+              <Input
+                id="goal-weight"
+                aria-invalid={goalError !== null}
+                aria-describedby={goalError ? 'goal-error' : undefined}
+                type="number"
+                inputMode="decimal"
+                step="any"
+                value={goalWeight}
+                onChange={e => {
+                  setGoalWeight(e.target.value);
+                  setGoalError(null);
+                }}
+                placeholder="bv. 100"
+                className="text-center"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                aria-label="Doelgewicht omhoog"
+                onClick={() => stepGoalWeight(1)}
+              >
+                +
+              </Button>
+            </div>
+          </div>
+          <span className="pb-2 text-muted-foreground">×</span>
+          <div className="w-20 space-y-1">
+            <Label htmlFor="goal-reps" className="text-xs text-muted-foreground">
+              Herhalingen
+            </Label>
+            <Input
+              id="goal-reps"
+              aria-invalid={goalError !== null}
+              aria-describedby={goalError ? 'goal-error' : undefined}
+              type="number"
+              inputMode="numeric"
+              step="any"
+              value={goalReps}
+              onChange={e => {
+                setGoalReps(e.target.value);
+                setGoalError(null);
+              }}
+              placeholder="bv. 5"
+              className="text-center"
+            />
+          </div>
+        </div>
+        {goalError && (
+          <p id="goal-error" role="alert" className="text-xs text-destructive">
+            {goalError}
+          </p>
+        )}
       </div>
 
       <Button type="submit" className="w-full">
