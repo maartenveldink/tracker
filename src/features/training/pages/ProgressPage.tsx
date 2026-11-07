@@ -35,6 +35,9 @@ import { RecordsBoard } from '../components/RecordsBoard';
 import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap';
 import { TrainingCalendar } from '../components/TrainingCalendar';
 import { VolumeTrendChart } from '../components/VolumeTrendChart';
+import { GoalProgressBar } from '../components/GoalProgressBar';
+import { goalProgress } from '../lib/goalProgress';
+import type { ExerciseGoal } from '../../../db/index';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: '4w', label: '4 weken' },
@@ -55,10 +58,12 @@ function formatShortDate(date: Date): string {
 function ExerciseDetail({
   exerciseId,
   exerciseName,
+  goal,
   onBack,
 }: {
   exerciseId: string;
   exerciseName: string;
+  goal?: ExerciseGoal;
   onBack: () => void;
 }) {
   const navigate = useNavigate();
@@ -70,6 +75,11 @@ function ExerciseDetail({
   const formula = settings.oneRMFormula;
   const sessions = useProgress(exerciseId, formula);
   const filteredSessions = useMemo(() => filterByPeriod(sessions, period), [sessions, period]);
+  // Goal progress uses the all-time best 1RM, independent of the period filter.
+  const progress = useMemo(
+    () => goalProgress(goal, Math.max(0, ...sessions.map(s => s.best1RM)), formula),
+    [goal, sessions, formula],
+  );
 
   async function shareChart() {
     const svg = chartRef.current?.querySelector('svg');
@@ -124,6 +134,20 @@ function ExerciseDetail({
       </div>
 
       <Separator />
+
+      {progress && (
+        <div className="px-4 pt-3">
+          <Card className="shadow-none">
+            <CardContent className="p-3">
+              <GoalProgressBar
+                progress={progress}
+                exerciseName={exerciseName}
+                editHref={`/exercises/${exerciseId}/edit`}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {sessions.length === 0 ? (
         <div className="px-4 py-12 text-center text-muted-foreground text-sm">
@@ -625,6 +649,7 @@ export function ProgressPage() {
         <ExerciseDetail
           exerciseId={selectedId}
           exerciseName={selectedExercise.name}
+          goal={selectedExercise.goal}
           onBack={() => setSelectedId(undefined)}
         />
       </div>

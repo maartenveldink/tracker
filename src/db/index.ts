@@ -87,6 +87,20 @@ export interface Exercise extends SyncMeta {
    * equipment-based default from `AppSettings.weightSteps`. Undefined = inherit.
    */
   weightStep?: WeightStepSetting;
+  /**
+   * Optional strength goal, e.g. 100 kg × 5. Not indexed, so it needs no Dexie
+   * schema version: older rows simply lack it. Progress towards it is derived
+   * from the best estimated 1RM (see `features/training/lib/goalProgress.ts`).
+   */
+  goal?: ExerciseGoal;
+}
+
+/** A per-exercise target: lift `weight` kg for `reps` reps. */
+export interface ExerciseGoal {
+  /** Target weight in kg (> 0). */
+  weight: number;
+  /** Target reps (integer ≥ 1). */
+  reps: number;
 }
 
 /** Equipment an exercise is loaded with; determines its weight increment. */

@@ -14,6 +14,17 @@ export class ProgressPage {
     await this.page.getByRole('button', { name: tab, exact: true }).click();
   }
 
+  /** Opens an exercise's history (1RM chart + sessions) from the Oefeningen list. */
+  async openExercise(name: string): Promise<void> {
+    await this.page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+    await this.page.getByRole('heading', { name, exact: true }).waitFor();
+  }
+
+  /** The goal progress bar for an exercise (history page or records board). */
+  goalBar(name: string) {
+    return this.page.getByRole('progressbar', { name: `Doel ${name}`, exact: true });
+  }
+
   // --- Training calendar (Overzicht tab) ---
 
   get calendarMonth() {
