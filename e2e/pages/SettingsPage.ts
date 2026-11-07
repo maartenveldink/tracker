@@ -24,9 +24,13 @@ export class SettingsPage {
     return this.page.locator(`#weightstep-${equipment}`).inputValue();
   }
 
-  /** Wipes all data (with confirmation). */
+  /**
+   * Wipes all data (with confirmation) and waits until the wipe has finished,
+   * so a following `page.goto()` cannot reload the page mid-transaction.
+   */
   async clearAll(): Promise<void> {
     await this.page.getByRole('button', { name: 'Alles wissen' }).click();
     await this.page.getByRole('button', { name: 'Ja, alles wissen' }).click();
+    await this.page.getByText('Alle data gewist', { exact: false }).waitFor();
   }
 }

@@ -81,9 +81,17 @@ export class SchemaEditorPage {
     await this.page.getByRole('tab', { name }).click();
   }
 
-  /** Saves the schema and waits for the redirect to its detail page. */
+  /**
+   * Saves the schema and waits for the redirect to its detail page.
+   *
+   * The app only navigates after the IndexedDB write has committed, so reaching
+   * the detail URL is the proof that the schema is persisted. Note that
+   * `/schemas/new` itself matches `/schemas/<segment>`: the pattern must exclude
+   * it, otherwise this resolves immediately and the next `page.goto()` reloads
+   * the page mid-write, losing the schema (the suite's main source of flakes).
+   */
   async save(): Promise<void> {
     await this.page.getByRole('button', { name: /Aanmaken|Opslaan/ }).click();
-    await this.page.waitForURL(/\/schemas\/[^\/]+$/);
+    await this.page.waitForURL(/\/schemas\/(?!new$)[^\/]+$/);
   }
 }

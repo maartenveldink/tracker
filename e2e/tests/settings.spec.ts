@@ -6,6 +6,9 @@ test.describe('Settings', () => {
   test('persists the 1RM formula across a reload', async ({ settings, page }) => {
     await settings.goto();
     await settings.selectFormula('brzycki');
+    // The controls are bound to the stored settings (live query), so this only
+    // passes once the write has committed — reloading earlier would abort it.
+    await expect(page.locator('#formula-brzycki')).toBeChecked();
 
     await page.reload();
     await expect(page.locator('#formula-brzycki')).toBeChecked();
@@ -14,6 +17,7 @@ test.describe('Settings', () => {
   test('persists a per-equipment weight step across a reload', async ({ settings, page }) => {
     await settings.goto();
     await settings.setWeightStep('plates', '2,5 kg');
+    await expect(page.locator('#weightstep-plates')).toHaveValue('2.5-kg'); // write committed
 
     await page.reload();
     await expect(page.locator('#weightstep-plates')).toHaveValue('2.5-kg');
@@ -22,6 +26,7 @@ test.describe('Settings', () => {
   test('persists the muscle detail level across a reload', async ({ settings, page }) => {
     await settings.goto();
     await page.locator('#muscle-detail').click(); // switch to "detailed"
+    await expect(page.locator('#muscle-detail')).toBeChecked(); // write committed
 
     await page.reload();
     await expect(page.locator('#muscle-detail')).toBeChecked();
