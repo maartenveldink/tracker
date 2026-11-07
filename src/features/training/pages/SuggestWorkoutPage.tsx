@@ -17,6 +17,7 @@ import { getMuscleGroupById } from '../db/muscles';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
 import { groupSupersets, normalizeSupersets } from '../lib/superset';
+import { isCompletedSet } from '../lib/sets';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,7 +43,7 @@ import {
   Clock,
   Target,
 } from 'lucide-react';
-import type { SchemaExercise, WorkoutSet } from '../../../db/index';
+import type { SchemaExercise } from '../../../db/index';
 
 const MIN_TARGET = 15;
 const MAX_TARGET = 120;
@@ -64,10 +65,6 @@ function formatReason(g: GroupStaleness): { text: string; urgent: boolean } {
 
 function reindex(items: SchemaExercise[]): SchemaExercise[] {
   return normalizeSupersets(items).map((it, order) => ({ ...it, order }));
-}
-
-function isCompletedSet(s: WorkoutSet): boolean {
-  return s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0;
 }
 
 export function SuggestWorkoutPage() {

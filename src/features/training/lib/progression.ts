@@ -1,5 +1,6 @@
-import type { Workout, WorkoutSet } from '../../../db/index';
+import type { Workout } from '../../../db/index';
 import { calculate1RM, type OneRMFormula } from '../hooks/useProgress';
+import { isWeightedSet } from './sets';
 
 /**
  * Progression detection shared by the workout summary (progress icon) and the
@@ -7,10 +8,6 @@ import { calculate1RM, type OneRMFormula } from '../hooks/useProgress';
  * of this session beats the best estimated 1RM of the *previous* session for
  * that exercise — distinct from an all-time personal record.
  */
-
-function isCompletedSet(s: WorkoutSet): boolean {
-  return s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0;
-}
 
 /** Highest estimated 1RM across the completed sets of one exercise in a workout. */
 export function bestOneRMForExercise(
@@ -22,7 +19,7 @@ export function bestOneRMForExercise(
   if (!we) return 0;
   let best = 0;
   for (const set of we.sets) {
-    if (!isCompletedSet(set)) continue;
+    if (!isWeightedSet(set)) continue;
     const est = calculate1RM(set.weight!, set.actualReps!, formula);
     if (est > best) best = est;
   }

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout, updateWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
+import { removeSetAt } from '../lib/sets';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,12 +81,12 @@ export function WorkoutEditPage() {
     exercises.forEach((ex, exIdx) => {
       ex.sets.forEach((set, setIdx) => {
         if (set.completed) {
-          if (set.weight === null || set.weight <= 0) {
+          if (set.weight !== null && set.weight < 0) {
             errors.push({
               exerciseIndex: exIdx,
               setIndex: setIdx,
               field: 'weight',
-              message: 'Gewicht moet > 0 zijn',
+              message: 'Gewicht mag niet negatief zijn',
             });
           }
           if (set.actualReps === null || set.actualReps <= 0 || !Number.isInteger(set.actualReps)) {
@@ -152,18 +153,23 @@ export function WorkoutEditPage() {
       const exercise = next[exIdx];
       if (!exercise) return prev;
       const lastSet = exercise.sets[exercise.sets.length - 1];
-      const newSet: WorkoutSet = {
-        exerciseId: exercise.exerciseId,
-        setNumber: exercise.sets.length + 1,
-        plannedReps: lastSet?.plannedReps ?? null,
-        ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
-        ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
-        actualReps: null,
-        weight: lastSet?.weight ?? null,
-        completed: false,
-        skipped: false,
-      };
-      exercise.sets.push(newSet);
+      // Unilateral exercises log per side, so a set is added as a left/right pair.
+      const sides: WorkoutSet['side'][] = lastSet?.side !== undefined ? ['left', 'right'] : [undefined];
+      const base = exercise.sets.length;
+      sides.forEach((side, i) => {
+        exercise.sets.push({
+          exerciseId: exercise.exerciseId,
+          setNumber: base + 1 + i,
+          plannedReps: lastSet?.plannedReps ?? null,
+          ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
+          ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
+          ...(side ? { side } : {}),
+          actualReps: null,
+          weight: lastSet?.weight ?? null,
+          completed: false,
+          skipped: false,
+        });
+      });
       return next;
     });
     markDirty();
@@ -174,9 +180,7 @@ export function WorkoutEditPage() {
       const next = structuredClone(prev);
       const ex = next[exIdx];
       if (!ex) return prev;
-      ex.sets.splice(setIdx, 1);
-      // Renumber
-      ex.sets.forEach((s, i) => { s.setNumber = i + 1; });
+      ex.sets = removeSetAt(ex.sets, setIdx);
       return next;
     });
     markDirty();
@@ -408,7 +412,10 @@ export function WorkoutEditPage() {
                           set.skipped && 'bg-secondary/50 opacity-50',
                         )}
                       >
-                        <span className="text-xs text-muted-foreground text-center">{set.setNumber}</span>
+                        <span className="text-xs text-muted-foreground text-center">
+                          {set.setNumber}
+                          {set.side && <span className="block text-[10px] leading-none">{set.side === 'left' ? 'L' : 'R'}</span>}
+                        </span>
                         <Input
                           type="number"
                           step="0.5"

@@ -1,9 +1,10 @@
-import type { Workout, WorkoutSet, Exercise } from '../../../db/index';
+import type { Workout, Exercise } from '../../../db/index';
 import { calculate1RM, type OneRMFormula } from '../hooks/useProgress';
+import { isCompletedSet, isWeightedSet, setVolume } from './sets';
 
 // --- Week helpers ---
 
-/** ISO week key like "2026-W30" for a date. */
+/** ISO week key like "2026-W07" (zero-padded, so keys sort chronologically as text). */
 export function getISOWeek(date: Date): string {
   const d = new Date(date.getTime());
   d.setHours(0, 0, 0, 0);
@@ -11,7 +12,7 @@ export function getISOWeek(date: Date): string {
   const week1 = new Date(d.getFullYear(), 0, 4);
   const weekNum =
     1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-  return `${d.getFullYear()}-W${weekNum}`;
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
 /**
@@ -26,54 +27,26 @@ export function calculateStreak(completedWorkouts: Workout[]): number {
     weeksWithWorkouts.add(getISOWeek(w.startedAt));
   }
 
-  const sortedWeeks = Array.from(weeksWithWorkouts).sort().reverse();
-  if (sortedWeeks.length === 0) return 0;
+  // Walk back week by week from now using real dates, so year boundaries and
+  // 53-week years need no special casing. A missing current week is tolerated.
+  const cursor = new Date();
+  if (!weeksWithWorkouts.has(getISOWeek(cursor))) cursor.setDate(cursor.getDate() - 7);
 
-  const currentWeek = getISOWeek(new Date());
-  const mostRecent = sortedWeeks[0]!;
-  if (mostRecent !== currentWeek) {
-    const lastWeekDate = new Date();
-    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
-    const lastWeek = getISOWeek(lastWeekDate);
-    if (mostRecent !== lastWeek) return 0;
+  let streak = 0;
+  while (weeksWithWorkouts.has(getISOWeek(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 7);
   }
-
-  let streak = 1;
-  for (let i = 1; i < sortedWeeks.length; i++) {
-    const current = sortedWeeks[i];
-    const previous = sortedWeeks[i - 1];
-    if (!current || !previous) break;
-
-    const [currYear, currWeekStr] = current.split('-W');
-    const [prevYear, prevWeekStr] = previous.split('-W');
-    if (!currYear || !currWeekStr || !prevYear || !prevWeekStr) break;
-    const currWeek = parseInt(currWeekStr);
-    const prevWeek = parseInt(prevWeekStr);
-    const cy = parseInt(currYear);
-    const py = parseInt(prevYear);
-
-    const isConsecutive =
-      (cy === py && prevWeek - currWeek === 1) ||
-      (py - cy === 1 && currWeek >= 52 && prevWeek === 1);
-
-    if (isConsecutive) streak++;
-    else break;
-  }
-
   return streak;
 }
 
 // --- Volume ---
 
-function isCompletedSet(s: WorkoutSet): boolean {
-  return s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0;
-}
-
 /** Total training volume (kg = weight × reps over completed sets) of one workout. */
 export function workoutVolume(w: Workout): number {
   return w.exercises.reduce(
     (sum, we) =>
-      sum + we.sets.filter(isCompletedSet).reduce((s, set) => s + set.weight! * set.actualReps!, 0),
+      sum + we.sets.reduce((s, set) => s + setVolume(set), 0),
     0,
   );
 }
@@ -133,7 +106,8 @@ export function volumePerMuscleGroup(
       if (!ex) continue;
       for (const set of we.sets) {
         if (!isCompletedSet(set)) continue;
-        const v = set.weight! * set.actualReps!;
+        // Bodyweight sets add 0 kg but still register the muscle group.
+        const v = setVolume(set);
         for (const m of ex.primaryMuscles) vol.set(m, (vol.get(m) ?? 0) + v);
         for (const m of ex.secondaryMuscles) vol.set(m, (vol.get(m) ?? 0) + v * 0.5);
       }
@@ -162,7 +136,7 @@ export function allTimePRs(workouts: Workout[], formula: OneRMFormula): PRRecord
   for (const w of workouts) {
     for (const ex of w.exercises) {
       for (const set of ex.sets) {
-        if (!isCompletedSet(set)) continue;
+        if (!isWeightedSet(set)) continue;
         const est = calculate1RM(set.weight!, set.actualReps!, formula);
         const current = best.get(ex.exerciseId);
         if (!current || est > current.best1RM) {

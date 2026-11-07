@@ -1,6 +1,7 @@
-import type { AppSettings, Exercise, SchemaExercise, Workout, WorkoutSet } from '../../../db/index';
+import type { AppSettings, Exercise, SchemaExercise, Workout } from '../../../db/index';
 import { getMuscleGroupById, MUSCLE_GROUPS } from '../db/muscles';
 import { estimateExercisesSeconds } from './estimateSchemaTime';
+import { isCompletedSet } from './sets';
 
 /**
  * Suggests a free workout that prioritises muscle groups the user hasn't
@@ -22,10 +23,6 @@ const MAX_EXERCISES = 8;
 
 type MuscleLevel = 'global' | 'detailed';
 type EstimateSettings = Pick<AppSettings, 'restTimerSeconds' | 'restDefaults' | 'exerciseTransitionSeconds'>;
-
-function isCompletedSet(s: WorkoutSet): boolean {
-  return s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0;
-}
 
 // Category name → global muscle id, to collapse detailed ids to their global group.
 const CATEGORY_TO_GLOBAL = new Map<string, string>(

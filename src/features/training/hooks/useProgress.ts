@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, tombstonePatch, type Workout, type WorkoutSet } from '../../../db/index';
+import { db, tombstonePatch, type Workout } from '../../../db/index';
+import { isCompletedSet, isWeightedSet } from '../lib/sets';
 
 // --- 1RM formulas (E4-02, E8-01) ---
 
@@ -115,7 +116,8 @@ function workoutToSession(
   const workoutExercise = workout.exercises.find(e => e.exerciseId === exerciseId);
   if (!workoutExercise) return null;
 
-  const completedSets = workoutExercise.sets.filter(isCompletedSet);
+  // 1RM/history charts need external weight; bodyweight sets are skipped here.
+  const completedSets = workoutExercise.sets.filter(isWeightedSet);
   if (completedSets.length === 0) return null;
 
   const sessionSets: SessionSet[] = completedSets.map(s => {
@@ -142,10 +144,6 @@ function workoutToSession(
     bestSet,
     best1RM: bestSet.estimated1RM,
   };
-}
-
-function isCompletedSet(s: WorkoutSet): boolean {
-  return s.completed && s.actualReps !== null && s.actualReps > 0 && s.weight !== null && s.weight > 0;
 }
 
 // --- Exercises sorted by last session date ---
@@ -193,7 +191,7 @@ export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<s
 
     for (const w of workouts) {
       for (const ex of w.exercises) {
-        const completed = ex.sets.filter(isCompletedSet);
+        const completed = ex.sets.filter(isWeightedSet);
         if (completed.length === 0) continue;
 
         const best = Math.max(

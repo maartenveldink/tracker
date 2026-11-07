@@ -4,7 +4,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useProgress';
-import { calculateStreak, volumePerMuscleGroup } from '../lib/metrics';
+import { calculateStreak, volumePerMuscleGroup, workoutVolume } from '../lib/metrics';
+import { isWeightedSet } from '../lib/sets';
 import { improvedExercises } from '../lib/progression';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
@@ -210,8 +211,8 @@ export function WorkoutSummaryPage() {
       // Best 1RM from this session
       let bestThisSession = 0;
       for (const set of we.sets) {
-        if (!set.completed || !set.weight || set.weight <= 0 || !set.actualReps || set.actualReps <= 0) continue;
-        const est = calculate1RM(set.weight, set.actualReps, settings.oneRMFormula);
+        if (!isWeightedSet(set)) continue;
+        const est = calculate1RM(set.weight!, set.actualReps!, settings.oneRMFormula);
         if (est > bestThisSession) bestThisSession = est;
       }
       if (bestThisSession <= 0) continue;
@@ -223,8 +224,8 @@ export function WorkoutSummaryPage() {
         const ex = w.exercises.find(e => e.exerciseId === we.exerciseId);
         if (!ex) continue;
         for (const set of ex.sets) {
-          if (!set.completed || !set.weight || set.weight <= 0 || !set.actualReps || set.actualReps <= 0) continue;
-          const est = calculate1RM(set.weight, set.actualReps, settings.oneRMFormula);
+          if (!isWeightedSet(set)) continue;
+          const est = calculate1RM(set.weight!, set.actualReps!, settings.oneRMFormula);
           if (est > bestPrevious) bestPrevious = est;
         }
       }
@@ -248,11 +249,7 @@ export function WorkoutSummaryPage() {
   const volumeComparison = useMemo<{ current: number; previous: number | null }>(() => {
     if (!workout) return { current: 0, previous: null };
 
-    const current = workout.exercises.reduce((sum, we) => {
-      return sum + we.sets
-        .filter(s => s.completed && s.weight && s.actualReps)
-        .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
-    }, 0);
+    const current = workoutVolume(workout);
 
     if (!workout.schemaId) return { current, previous: null };
 
@@ -270,11 +267,7 @@ export function WorkoutSummaryPage() {
 
     if (!previousWorkout) return { current, previous: null };
 
-    const previous = previousWorkout.exercises.reduce((sum, we) => {
-      return sum + we.sets
-        .filter(s => s.completed && s.weight && s.actualReps)
-        .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
-    }, 0);
+    const previous = workoutVolume(previousWorkout);
 
     return { current, previous };
   }, [workout, completedWorkouts]);
@@ -299,11 +292,7 @@ export function WorkoutSummaryPage() {
     0,
   );
 
-  const totalVolume = workout.exercises.reduce((sum, we) => {
-    return sum + we.sets
-      .filter(s => s.completed && s.weight && s.actualReps)
-      .reduce((setSum, s) => setSum + (s.weight! * s.actualReps!), 0);
-  }, 0);
+  const totalVolume = workoutVolume(workout);
 
   const volumeDiff = volumeComparison.previous !== null
     ? Math.round(volumeComparison.current - volumeComparison.previous)

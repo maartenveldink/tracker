@@ -21,7 +21,7 @@ export function MuscleVolumeBars({ volume }: { volume: Map<string, number> }) {
   return (
     <div className="space-y-2">
       {sorted.map(({ id, name, volume: vol }) => {
-        const percentage = (vol / maxVolume) * 100;
+        const percentage = maxVolume > 0 ? (vol / maxVolume) * 100 : 0;
         return (
           <div key={id}>
             <div className="flex items-center justify-between text-xs mb-0.5">
