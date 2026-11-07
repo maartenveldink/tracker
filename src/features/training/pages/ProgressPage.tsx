@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Trash2, Pencil, Share2, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   LineChart,
@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { BodyWeightSection } from '../components/BodyWeightSection';
 import { RecordsBoard } from '../components/RecordsBoard';
 import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap';
+import { TrainingCalendar } from '../components/TrainingCalendar';
 import { VolumeTrendChart } from '../components/VolumeTrendChart';
 
 const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
@@ -599,7 +600,11 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 export function ProgressPage() {
   const exercises = useExercises();
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  const [tab, setTab] = useState<ProgressTab>('exercises');
+  // `?tab=overview` lets the calendar's session links return to this tab.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<ProgressTab>(() =>
+    searchParams.get('tab') === 'overview' ? 'overview' : 'exercises',
+  );
   const [exerciseView, setExerciseView] = useState<'list' | 'compare'>('list');
 
   const selectedExercise = useMemo(
@@ -681,6 +686,7 @@ export function ProgressPage() {
         <>
           <SectionHeading>Consistentie</SectionHeading>
           <ConsistencyHeatmap />
+          <TrainingCalendar />
           <SectionHeading>Volume</SectionHeading>
           <VolumeTrendChart />
           <SectionHeading>Records</SectionHeading>
