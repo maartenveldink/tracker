@@ -1,5 +1,5 @@
 #!/bin/sh
-# Container entrypoint: PocketBase serving both the API and the built PWA.
+# Container entrypoint: PocketBase serving both the API and the built PWA (one origin).
 #
 #   PORT                listen port (prod sets 8080)
 #   PB_DATA_DIR         data dir (SQLite + uploads); MUST be on persistent storage
