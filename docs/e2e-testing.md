@@ -40,7 +40,11 @@ e2e/
     schemas.spec.ts      schemas-advanced.spec.ts
     workout.spec.ts      workout-advanced.spec.ts
     settings.spec.ts     dashboard.spec.ts  progress.spec.ts
-    progressive-overload.spec.ts
+    progressive-overload.spec.ts   streak.spec.ts   bodyweight-sets.spec.ts
+    unilateral-sets.spec.ts        workout-insert-exercise.spec.ts
+    schema-import.spec.ts          coach-summary.spec.ts   coach-api.spec.ts
+    import-data.spec.ts            deleted-exercise.spec.ts
+    deload.spec.ts                 calendar.spec.ts        exercise-goal.spec.ts
   tsconfig.json       # type-checking config for the e2e sources
 ```
 
@@ -63,7 +67,11 @@ The suite exercises the main user flows across the app:
   Progress "Progressie" tab listing an exercise's % 1RM change.
 - **Progress & history** — records board, workout history + delete, body-weight
   logging.
-- **Dashboard** — quick weigh-in, resume active workout.
+- **Dashboard** — quick weigh-in, resume active workout, streak, deload card.
+- **Schema import & Claude-coach** — readable-JSON import (valid, invalid with per-path errors, unknown exercise), "Kopieer voor Claude" summary/clipboard, and the API flow with the Anthropic API mocked (`fixtures/anthropicMock.ts`): proposal diff, save as new schema, error paths, key never in export.
+- **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, an added exercise lands after the last finished one.
+- **Data** — export → wipe → import (replace and merge), dates revived, `schemaId` remapped; deleted exercises keep their name in history.
+- **Progress extras** — month calendar, exercise goal progress bar, deload suggestion.
 - **Settings** — 1RM formula, weight-step and muscle-detail persistence,
   clear-all, and a data export → wipe → import round-trip.
 
@@ -150,6 +158,24 @@ explicit wait — encapsulated in the page objects, not repeated in specs:
   works.
 - **Set completion** — a logged weight round-trips before it counts, so
   `completeActiveSet` waits briefly between entering the weight and tapping reps.
+
+- **Never navigate away before a write is proven saved.** A `goto`/`reload`
+  in the middle of an IndexedDB transaction aborts it and the data is gone. Wait
+  in the page object for something the app does only *after* saving (a redirect
+  URL, a toast, a control that reads its state from the DB). A `waitForURL` regex
+  must not match the start URL (use `(?!new$)` to exclude `/schemas/new`).
+- **Use web-first assertions** (`toContainText`, `expect.poll`) instead of
+  reading text once. "Not in this list" only counts after the list was visibly
+  filled.
+- **Fixed dates:** use `fixtures/fixedDate.ts` (it pins the clock on every page
+  load), not `page.clock` (Dexie crashes with "this is not a Date object").
+- **Clipboard:** the system clipboard is shared between parallel contexts;
+  capture what the app passes to `clipboard.writeText` per page.
+- **`aria-disabled` controls are not clickable for Playwright**; use
+  `click({ force: true })` to prove a click does nothing.
+- **Filters:** a name filter such as `streak` also matches the worktree path;
+  pass the full spec path (`e2e/tests/streak.spec.ts`).
+- **Low-memory machines:** run with `--workers=1`; three workers got OOM-killed.
 
 ## Adding a test
 

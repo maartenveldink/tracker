@@ -49,10 +49,10 @@ src/
   features/
     training/     # Exercises, schemas, live workout, progress & metrics — the whole app
       db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
-      hooks/      # useExercises, useSchemas, useWorkout, useProgress, useBodyWeight
-      lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), reps, schemaShare
-      pages/      # Exercise*, Schema*, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
-      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars
+      hooks/      # useExercises (+ useExerciseLookup), useSchemas, useWorkout, useProgress, useBodyWeight, useCoachSummary
+      lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude), claudeCoach (Anthropic API client), coachConfig (API key + model, localStorage), coachDiff (proposal vs current schema)
+      pages/      # Exercise*, Schema*, SchemaImport, Coach (lazy), StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
+      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection, CoachSettingsCard
   App.tsx         # Routes (Dashboard is "/"), lazy-loads the Progress page
   main.tsx        # Entry point (seeds DB, inits settings, renders app)
   index.css       # Tailwind directives
@@ -66,17 +66,23 @@ src/
 - **Components:** Function components, no class components
 - **Naming:** PascalCase for components, camelCase for hooks/functions, kebab-case for files would be fine but currently PascalCase for pages/components
 - **No external state management:** Dexie live queries replace Redux/Zustand
+- **Exercise names in history/schemas:** look names and metadata up via `useExerciseLookup` (includes soft-deleted exercises). Pickers and suggestions keep using `useExercises` (excludes deleted).
+- **Sets without weight:** a completed set with reps > 0 counts as a set even without weight (bodyweight work), but contributes 0 kg volume and no 1RM/PR. Use the predicates in `features/training/lib/sets.ts`.
+- **Secrets and local-only prefs** (Claude API key/model, deload snooze) live in `localStorage` (`tracker.coach.*`, `tracker.deload.*`), never in `AppSettings`, export or sync; `clearAllData()` removes them.
 
 ## Implemented Epics
 
-- **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest; per-exercise equipment (cable/dumbbell/plates/other) that drives the weight increment, auto-detected from name/description.
-- **Epic 2** (E2-01 to E2-12): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas; collapsible exercise cards; rest-per-set; QR/link sharing.
-- **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema or free ("Vrije training", ad-hoc), set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references; live muscle-group volume overview (shared `MuscleVolumeBars` with the summary) to decide what to still train.
-- **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, and a **Workout history overview** with delete.
-- **Dashboard**: Home landing aggregating streak, this-week sessions/volume, recent PRs, quick weigh-in, and resume-active-workout — powered by a shared `metrics` lib.
+- **Epic 1** (E1-01 to E1-08): Exercise & muscle database — CRUD, search, filter, seed data; per-exercise laterality (bilateral/unilateral) and movement type (compound/isolation) toggles; per-exercise default rest; per-exercise equipment (cable/dumbbell/plates/other) that drives the weight increment, auto-detected from name/description; optional per-exercise **goal** (`Exercise.goal` = weight × reps) with a progress bar (`lib/goalProgress.ts`, `GoalProgressBar`) on the exercise history and the Records board. Limitation: edits to default exercises (incl. a goal) are not exported/synced.
+- **Epic 2** (E2-01 to E2-12): Training schemas — CRUD, exercise ordering, copy, muscle coverage analysis, suggestions, multi-day schemas; collapsible exercise cards; rest-per-set; QR/link sharing; import from readable JSON (paste or file, `/schemas/import`, schema in `docs/schema-format.json`, keep in sync with `SchemaJson`).
+- **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema or free ("Vrije training", ad-hoc), set logging, pause/resume, summary; rest timer with skip/reset and vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references; live muscle-group volume overview (shared `MuscleVolumeBars` with the summary) to decide what to still train; an exercise added mid-workout is inserted after the last finished exercise (never inside a superset, see `lib/insertPosition.ts`).
+- **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, a **Workout history overview** with delete, and a **month calendar** under the heatmap (`TrainingCalendar`; Progress reads `?tab=overview`).
+- **Dashboard**: Home landing aggregating streak, this-week sessions/volume, recent PRs, quick weigh-in, and resume-active-workout — powered by a shared `metrics` lib. Also shows a **deload suggestion** (`DeloadCard`, rule + thresholds in `lib/deload.ts`; snoozable for a week).
 - **Supersets**: consecutive exercises sharing a `supersetGroup` are trained alternating; linked in the schema editor, rest resolves after the round. See `features/training/lib/superset.ts`.
 - **Progressive overload**: hitting the top of the rep range on every set bumps the next session's suggested weight by one increment (per-exercise `weightStep` override, else the equipment/global step).
 - **Epic 8**: Settings — 1RM formula, muscle detail level, workout density, per-equipment weight steps, rest timer + alert toggles + laterality×movement-type rest-defaults matrix; clear data, JSON export/import.
+
+- **Claude-coach** (`docs/plan.claude-coach.md`): step 1 readable schema JSON + import screen; step 2 "Kopieer voor Claude" on the schema detail (`coachSummary` + `coachPrompt`, no raw sets, relative weeks); step 3 direct Anthropic API call from the browser (`claudeCoach`, `CoachPage`, settings card). The proposal is saved as a **new** schema (never overwrites), new exercises are marked in the diff. The API key and model are in `localStorage` only. `tool_choice` is `auto` (a forced tool choice returns 400 on the 5.5 models). Not yet verified against the live API; e2e mocks it (`mockAnthropic`). Step 4 (reminder card) is not built.
+- **Import/export**: JSON import revives `Date` fields and, in merge mode, remaps `schemaId`/`exerciseId`.
 
 ## Rest-time resolution
 
