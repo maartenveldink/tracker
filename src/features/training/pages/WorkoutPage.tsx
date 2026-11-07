@@ -13,7 +13,7 @@ import {
   resumeWorkout,
   completeWorkout,
 } from '../hooks/useWorkout';
-import { useExercises, updateExercise } from '../hooks/useExercises';
+import { useExercises, useExerciseLookup, updateExercise } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
@@ -341,7 +341,10 @@ export function WorkoutPage() {
   const { id } = useParams<{ id: string }>();
   const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
+  // allExercises feeds the add-exercise picker (no deleted ones); the lookup is
+  // for displaying names/stats of exercises already in the workout.
   const allExercises = useExercises();
+  const { byId: exerciseMap, nameOf } = useExerciseLookup();
   const completedWorkouts = useCompletedWorkouts();
   const settings = useSettings();
   const density = DENSITY[settings.workoutDensity];
@@ -387,12 +390,6 @@ export function WorkoutPage() {
     setExerciseNotesDrafts({});
     setWorkoutNotesDraft(null);
   }, [workoutId]);
-
-  const exerciseMap = useMemo(() => {
-    const map = new Map<string, Exercise>();
-    allExercises.forEach(e => map.set(e.id, e));
-    return map;
-  }, [allExercises]);
 
   // Build previous session references for each exercise in the workout (E3-10)
   const previousSessions = useMemo(() => {
@@ -875,7 +872,6 @@ export function WorkoutPage() {
       <nav className="sticky top-[52px] z-30 bg-card border-b border-border px-2 py-1.5 overflow-x-auto">
         <div className="flex gap-1.5 min-w-max">
           {workout.exercises.map((we, exIdx) => {
-            const ex = exerciseMap.get(we.exerciseId);
             const navSsInfo = groupSupersets(workout.exercises)[exIdx]!;
             const done = we.sets.filter(s => s.completed).length;
             const skipped = we.sets.filter(s => s.skipped).length;
@@ -898,7 +894,7 @@ export function WorkoutPage() {
                 )}
               >
                 {navSsInfo.inSuperset && <span className="text-primary font-semibold">{navSsInfo.label} </span>}
-                {truncateName(ex?.name ?? '?')} {done}/{total}
+                {truncateName(nameOf(we.exerciseId))} {done}/{total}
               </button>
             );
           })}
@@ -1006,7 +1002,7 @@ export function WorkoutPage() {
                   )}
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium truncate flex items-center gap-1.5">
-                      {exercise?.name ?? 'Onbekend'}
+                      {nameOf(workoutExercise.exerciseId)}
                       {/* MF-01: green checkmark when all sets done */}
                       {exerciseDone && (
                         <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
@@ -1445,7 +1441,7 @@ export function WorkoutPage() {
         title="Oefening verwijderen"
         message={
           deleteExerciseIdx !== null
-            ? `Wil je "${exerciseMap.get(workout.exercises[deleteExerciseIdx]?.exerciseId ?? '')?.name ?? 'deze oefening'}" uit de training verwijderen? De gelogde sets gaan verloren.`
+            ? `Wil je "${nameOf(workout.exercises[deleteExerciseIdx]?.exerciseId ?? '') || 'deze oefening'}" uit de training verwijderen? De gelogde sets gaan verloren.`
             : ''
         }
         confirmLabel="Verwijderen"

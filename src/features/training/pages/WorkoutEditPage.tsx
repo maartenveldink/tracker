@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout, updateWorkout } from '../hooks/useWorkout';
-import { useExercises } from '../hooks/useExercises';
+import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { formatReps } from '../lib/reps';
 import { removeSetAt } from '../lib/sets';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, Plus, X, Trash2, StickyNote, FileText, Save } from 'lucide-react';
-import type { Exercise, WorkoutExercise, WorkoutSet } from '../../../db/index';
+import type { WorkoutExercise, WorkoutSet } from '../../../db/index';
 
 interface ValidationError {
   exerciseIndex: number;
@@ -41,7 +41,10 @@ export function WorkoutEditPage() {
   const { id } = useParams<{ id: string }>();
   const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
+  // allExercises feeds the add-exercise picker (no deleted ones); the lookup is
+  // for displaying names/stats of exercises already in the workout.
   const allExercises = useExercises();
+  const { nameOf } = useExerciseLookup();
   const navigate = useNavigate();
 
   // Local editing state
@@ -68,12 +71,6 @@ export function WorkoutEditPage() {
       setNotesDraft(workout.notes);
     }
   }, [workout]);
-
-  const exerciseMap = useMemo(() => {
-    const map = new Map<string, Exercise>();
-    allExercises.forEach(e => map.set(e.id, e));
-    return map;
-  }, [allExercises]);
 
   // Validation (E4-09)
   const validationErrors = useMemo<ValidationError[]>(() => {
@@ -322,7 +319,6 @@ export function WorkoutEditPage() {
       {/* Exercise list */}
       <div className="flex-1 px-4 py-3 space-y-4 pb-24">
         {exercises.map((workoutExercise, exIdx) => {
-          const exercise = exerciseMap.get(workoutExercise.exerciseId);
 
           return (
             <div key={`${workoutExercise.exerciseId}-${exIdx}`} className="bg-card rounded-xl border border-border overflow-hidden">
@@ -330,7 +326,7 @@ export function WorkoutEditPage() {
               <div className="px-3 py-2 flex items-center justify-between border-b border-border">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium truncate">
-                    {exercise?.name ?? 'Onbekend'}
+                    {nameOf(workoutExercise.exerciseId)}
                   </h3>
                   <span className="text-xs text-muted-foreground">
                     {workoutExercise.sets.length} sets

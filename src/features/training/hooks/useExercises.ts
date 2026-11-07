@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, newId, freshSyncMeta, touchSyncMeta, tombstonePatch, type Exercise, type SchemaExercise } from '../../../db/index';
 
@@ -5,6 +6,36 @@ export function useExercises() {
   return useLiveQuery(
     () => db.exercises.orderBy('name').filter(e => !e.deleted).toArray(),
   ) ?? [];
+}
+
+export interface ExerciseLookup {
+  /** Every exercise by id, tombstones included (for DISPLAYING history/schemas only). */
+  byId: Map<string, Exercise>;
+  /** True while the exercise list is still loading (live query not resolved yet). */
+  loading: boolean;
+  /**
+   * Display name for an id: the real name (also for deleted exercises), an empty
+   * string while loading, and 'Onbekend' only for ids that don't exist at all.
+   */
+  nameOf: (id: string) => string;
+}
+
+/**
+ * Name lookup for rendering history and schemas. Unlike `useExercises` this
+ * includes soft-deleted exercises, so a deleted exercise keeps its name where it
+ * is still referenced. Never use it to fill pickers, suggestions or new workouts.
+ */
+export function useExerciseLookup(): ExerciseLookup {
+  const all = useLiveQuery(() => db.exercises.toArray());
+  return useMemo(() => {
+    const byId = new Map((all ?? []).map(e => [e.id, e]));
+    const loading = all === undefined;
+    return {
+      byId,
+      loading,
+      nameOf: (id: string) => byId.get(id)?.name ?? (loading ? '' : 'Onbekend'),
+    };
+  }, [all]);
 }
 
 export function useExercise(id: string | undefined) {
