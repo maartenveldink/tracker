@@ -16,6 +16,21 @@ migrate(
     // --- Auth: configure the built-in `users` collection ---------------------
     const users = app.findCollectionByNameOrId('users');
 
+    // PocketBase's default `users` collection has no `username` field; add it
+    // (unique) so it can be the login identity.
+    users.fields.add(
+      new TextField({
+        name: 'username',
+        required: true,
+        min: 3,
+        max: 50,
+        pattern: '^[a-zA-Z0-9_.-]+$',
+      }),
+    );
+    users.addIndex('idx_users_username', true, 'username', '');
+    // No e-mail needed to register (no SMTP).
+    users.fields.getByName('email').required = false;
+
     // Login on username (no e-mail required, no verification e-mail → no SMTP).
     users.passwordAuth.enabled = true;
     users.passwordAuth.identityFields = ['username'];

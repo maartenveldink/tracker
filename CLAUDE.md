@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tracker is a personal fitness PWA for planning and logging strength training sessions. Data is stored locally in IndexedDB (offline-first, no backend). Single-user, no auth.
+Tracker is a personal fitness PWA for planning and logging strength training sessions. Data is stored locally in IndexedDB (offline-first). When built with `VITE_PB_URL` the app also requires a login and syncs to a self-hosted PocketBase (`server/`, `src/lib/sync/`, `src/features/auth/`); without it the app runs purely local. Practically single-user.
 
 ## Tech Stack
 
@@ -88,6 +88,23 @@ src/
 
 Effective rest between sets resolves specific→general (see `features/training/lib/restTime.ts`):
 `SchemaExercise.restSeconds` → `Exercise.restTimerSeconds` → laterality×movement-type matrix (`AppSettings.restDefaults`, only when both known) → global `AppSettings.restTimerSeconds`. See `docs/refinement.rest-time.md`.
+
+## Deploy (productie)
+
+Live op https://tracker.app.maartenveldink.nl/ via `prod-cli` (skill `prodctl-deploy`). Eén
+container (root-`Dockerfile`): PocketBase serveert de API én de gebouwde PWA op één origin
+(`VITE_PB_URL=same-origin`). De PWA wordt in de Docker-build gemaakt; `dist/` hoeft niet gecommit.
+Alleen gecommitte bestanden gaan mee.
+
+```bash
+prod-cli deploy --name tracker --domain app.maartenveldink.nl
+```
+
+Altijd dezelfde naam (een andere naam is een nieuwe app). Env/secrets zet een mens op de
+beheerpagina: `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD` (optioneel `TRACKER_ALLOW_SIGNUP=true`).
+**`/data` is het enige persistente pad op de server en bevat de database**, anders wist elke deploy de database; zie
+`server/README.md`. Er is geen automatische back-up (JSON-export in de app + lokale kopieën).
+Plan en requirements: `docs/plan.server-persistence.md`, `docs/requirements.server-persistence.md`.
 
 ## Removed modules
 
