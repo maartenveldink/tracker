@@ -89,6 +89,21 @@ src/
 Effective rest between sets resolves specific→general (see `features/training/lib/restTime.ts`):
 `SchemaExercise.restSeconds` → `Exercise.restTimerSeconds` → laterality×movement-type matrix (`AppSettings.restDefaults`, only when both known) → global `AppSettings.restTimerSeconds`. See `docs/refinement.rest-time.md`.
 
+## Deploy (productie)
+
+Live op https://tracker.app.maartenveldink.nl/ via `prod-cli` (skill `prodctl-deploy`).
+`dist/` staat in `.gitignore`, maar `prod-cli` uploadt alleen HEAD en bouwt niet zelf.
+Rol daarom uit vanaf de branch `deploy`: `git checkout deploy && git merge main`,
+`npm run build`, `git add -f dist`, commit, en dan:
+
+```bash
+prod-cli deploy --name tracker --domain app.maartenveldink.nl --kind spa
+```
+
+Altijd dezelfde naam gebruiken (een andere naam is een nieuwe app). Controleer daarna
+dat de live `index.html` gelijk is aan `dist/index.html`. De coach-API-key staat in
+`localStorage` van deze origin: gebruik een aparte key met een bestedingslimiet.
+
 ## Removed modules
 
 The nutrition, weekly planner and Google Health integrations were removed. Their
