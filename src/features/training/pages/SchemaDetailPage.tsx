@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
-import { useExercises } from '../hooks/useExercises';
+import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
 import { MuscleChip } from '../components/MuscleChip';
@@ -263,14 +263,11 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
 export function SchemaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const schema = useSchema(id || undefined);
+  // allExercises feeds the suggestions (no deleted ones); the lookup also holds
+  // deleted exercises so schema entries keep their name and stats.
   const allExercises = useExercises();
+  const { byId: exerciseMap, nameOf } = useExerciseLookup();
   const navigate = useNavigate();
-
-  const exerciseMap = useMemo(() => {
-    const map = new Map<string, Exercise>();
-    allExercises.forEach(e => map.set(e.id, e));
-    return map;
-  }, [allExercises]);
 
   const settings = useSettings();
   const multiDay = schema ? isMultiDay(schema) : false;
@@ -362,7 +359,7 @@ export function SchemaDetailPage() {
               <span className="text-muted-foreground text-xs w-5 text-center">{i + 1}</span>
             )}
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium">{exercise?.name ?? 'Onbekend'}</span>
+              <span className="text-sm font-medium">{nameOf(se.exerciseId)}</span>
               <div className="flex gap-1 mt-1">
                 {exercise?.primaryMuscles.map(m => (
                   <MuscleChip key={m} muscleId={m} type="primary" />

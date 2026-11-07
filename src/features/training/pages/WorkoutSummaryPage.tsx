@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { formatDurationLong } from '../../../lib/utils';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
-import { useExercises } from '../hooks/useExercises';
+import { useExerciseLookup } from '../hooks/useExercises';
 import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useProgress';
 import { calculateStreak, volumePerMuscleGroup, workoutVolume } from '../lib/metrics';
 import { isWeightedSet } from '../lib/sets';
@@ -25,7 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
-import type { Exercise, Workout } from '../../../db/index';
+import type { Workout } from '../../../db/index';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', {
@@ -181,7 +181,7 @@ export function WorkoutSummaryPage() {
   const { id } = useParams<{ id: string }>();
   const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
-  const allExercises = useExercises();
+  const { byId: exerciseMap, nameOf } = useExerciseLookup();
   const completedWorkouts = useCompletedWorkouts();
   const settings = useSettings();
   const navigate = useNavigate();
@@ -189,12 +189,6 @@ export function WorkoutSummaryPage() {
   const closeTo = (location.state as { from?: string } | null)?.from ?? '/start';
   const [showDelete, setShowDelete] = useState(false);
   const [showShare, setShowShare] = useState(false);
-
-  const exerciseMap = useMemo(() => {
-    const map = new Map<string, Exercise>();
-    allExercises.forEach(e => map.set(e.id, e));
-    return map;
-  }, [allExercises]);
 
   // Volume per muscle group (E3-08)
   const muscleVolume = useMemo(
@@ -307,12 +301,11 @@ export function WorkoutSummaryPage() {
       '',
     ];
     for (const we of workout.exercises) {
-      const exercise = exerciseMap.get(we.exerciseId);
       const done = we.sets.filter(s => s.completed);
       if (done.length === 0) continue;
       const setsText = done.map(s => `${s.weight ?? 0}×${s.actualReps ?? 0}`).join(', ');
       const pr = prExercises.has(we.exerciseId) ? ' 🏆' : '';
-      lines.push(`• ${exercise?.name ?? 'Onbekend'}: ${setsText}${pr}`);
+      lines.push(`• ${nameOf(we.exerciseId)}: ${setsText}${pr}`);
     }
     await shareText(lines.join('\n'), title);
   }
@@ -325,7 +318,7 @@ export function WorkoutSummaryPage() {
       const done = we.sets.filter(s => s.completed);
       if (done.length === 0) continue;
       exercises.push({
-        name: exerciseMap.get(we.exerciseId)?.name ?? 'Onbekend',
+        name: nameOf(we.exerciseId),
         sets: done.map(s => `${s.weight ?? 0}×${s.actualReps ?? 0}`).join(', '),
         isPR: prExercises.has(we.exerciseId),
       });
@@ -452,7 +445,6 @@ export function WorkoutSummaryPage() {
         <h3 className="text-sm font-medium text-muted-foreground mb-2">Oefeningen</h3>
         <div className="space-y-3">
           {workout.exercises.map((we, idx) => {
-            const exercise = exerciseMap.get(we.exerciseId);
             const completedSets = we.sets.filter(s => s.completed);
             const isPR = prExercises.has(we.exerciseId);
             const isImproved = !isPR && improvedExerciseIds.has(we.exerciseId);
@@ -461,7 +453,7 @@ export function WorkoutSummaryPage() {
               <Card key={`${we.exerciseId}-${idx}`} className="shadow-none">
                 <CardContent className="p-3">
                   <h4 className="text-sm font-medium mb-1 flex items-center gap-1.5">
-                    {exercise?.name ?? 'Onbekend'}
+                    {nameOf(we.exerciseId)}
                     {/* MF-03: PR badge */}
                     {isPR && (
                       <span className="text-xs text-amber-400 font-medium">

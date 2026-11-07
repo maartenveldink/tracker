@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Flame, Dumbbell, TrendingUp, Trophy, Play, Scale } from 'lucide-react';
 import { useCompletedWorkouts } from '../features/training/hooks/useProgress';
 import { useActiveWorkout } from '../features/training/hooks/useWorkout';
-import { useExercises } from '../features/training/hooks/useExercises';
+import { useExerciseLookup } from '../features/training/hooks/useExercises';
 import { useBodyWeights, addBodyWeight } from '../features/training/hooks/useBodyWeight';
 import { calculateStreak, statsForWeek, recentPRs } from '../features/training/lib/metrics';
 import { useSettings } from '../hooks/useSettings';
@@ -19,12 +19,10 @@ export function DashboardPage() {
   const workouts = useCompletedWorkouts();
   const activeState = useActiveWorkout();
   const active = activeState?.workout;
-  const exercises = useExercises();
+  const { nameOf } = useExerciseLookup();
   const settings = useSettings();
   const bodyWeights = useBodyWeights();
   const [weight, setWeight] = useState('');
-
-  const nameById = useMemo(() => new Map(exercises.map(e => [e.id!, e.name])), [exercises]);
 
   const streak = useMemo(() => calculateStreak(workouts), [workouts]);
   const week = useMemo(() => statsForWeek(workouts), [workouts]);
@@ -104,7 +102,7 @@ export function DashboardPage() {
               <ul className="space-y-1.5">
                 {prs.map(pr => (
                   <li key={pr.exerciseId} className="flex items-center justify-between text-sm gap-2">
-                    <span className="truncate">{nameById.get(pr.exerciseId) ?? 'Onbekend'}</span>
+                    <span className="truncate">{nameOf(pr.exerciseId)}</span>
                     <span className="text-muted-foreground shrink-0">
                       {pr.weight} kg × {pr.reps} · ~{Math.round(pr.best1RM)} kg
                     </span>

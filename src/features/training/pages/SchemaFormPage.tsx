@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSchema, createSchema, updateSchema } from '../hooks/useSchemas';
-import { useExercises } from '../hooks/useExercises';
+import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2, Link2, Link2Off } from 'lucide-react';
-import type { SchemaExercise, SchemaDay, Exercise } from '../../../db/index';
+import type { SchemaExercise, SchemaDay } from '../../../db/index';
 
 interface DayState {
   id: string;
@@ -155,6 +155,9 @@ export function SchemaFormPage() {
   const schemaId = id || undefined;
   const existing = useSchema(schemaId);
   const allExercises = useExercises();
+  // Lookup includes deleted exercises so entries already in the schema keep
+  // their name, rest and weight step; the picker only uses allExercises.
+  const { byId: exerciseById, nameOf } = useExerciseLookup();
   const settings = useSettings();
   const latestOneRM = useLatestOneRMByExercise(settings.oneRMFormula);
   const navigate = useNavigate();
@@ -236,18 +239,6 @@ export function SchemaFormPage() {
     if (isEditing) return;
     saveDraft({ name, exercises, days, rotation });
   }, [isEditing, name, exercises, days, rotation]);
-
-  const exerciseMap = useMemo(() => {
-    const map = new Map<string, string>();
-    allExercises.forEach(e => map.set(e.id, e.name));
-    return map;
-  }, [allExercises]);
-
-  const exerciseById = useMemo(() => {
-    const map = new Map<string, Exercise>();
-    allExercises.forEach(e => map.set(e.id, e));
-    return map;
-  }, [allExercises]);
 
   const filteredExercises = useMemo(() => {
     if (!exerciseSearch) return allExercises;
@@ -621,7 +612,7 @@ export function SchemaFormPage() {
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium truncate">
-                      {exerciseMap.get(ex.exerciseId) ?? 'Onbekend'}
+                      {nameOf(ex.exerciseId)}
                     </span>
                     {!isExpanded && (
                       <span className="block text-xs text-muted-foreground truncate">{summary}</span>
