@@ -1,6 +1,7 @@
 import { db, type AppSettings } from '../../../db/index';
 import { seedDatabase } from './seed';
 import { clearCoachConfig } from '../lib/coachConfig';
+import { clearDeloadDismissal } from '../lib/deloadDismiss';
 
 const SETTINGS_DEFAULTS: AppSettings = {
   id: 1,
@@ -45,5 +46,7 @@ export async function clearAllData(): Promise<void> {
   );
   // The coach API key lives outside Dexie (never synced/exported); wipe it too.
   clearCoachConfig();
+  // Same for the device-local "hide deload notice" snooze.
+  clearDeloadDismissal();
   await seedDatabase();
 }
