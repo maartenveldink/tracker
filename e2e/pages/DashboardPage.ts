@@ -18,6 +18,11 @@ export class DashboardPage {
     return this.page.getByText(/laatst .* kg/);
   }
 
+  /** The weeks-in-a-row training streak number. */
+  get streak(): Locator {
+    return this.page.getByText('wk streak').locator('xpath=preceding-sibling::p[1]');
+  }
+
   get resumeButton(): Locator {
     return this.page.getByRole('button', { name: 'Hervat' });
   }

@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { removeSetAt } from '../lib/sets';
 import { db, newId, freshSyncMeta, touchSyncMeta, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
 export function useWorkout(id: string | undefined) {
@@ -123,7 +124,10 @@ export async function addWorkoutSet(
   });
 }
 
-/** Remove a set from a workout exercise, renumbering the remaining sets. */
+/**
+ * Remove a set from a workout exercise, renumbering the remaining sets. For a
+ * unilateral exercise both sides of the left/right pair are removed together.
+ */
 export async function removeWorkoutSet(
   workoutId: string,
   exerciseIndex: number,
@@ -137,9 +141,7 @@ export async function removeWorkoutSet(
     const exercise = exercises[exerciseIndex];
     if (!exercise) return;
 
-    const sets = exercise.sets
-      .filter((_, i) => i !== setIndex)
-      .map((set, i) => ({ ...set, setNumber: i + 1 }));
+    const sets = removeSetAt(exercise.sets, setIndex);
 
     exercises[exerciseIndex] = { ...exercise, sets };
     await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });

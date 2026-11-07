@@ -28,6 +28,7 @@ import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { isWeightedSet } from '../lib/sets';
 import {
   Sheet,
   SheetContent,
@@ -103,9 +104,7 @@ function findPreviousSession(
     const exerciseData = w.exercises.find(e => e.exerciseId === exerciseId);
     if (!exerciseData) continue;
 
-    const completedSets = exerciseData.sets.filter(
-      s => s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0,
-    );
+    const completedSets = exerciseData.sets.filter(isWeightedSet);
     if (completedSets.length === 0) continue;
 
     return {
@@ -498,9 +497,7 @@ export function WorkoutPage() {
     const formula = settings.oneRMFormula;
     for (const we of workout.exercises) {
       const done = we.sets.length > 0 && we.sets.every(s => s.completed || s.skipped);
-      const hasCompleted = we.sets.some(
-        s => s.completed && s.weight !== null && s.weight > 0 && s.actualReps !== null && s.actualReps > 0,
-      );
+      const hasCompleted = we.sets.some(isWeightedSet);
       if (!done || !hasCompleted) {
         // Not finished (or edited back open) — let it celebrate again later.
         celebratedRef.current.delete(we.exerciseId);

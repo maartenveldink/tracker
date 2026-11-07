@@ -119,6 +119,11 @@ export class WorkoutPage {
     await this.expandedCard.getByRole('button', { name: 'Set verwijderen' }).last().click();
   }
 
+  /** Removes the set at `index` (0-based) of the expanded card. */
+  async removeSet(index: number): Promise<void> {
+    await this.expandedCard.getByRole('button', { name: 'Set verwijderen' }).nth(index).click();
+  }
+
   /** Skips the running rest timer (the X button inside the timer bar). */
   async skipRest(): Promise<void> {
     await this.restTimer.getByRole('button').last().click();
