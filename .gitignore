@@ -32,3 +32,7 @@ dev-dist/
 
 # Local data exports (personal data)
 tracker-export-*.json
+
+# Persistent app data on the server (bind-mounted at /data); keep only the marker
+/data/*
+!/data/.gitkeep

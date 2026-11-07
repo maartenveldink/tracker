@@ -102,7 +102,7 @@ prod-cli deploy --name tracker --domain app.maartenveldink.nl
 
 Altijd dezelfde naam (een andere naam is een nieuwe app). Env/secrets zet een mens op de
 beheerpagina: `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD` (optioneel `TRACKER_ALLOW_SIGNUP=true`).
-**`/data` is het enige persistente pad op de server en bevat de database**, anders wist elke deploy de database; zie
+**`/data` is het enige persistente pad op de server en bevat de database; het wordt alleen gekoppeld als de repo `data/.gitkeep` bevat (niet verwijderen)**, anders wist elke deploy de database; zie
 `server/README.md`. Er is geen automatische back-up (JSON-export in de app + lokale kopieën).
 Plan en requirements: `docs/plan.server-persistence.md`, `docs/requirements.server-persistence.md`.
 

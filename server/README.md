@@ -26,11 +26,15 @@ only provides auth, storage and per-user isolation. The sync engine is in `src/l
 
 ## Persistence (important)
 
-Everything lives in `PB_DATA_DIR`. If that directory is not on persistent storage,
-**every deploy wipes the database.** Mount a host directory (or volume) at `/data`
-and make it writable for the container (it runs as root in the base image).
-Before putting real data on it, verify persistence once: create a record in the admin
-UI, redeploy, check the record is still there.
+Everything lives in `PB_DATA_DIR` (`/data`). On the server the container root is read-only and
+only `/data` and `/tmp` are writable. `/data` is a bind mount of `~/data/tracker` on the host, and
+the platform **only creates that mount when the project contains a `data/` directory**
+(`lib/runtime/podman.sh` in release-scripting). That is why the repo has `data/.gitkeep`: do
+not delete it, or the next deploy has no persistent `/data` and PocketBase crashes on start.
+The host directory outlives deploys; its contents are never replaced by the repo.
+
+Before putting real data on it, verify persistence once: create a record in the admin UI,
+redeploy, check the record is still there.
 
 There is **no automated backup**. The reserve copies are the JSON export in the app
 (Instellingen) and the local IndexedDB copy on each signed-in device.
