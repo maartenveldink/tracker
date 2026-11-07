@@ -17,7 +17,19 @@ export class WorkoutPage {
       .filter({ has: this.page.getByTestId('quick-reps') });
   }
 
-  /** Name of the exercise in the expanded card. */
+  /**
+   * Title (exercise name) of the expanded card. Assert on it with web-first
+   * assertions (`toContainText`): right after the workout opens, the card can
+   * render before the exercise list has loaded from IndexedDB.
+   */
+  get expandedTitle(): Locator {
+    return this.expandedCard.locator('h3').first();
+  }
+
+  /**
+   * Name of the exercise in the expanded card — a one-shot read that does not
+   * retry; only use it inside `expect.poll`, otherwise prefer `expandedTitle`.
+   */
   async expandedExerciseName(): Promise<string> {
     return (await this.expandedCard.locator('h3').first().innerText()).trim();
   }

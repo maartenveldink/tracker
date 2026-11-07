@@ -53,16 +53,16 @@ test.describe('Supersets — live workout', () => {
 
     // The superset is rendered as one group; A starts expanded.
     await expect(workout.supersetGroups).toHaveCount(1);
-    expect(await workout.expandedExerciseName()).toContain(A);
+    await expect(workout.expandedTitle).toContainText(A);
 
     // Completing A's set hands off to B with no rest (mid-round).
     await workout.completeActiveSet(60, 10);
-    await expect(workout.expandedCard.locator('h3').first()).toContainText(B);
+    await expect(workout.expandedTitle).toContainText(B);
     await expect(workout.restTimer).toHaveCount(0);
 
     // Completing B's set ends the round: rest starts, focus returns to A.
     await workout.completeActiveSet(50, 10);
     await expect(workout.restTimer).toBeVisible();
-    await expect(workout.expandedCard.locator('h3').first()).toContainText(A);
+    await expect(workout.expandedTitle).toContainText(A);
   });
 });
