@@ -39,6 +39,32 @@ export class WorkoutPage {
     return this.page.getByTestId('rest-timer');
   }
 
+  /** Exercise names of all cards, in on-screen order (use with `toHaveText([...])`). */
+  get cardTitles(): Locator {
+    return this.page.getByTestId('exercise-card').locator('h3');
+  }
+
+  /** The card of the named exercise. */
+  card(name: string): Locator {
+    return this.page
+      .getByTestId('exercise-card')
+      .filter({ has: this.page.locator('h3', { hasText: name }) });
+  }
+
+  /** The nth (0-based) pill of the exercise navigation bar, e.g. "Barbell Row 0/3". */
+  navPill(index: number): Locator {
+    return this.page.locator('nav button').nth(index);
+  }
+
+  /**
+   * Logs every remaining set of the expanded (non-superset) exercise: weight +
+   * reps on the first, reps only on the rest (the weight carries over).
+   */
+  async completeExercise(weight: number, reps: number, sets = 3): Promise<void> {
+    await this.completeActiveSet(weight, reps);
+    for (let i = 1; i < sets; i++) await this.logActiveReps(reps);
+  }
+
   get supersetGroups(): Locator {
     return this.page.getByTestId('superset-group');
   }

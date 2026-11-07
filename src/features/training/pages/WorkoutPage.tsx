@@ -18,6 +18,7 @@ import { formatReps } from '../lib/reps';
 import { resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { groupSupersets, supersetBlocks } from '../lib/superset';
+import { isExerciseDone, shiftIndex } from '../lib/insertPosition';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
 import { bestOneRMForExercise, previousBestOneRM } from '../lib/progression';
@@ -376,6 +377,9 @@ export function WorkoutPage() {
   // tapping a header lets the user override until the active exercise advances.
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
+  // Guards against a double tap inserting the same exercise twice
+  const addingExerciseRef = useRef(false);
+
   // NAV-01: refs for scrolling to exercises
   const exerciseRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -416,9 +420,7 @@ export function WorkoutPage() {
   // every exercise is done. Used to drive auto-expand/collapse.
   const activeExerciseIdx = useMemo(() => {
     if (!workout) return -1;
-    return workout.exercises.findIndex(
-      ex => !(ex.sets.length > 0 && ex.sets.every(s => s.completed || s.skipped)),
-    );
+    return workout.exercises.findIndex(ex => !isExerciseDone(ex));
   }, [workout]);
 
   // Timer (E3-06)
@@ -496,7 +498,7 @@ export function WorkoutPage() {
     if (!workout || workout.status === 'completed') return;
     const formula = settings.oneRMFormula;
     for (const we of workout.exercises) {
-      const done = we.sets.length > 0 && we.sets.every(s => s.completed || s.skipped);
+      const done = isExerciseDone(we);
       const hasCompleted = we.sets.some(isWeightedSet);
       if (!done || !hasCompleted) {
         // Not finished (or edited back open) — let it celebrate again later.
@@ -525,6 +527,16 @@ export function WorkoutPage() {
       });
     });
   }, []);
+
+  // After adding an exercise: scroll to it once the live query has rendered its
+  // card (the refs only point at the new card after that commit).
+  const [pendingScroll, setPendingScroll] = useState<{ idx: number; minCount: number } | null>(null);
+  const exerciseCount = workout?.exercises.length ?? 0;
+  useEffect(() => {
+    if (!pendingScroll || exerciseCount < pendingScroll.minCount) return;
+    setPendingScroll(null);
+    scrollToExercise(pendingScroll.idx);
+  }, [pendingScroll, exerciseCount, scrollToExercise]);
 
   // NAV-07: keep the active exercise expanded. When it advances (previous one
   // fully logged), collapse the old card, expand the new one and scroll it in.
@@ -768,8 +780,36 @@ export function WorkoutPage() {
   }
 
   async function handleAddExercise(exerciseId: string) {
-    if (!workoutId) return;
-    await addWorkoutExercise(workoutId, exerciseId);
+    if (!workoutId || addingExerciseRef.current) return;
+    addingExerciseRef.current = true;
+    const countBefore = workout?.exercises.length ?? 0;
+    let at: number;
+    try {
+      at = await addWorkoutExercise(workoutId, exerciseId);
+    } finally {
+      addingExerciseRef.current = false;
+    }
+    if (at >= 0) {
+      // The exercise is inserted mid-list, so every index-keyed piece of state
+      // for the exercises behind it has to move along with them.
+      setRestTimer(prev => (prev ? { ...prev, exerciseIdx: shiftIndex(prev.exerciseIdx, at) } : prev));
+      setExpandedNotes(prev => (prev === null ? null : shiftIndex(prev, at)));
+      setExerciseNotesDrafts(prev => Object.fromEntries(
+        Object.entries(prev).map(([k, v]) => [shiftIndex(Number(k), at), v]),
+      ));
+      setWeightErrorKey(prev => {
+        if (!prev) return prev;
+        const [ex, set] = prev.split('-');
+        return `${shiftIndex(Number(ex), at)}-${set}`;
+      });
+      setDeleteExerciseIdx(prev => (prev === null ? null : shiftIndex(prev, at)));
+      // Show the new exercise (expand + scroll), unless a rest timer is running:
+      // its bar lives in the expanded card, so keep that one open.
+      if (!restTimer) {
+        setExpandedIdx(at);
+        setPendingScroll({ idx: at, minCount: countBefore + 1 });
+      }
+    }
     setShowAddExercise(false);
     setExerciseSearch('');
     setCreatingExercise(null);
