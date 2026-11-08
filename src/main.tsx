@@ -2,21 +2,27 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { installDiagnostics } from './lib/diagnostics';
 import { AuthProvider } from './features/auth/AuthContext';
 import { seedDatabase } from './features/training/db/seed';
 import { initSettings } from './hooks/useSettings';
 import './index.css';
+
+installDiagnostics();
 
 seedDatabase()
   .then(() => initSettings())
   .then(() => {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </ErrorBoundary>
       </React.StrictMode>,
     );
   })

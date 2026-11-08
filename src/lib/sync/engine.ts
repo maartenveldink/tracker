@@ -3,6 +3,7 @@ import { ClientResponseError } from 'pocketbase';
 import { db } from '@/db/index';
 import { pb, currentUserId, hasStoredIdentity } from '@/lib/pb';
 import { setSyncState } from './status';
+import { COLLECTION_TABLE, DATE_FIELDS, reviveDateFields } from './dates';
 
 /**
  * Offline-first sync engine (see `docs/design.multi-user-sync.md`).
@@ -64,8 +65,9 @@ function toData(record: SyncedRecord): Record<string, unknown> {
 }
 
 /** Rebuild a local row from a PocketBase record; it arrives clean (dirty=0). */
-function fromRecord(rec: { data: Record<string, unknown> }): SyncedRecord {
-  return { ...(rec.data as unknown as SyncedRecord), dirty: 0 };
+function fromRecord(collection: string, rec: { data: Record<string, unknown> }): SyncedRecord {
+  const fields = DATE_FIELDS[COLLECTION_TABLE[collection] ?? ''] ?? [];
+  return reviveDateFields({ ...(rec.data as unknown as SyncedRecord), dirty: 0 as const }, fields);
 }
 
 function is404(err: unknown): boolean {
@@ -123,7 +125,7 @@ async function pullTable({ collection, table }: TableSync): Promise<void> {
 
   let newCursor = cursor;
   for (const rec of records) {
-    const incoming = fromRecord(rec as unknown as { data: Record<string, unknown> });
+    const incoming = fromRecord(collection, rec as unknown as { data: Record<string, unknown> });
     const local = await table.get(incoming.id);
     // Last-write-wins: take the server row unless the local one is newer AND
     // still pending push (would otherwise clobber an unsynced local edit).

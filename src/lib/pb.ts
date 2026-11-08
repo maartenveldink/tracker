@@ -2,7 +2,7 @@ import PocketBase from 'pocketbase';
 
 /**
  * Single PocketBase client for the whole app. The base URL is a build-time env
- * var (`VITE_PB_URL`); when unset (e.g. the PWA is served from the same origin
+ * var (`VITE_PB_URL`, or `same-origin`); when unset (e.g. the PWA is served from the same origin
  * as PocketBase) it falls back to the current origin.
  *
  * The SDK persists the auth token + user record in localStorage, so a logged-in
@@ -11,7 +11,10 @@ import PocketBase from 'pocketbase';
  * being currently valid, so an expired token never locks you out of your local
  * data (see `docs/design.multi-user-sync.md` → offline-gedrag & auth).
  */
-const configuredUrl = import.meta.env.VITE_PB_URL as string | undefined;
+const rawUrl = import.meta.env.VITE_PB_URL as string | undefined;
+// "same-origin" (used by the Docker image, where PocketBase serves the PWA) means
+// the API lives on the origin the app is loaded from.
+const configuredUrl = rawUrl === 'same-origin' ? window.location.origin : rawUrl;
 const baseUrl = configuredUrl || window.location.origin;
 
 export const pb = new PocketBase(baseUrl);

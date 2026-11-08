@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+.git
+.env
+.env.*
+tmp
+test-results
+playwright-report
+blob-report
+playwright/.cache
+tracker-export-*.json
+server/pb_data
+**/.pbdata

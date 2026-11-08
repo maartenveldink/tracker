@@ -39,6 +39,11 @@ function subscribe(cb: () => void): () => void {
   return () => listeners.delete(cb);
 }
 
+/** Non-React read of the current sync status (e.g. for diagnostics). */
+export function getSyncStatus(): SyncStatus {
+  return getSnapshot();
+}
+
 /** React hook: the current sync status. */
 export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(subscribe, getSnapshot);

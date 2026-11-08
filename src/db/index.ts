@@ -1,3 +1,4 @@
+import { DATE_FIELDS, reviveDateFields } from '@/lib/sync/dates';
 import Dexie, { type EntityTable } from 'dexie';
 
 // --- Sync metadata ---
@@ -727,6 +728,16 @@ class TrackerDB extends Dexie {
 
     // Drop the temp store.
     this.version(20).stores({ _syncMigration: null });
+
+    // Repair: before this version the sync pull stored dates as ISO strings instead of
+    // Date objects, which crashed anything calling `.getTime()` on them. Revive them.
+    this.version(21).stores({}).upgrade(async tx => {
+      for (const [table, fields] of Object.entries(DATE_FIELDS)) {
+        await tx.table(table).toCollection().modify(row => {
+          Object.assign(row, reviveDateFields(row, fields));
+        });
+      }
+    });
   }
 }
 
