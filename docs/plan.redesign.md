@@ -22,11 +22,17 @@ Antwoorden op DESIGN.md §12, om agents tijd te besparen. Agents verifiëren ze 
 | - | Tests | Alleen Playwright e2e (`e2e/`, Page Objects). **Er zijn geen unit tests**: DESIGN.md vraagt eenheidstests voor §6/§7/§8-logica. Beslis in stap 0: Vitest toevoegen (aanbevolen, kleine devDependency) of via e2e dekken. |
 | - | `theme-color` | `index.html` en `vite.config.ts` (manifest) staan op `#1e293b` -> `#0A0E1A`. |
 
-Open beslissingen (eigenaar beslist, agent legt vast in dit document):
-1. Lichaamsgewicht-oefeningen en 1RM (DESIGN §12.4).
-2. Vergelijking vorige sessie: totaalvolume (ontwerp) of beste set / gelijk aantal sets (DESIGN §12.6).
-3. Volume-delta: vorige week volledig of tot dezelfde weekdag (§12.7).
-4. Unit-testframework (Vitest ja/nee).
+Beslissingen (stand 2026-11-08):
+1. **Lichaamsgewicht en 1RM: uitgesteld.** Voorlopig worden sets zonder gewicht (zie `lib/sets.ts`: `isWeightedSet`) buiten de 1RM-berekeningen gehouden. Gevolg: oefeningen zonder gewogen sets krijgen geen 1RM-grafiek, geen PR en geen viering. Kom hier later op terug (DESIGN §12.4).
+2. **"Beter dan vorige keer" = gemiddeld geschat 1RM over alle gewogen sets van de oefening** (vandaag t.o.v. de vorige sessie van dezelfde oefening), in plaats van totaalvolume (DESIGN §8/§12.6).
+   - Epley per set: `gewicht x (1 + herhalingen/30)`; 1 herhaling = gewicht. Gemiddelde over alle gewogen, afgeronde sets van die sessie.
+   - Beter = gemiddelde vandaag > gemiddelde vorige sessie. Geen vorige sessie, of geen gewogen sets: geen viering.
+   - Een extra set verhoogt de score niet vanzelf; een lichte extra set kan hem zelfs verlagen. Dat is bedoeld.
+   - Sets met meer dan 12 herhalingen tellen niet mee (consistent met DESIGN §7). Als daardoor niets overblijft: geen viering.
+   - Banner-subregel (DESIGN §8) wordt `+{x} kg geschat 1RM`; het deel `+n herhalingen` blijft alleen als herhalingen in totaal toenamen. Het volume-deel vervalt. Per-setverschil in de vergelijkingstabel blijft zoals ontworpen.
+   - Eén pure functie in `features/training/lib/` (bv. `improvement.ts`) met unit tests; ook voor het "Beter dan"-label elders gebruikt.
+3. Volume-delta in de tile: nog open (DESIGN §12.7). Standaard tot de eerste PR: vorige week volledig, zoals in het ontwerp.
+4. Unit-testframework: nog open. Aanbeveling Vitest.
 
 ## 2. Aanpak en risico's
 
@@ -45,7 +51,7 @@ Elk pakket = eigen branch + PR vanaf `main`, `npm run build` + `npm run e2e` gro
 geeft volgorde; pakketten zonder afhankelijkheid kunnen parallel.
 
 ### WP0 Besluiten en testbasis (klein, eerst)
-- Leg de vier open beslissingen vast (bovenaan dit bestand).
+- Beslissing 3 en 4 afronden (zie §1); 1 en 2 zijn genomen.
 - Voeg zo nodig Vitest toe + `npm test` script; documenteer in `CLAUDE.md` (Testing-sectie).
 - Update `CLAUDE.md`: habits, design-handoff, nieuwe conventies.
 
@@ -70,7 +76,7 @@ geeft volgorde; pakketten zonder afhankelijkheid kunnen parallel.
 - Kan eventueel gesplitst: 4a statemachine + tests, 4b UI.
 
 ### WP5 Viering   (afh. WP4)
-Trigger (DESIGN §8), banner, vergelijkingstabel, confetti/vuurwerk (deterministische pseudo-random, `aria-hidden`), instelling "Viering bij verbetering" + "Trillen" in Instellingen, reduced motion. Trigger-logica als pure functie + tests. Verwijder/koppel de bestaande verbeteringsanimatie.
+Trigger = gemiddeld geschat 1RM (beslissing 2, niet totaalvolume zoals DESIGN §8), banner, vergelijkingstabel, confetti/vuurwerk (deterministische pseudo-random, `aria-hidden`), instelling "Viering bij verbetering" + "Trillen" in Instellingen, reduced motion. Trigger-logica als pure functie + tests. Verwijder/koppel de bestaande verbeteringsanimatie.
 
 ### WP6 Progressie  (afh. WP1, parallel met WP4)
 `ProgressPage`: segmented Oefeningen | Overzicht | Gewicht (`?tab=` blijft werken, o.a. `?tab=overview`). Bestaande secties (records, heatmap, kalender, volume-trend, lichaamsgewicht, history) opnieuw plaatsen in het nieuwe ontwerp; verlies **geen** bestaande feature zonder dat de eigenaar dat beslist (kalender, heatmap, goals, deload staan niet in het ontwerp!). Nieuw: plateau-signaal, sets per spiergroep, 7-daags gemiddelde. Grafieken: recharts is al aanwezig (lazy); houd het daarbij of eigen SVG, met `role="img"` + `aria-label`.
