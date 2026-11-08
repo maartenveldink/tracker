@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { clearAllData } from '@/features/training/db/seedDemoWorkouts';
 import { AccountCard } from '@/features/auth/AccountCard';
-import { CoachSettingsCard } from '@/features/training/components/CoachSettingsCard';
 import { useSettings, updateSettings } from '@/hooks/useSettings';
 import {
   WEIGHT_STEP_PRESETS,
@@ -494,8 +493,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Claude-coach: API key (local only) + model */}
-      <CoachSettingsCard />
 
       {/* E8-07: Export */}
       <Card>
@@ -554,8 +551,7 @@ export function SettingsPage() {
           </CardTitle>
           <CardDescription>
             Verwijdert alle trainingen, schema's, voeding en zelfgemaakte oefeningen. De standaard
-            oefeningen worden daarna opnieuw ingeladen. Instellingen worden gereset en de API-key van de
-            Claude-coach wordt verwijderd.
+            oefeningen worden daarna opnieuw ingeladen. Instellingen worden gereset.
           </CardDescription>
         </CardHeader>
         <CardContent>

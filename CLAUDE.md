@@ -50,9 +50,9 @@ src/
     training/     # Exercises, schemas, live workout, progress & metrics — the whole app
       db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
       hooks/      # useExercises (+ useExerciseLookup), useSchemas, useWorkout, useProgress, useBodyWeight, useCoachSummary
-      lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude), claudeCoach (Anthropic API client), coachConfig (API key + model, localStorage), coachDiff (proposal vs current schema)
-      pages/      # Exercise*, Schema*, SchemaImport, Coach (lazy), StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
-      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection, CoachSettingsCard
+      lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
+      pages/      # Exercise*, Schema*, SchemaImport, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
+      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
   App.tsx         # Routes (Dashboard is "/"), lazy-loads the Progress page
   main.tsx        # Entry point (seeds DB, inits settings, renders app)
   index.css       # Tailwind directives
@@ -68,7 +68,7 @@ src/
 - **No external state management:** Dexie live queries replace Redux/Zustand
 - **Exercise names in history/schemas:** look names and metadata up via `useExerciseLookup` (includes soft-deleted exercises). Pickers and suggestions keep using `useExercises` (excludes deleted).
 - **Sets without weight:** a completed set with reps > 0 counts as a set even without weight (bodyweight work), but contributes 0 kg volume and no 1RM/PR. Use the predicates in `features/training/lib/sets.ts`.
-- **Secrets and local-only prefs** (Claude API key/model, deload snooze) live in `localStorage` (`tracker.coach.*`, `tracker.deload.*`), never in `AppSettings`, export or sync; `clearAllData()` removes them.
+- **Local-only prefs** (deload snooze) live in `localStorage` (`tracker.deload.*`), never in `AppSettings`, export or sync; `clearAllData()` removes them.
 
 ## Implemented Epics
 
@@ -81,7 +81,7 @@ src/
 - **Progressive overload**: hitting the top of the rep range on every set bumps the next session's suggested weight by one increment (per-exercise `weightStep` override, else the equipment/global step).
 - **Epic 8**: Settings — 1RM formula, muscle detail level, workout density, per-equipment weight steps, rest timer + alert toggles + laterality×movement-type rest-defaults matrix; clear data, JSON export/import.
 
-- **Claude-coach** (`docs/plan.claude-coach.md`): step 1 readable schema JSON + import screen; step 2 "Kopieer voor Claude" on the schema detail (`coachSummary` + `coachPrompt`, no raw sets, relative weeks); step 3 direct Anthropic API call from the browser (`claudeCoach`, `CoachPage`, settings card). The proposal is saved as a **new** schema (never overwrites), new exercises are marked in the diff. The API key and model are in `localStorage` only. `tool_choice` is `auto` (a forced tool choice returns 400 on the 5.5 models). Not yet verified against the live API; e2e mocks it (`mockAnthropic`). Step 4 (reminder card) is not built.
+- **AI-coach** (`docs/plan.ai-coach.md`): step 1 readable schema JSON + import screen; step 2 "Kopieer voor AI" on the schema detail (`coachSummary` + `coachPrompt`, no raw sets, relative weeks) — copy/paste into an AI chat, answer pasted back via the import screen. Step 3 (direct Anthropic API call with a local API key) was built and then removed again; it is in git history (PR #3, `cb9f719`). Step 4 (reminder card) is not built.
 - **Import/export**: JSON import revives `Date` fields and, in merge mode, remaps `schemaId`/`exerciseId`.
 
 ## Rest-time resolution

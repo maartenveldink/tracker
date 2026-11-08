@@ -6,7 +6,7 @@ import { getSyncStatus } from '@/lib/sync/status';
  * builds a copy-pasteable report for the error screen (`ErrorBoundary`).
  *
  * The report deliberately contains no localStorage or IndexedDB content, so it never
- * includes the Claude API key, the auth token or training data.
+ * includes an AI API key, the auth token or training data.
  */
 
 /** Only this account sees the technical details on the error screen. */

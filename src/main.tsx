@@ -11,6 +11,14 @@ import './index.css';
 
 installDiagnostics();
 
+// The AI API integration was removed; drop any API key stored by it.
+try {
+  localStorage.removeItem('tracker.coach.apiKey');
+  localStorage.removeItem('tracker.coach.model');
+} catch {
+  // storage unavailable
+}
+
 seedDatabase()
   .then(() => initSettings())
   .then(() => {

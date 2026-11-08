@@ -509,7 +509,7 @@ export function SchemaDetailPage() {
         <MuscleStatsSection analysis={totalAnalysis} allExercises={allExercises} exercises={totalExercises} exerciseMap={exerciseMap} />
       )}
 
-      {/* Copy a training summary for Claude (route A) */}
+      {/* Copy a training summary for an AI assistant */}
       <Separator />
       <CoachCopySection schema={schema} />
 

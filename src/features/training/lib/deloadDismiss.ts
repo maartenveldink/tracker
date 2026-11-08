@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
  *
  * Deliberately NOT in `AppSettings`/Dexie (that row is synced and exported):
  * it lives in `localStorage` under its own key. `clearDeloadDismissal()` is
- * called from `clearAllData()`, like `clearCoachConfig()` for `tracker.coach.*`.
+ * called from `clearAllData()`.
  */
 
 export const DELOAD_DISMISSED_STORAGE = 'tracker.deload.dismissedUntil';

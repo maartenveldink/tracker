@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ClipboardCopy, Sparkles } from 'lucide-react';
+import { Check, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { CoachPeriodWeeks } from '../lib/coachSummary';
 import { buildCoachPrompt } from '../lib/coachPrompt';
@@ -10,8 +10,8 @@ import type { TrainingSchema } from '../../../db/index';
 const PERIODS: CoachPeriodWeeks[] = [4, 8];
 
 /**
- * "Kopieer voor Claude" (route A): copies a prompt + JSON Schema + compact
- * training summary to the clipboard, to paste into claude.ai. The answer
+ * "Kopieer voor AI" (copy/paste): copies a prompt + JSON Schema + compact
+ * training summary to the clipboard, to paste into an AI chat. The answer
  * (JSON only) can be pasted back at "Importeer schema".
  */
 export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
@@ -49,19 +49,10 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
   return (
     <section className="px-4 py-3" aria-labelledby="coach-copy-heading" data-testid="coach-copy">
       <h2 id="coach-copy-heading" className="text-sm font-medium text-muted-foreground">
-        Analyse door Claude
+        Analyse door AI
       </h2>
-      <Button asChild variant="default" className="w-full my-2">
-        <Link to={`/schemas/${schema.id}/coach`}>
-          <Sparkles className="h-4 w-4" />
-          Laat Claude analyseren
-        </Link>
-      </Button>
-      <p className="text-xs text-muted-foreground/80 mb-2">
-        Of zonder API-key, via claude.ai:
-      </p>
       <p className="text-xs text-muted-foreground/80 mb-3">
-        Kopieer een samenvatting van je training (geen ruwe sets of datums; je notities gaan wel letterlijk mee) en plak die in claude.ai.
+        Kopieer een samenvatting van je training (geen ruwe sets of datums; je notities gaan wel letterlijk mee) en plak die in je AI-assistent (ChatGPT, Claude, Gemini, ...).
         Plak het voorgestelde schema daarna terug via{' '}
         <Link to="/schemas/import" className="underline">Importeer schema</Link>.
       </p>
@@ -93,7 +84,7 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
 
       <Button type="button" className="mt-3 w-full" onClick={copy} disabled={!loaded}>
         {copied ? <Check className="h-4 w-4" /> : <ClipboardCopy className="h-4 w-4" />}
-        {copied ? 'Gekopieerd' : 'Kopieer voor Claude'}
+        {copied ? 'Gekopieerd' : 'Kopieer voor AI'}
       </Button>
       {failed && (
         <p role="alert" className="mt-2 text-xs text-amber-400">

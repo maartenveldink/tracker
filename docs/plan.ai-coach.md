@@ -1,9 +1,9 @@
-# Plan: Claude-coach (schema-import + AI-analyse)
+# Plan: AI-coach (schema-import + AI-analyse)
 
 ## Doel
 
 1. Een schema kunnen importeren uit leesbare JSON (bijv. door een AI gemaakt).
-2. Elke paar weken Claude vragen wat ik gedaan heb, waar ik achterblijf, en
+2. Elke paar weken een AI vragen wat ik gedaan heb, waar ik achterblijf, en
    een aangepast schema laten voorstellen, rechtstreeks vanuit de app (route B).
 
 De app blijft offline-first zonder backend. Alleen de analyse vraagt internet.
@@ -16,7 +16,7 @@ De app blijft offline-first zonder backend. Alleen de analyse vraagt internet.
   opgeslagen, zodat vergelijken en terugzetten kan.
 - Structured output via tool use, dus altijd geldig JSON in plaats van tekst parsen.
 - Analyse in het Nederlands.
-- Route A (samenvatting kopiëren naar claude.ai en JSON terug plakken) blijft
+- Route A (samenvatting kopiëren naar een AI-chat en JSON terug plakken) blijft
   bruikbaar als terugvaloptie en valt vanzelf af van stap 1 en 2.
 
 ## Huidige situatie
@@ -46,7 +46,7 @@ De app blijft offline-first zonder backend. Alleen de analyse vraagt internet.
   validatie, samenvatting, daarna dezelfde bevestiging als nu.
 - E2E: geldige import, ongeldige import (fouten zichtbaar), onbekende oefening.
 
-### Stap 2: Analyse-samenvatting + "Kopieer voor Claude" (route A)
+### Stap 2: Analyse-samenvatting + "Kopieer voor AI" (route A)
 
 - `features/training/lib/coachSummary.ts`, bouwt compacte JSON over een periode
   (4 of 8 weken) uit bestaande `metrics` en `useProgress`:
@@ -58,10 +58,12 @@ De app blijft offline-first zonder backend. Alleen de analyse vraagt internet.
   - huidig schema in het leesbare formaat
   - lijst met bestaande oefeningnamen
 - Geen ruwe sets: bespaart tokens en privacy; doel is enkele duizenden tokens.
-- Knop "Kopieer voor Claude" met prompt + JSON Schema + samenvatting.
+- Knop "Kopieer voor AI" met prompt + JSON Schema + samenvatting.
 - Pure functie, dus makkelijk te testen via de bestaande fixtures.
 
 ### Stap 3: API-client en CoachPage (route B)
+
+> **Status: gebouwd en daarna weer verwijderd** (route A volstaat; zie PR #3, `cb9f719`). De beschrijving hieronder is historisch.
 
 - `features/training/lib/claudeCoach.ts`
   - `fetch` naar `https://api.anthropic.com/v1/messages`.
@@ -102,7 +104,7 @@ De app blijft offline-first zonder backend. Alleen de analyse vraagt internet.
 
 ## Open punten
 
-- Mag Claude nieuwe oefeningen voorstellen? Voorstel: ja, maar gemarkeerd in de diff.
+- Mag de AI nieuwe oefeningen voorstellen? Voorstel: ja, maar gemarkeerd in de diff.
 - Standaardmodel (voorstel: Sonnet) en of het kiesbaar moet zijn.
 - Bewaren van eerdere analyses (alleen laatste, of een historie)?
 
