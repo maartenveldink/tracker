@@ -28,7 +28,7 @@ export function summaryToJson(summary: CoachSummary): string {
 }
 
 /**
- * Prompt (Dutch) for pasting into claude.ai: instructions + JSON Schema of the
+ * Prompt (Dutch) for pasting into an AI chat: instructions + JSON Schema of the
  * answer + training summary. It asks for an analysis in Dutch and a proposal as
  * JSON that can be pasted back into the app's schema import screen.
  */

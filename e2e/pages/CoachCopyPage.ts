@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-/** The "Analyse door Claude" section on a schema's detail page. */
+/** The "Analyse door AI" section on a schema's detail page. */
 export class CoachCopyPage {
   constructor(private readonly page: Page) {}
 
@@ -9,7 +9,7 @@ export class CoachCopyPage {
   }
 
   get copyButton(): Locator {
-    return this.section.getByRole('button', { name: /Kopieer voor Claude|Gekopieerd/ });
+    return this.section.getByRole('button', { name: /Kopieer voor AI|Gekopieerd/ });
   }
 
   period(weeks: 4 | 8): Locator {

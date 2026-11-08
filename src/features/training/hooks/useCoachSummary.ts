@@ -6,7 +6,7 @@ import { buildCoachSummary, type CoachPeriodWeeks, type CoachSummary } from '../
 
 /**
  * Live coach summary for a schema over the last `weeks` weeks (shared by the
- * "Kopieer voor Claude" section and the CoachPage). `summary` is undefined while
+ * "Kopieer voor AI" section). `summary` is undefined while
  * loading, so callers never act on an empty digest. `exercises` includes
  * deleted ones (their history still counts).
  */

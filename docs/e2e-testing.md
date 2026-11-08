@@ -42,7 +42,7 @@ e2e/
     settings.spec.ts     dashboard.spec.ts  progress.spec.ts
     progressive-overload.spec.ts   streak.spec.ts   bodyweight-sets.spec.ts
     unilateral-sets.spec.ts        workout-insert-exercise.spec.ts
-    schema-import.spec.ts          coach-summary.spec.ts   coach-api.spec.ts
+    schema-import.spec.ts          coach-summary.spec.ts
     import-data.spec.ts            deleted-exercise.spec.ts
     deload.spec.ts                 calendar.spec.ts        exercise-goal.spec.ts
   tsconfig.json       # type-checking config for the e2e sources
@@ -68,7 +68,7 @@ The suite exercises the main user flows across the app:
 - **Progress & history** — records board, workout history + delete, body-weight
   logging.
 - **Dashboard** — quick weigh-in, resume active workout, streak, deload card.
-- **Schema import & Claude-coach** — readable-JSON import (valid, invalid with per-path errors, unknown exercise), "Kopieer voor Claude" summary/clipboard, and the API flow with the Anthropic API mocked (`fixtures/anthropicMock.ts`): proposal diff, save as new schema, error paths, key never in export.
+- **Schema import & AI-coach** — readable-JSON import (valid, invalid with per-path errors, unknown exercise), "Kopieer voor AI" summary/clipboard.
 - **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, an added exercise lands after the last finished one.
 - **Data** — export → wipe → import (replace and merge), dates revived, `schemaId` remapped; deleted exercises keep their name in history.
 - **Progress extras** — month calendar, exercise goal progress bar, deload suggestion.

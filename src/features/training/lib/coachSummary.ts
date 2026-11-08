@@ -12,7 +12,7 @@ import { schemaToJson, type SchemaJson } from './schemaJson';
 
 /**
  * Compact, privacy-friendly digest of the last few weeks of training, meant to
- * be pasted into an AI chat ("Kopieer voor Claude") or sent to the API.
+ * be pasted into an AI chat ("Kopieer voor AI") or sent to the API.
  *
  * Pure: everything comes in through `CoachSummaryInput`, nothing is read from
  * the database, so it is trivial to test and to reuse (the API client builds on

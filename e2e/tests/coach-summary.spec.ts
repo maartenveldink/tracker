@@ -8,7 +8,7 @@ const bench = (reps: number[], weight: number, extra: Partial<SeedWorkout['exerc
   ...extra,
 });
 
-test.describe('Claude coach — summary copy', () => {
+test.describe('AI coach — summary copy', () => {
   // Extra seeding for individual tests (kept out of the base data set).
   let extra: Parameters<typeof seedTraining>[1] = { workouts: [] };
   test.beforeEach(async ({ schemaImport, page }, testInfo) => {
