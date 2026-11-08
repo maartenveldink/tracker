@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Oefening klaar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+@keyframes popIn{0%{transform:scale(.6);opacity:0}12%{transform:scale(1.08);opacity:1}22%,92%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes rise{0%,6%{transform:translateY(12px);opacity:0}18%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes delta1{0%,16%{transform:translateY(8px);opacity:0}26%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes delta2{0%,24%{transform:translateY(8px);opacity:0}34%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes delta3{0%,32%{transform:translateY(8px);opacity:0}42%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes confetti{0%{transform:translate(-50%,-50%) scale(.2) rotate(0deg);opacity:0}4%{opacity:1}22%{transform:translate(calc(var(--dx) - 50%),calc(var(--dy) - 50%)) scale(1) rotate(calc(var(--rot) * .5));animation-timing-function:cubic-bezier(.5,0,.9,.6)}68%{opacity:1}76%,100%{transform:translate(calc(var(--dx) * 1.2 - 50%),620px) scale(1) rotate(var(--rot));opacity:0}}
+@keyframes rayOut{0%{transform:translateX(4px) scaleX(.2);opacity:0}6%{opacity:1}28%{transform:translateX(38px) scaleX(1)}55%,100%{transform:translateX(60px) scaleX(.15);opacity:0}}
+.pop{animation:popIn 5s ease-out infinite}
+.rise{animation:rise 5s ease-out infinite}
+.d1{animation:delta1 5s ease-out infinite}
+.d2{animation:delta2 5s ease-out infinite}
+.d3{animation:delta3 5s ease-out infinite}
+.piece{opacity:0;animation:confetti 5s cubic-bezier(.15,.8,.3,1) infinite}
+.ray{position:absolute;left:0;top:-1.5px;width:16px;height:3px;border-radius:2px;transform-origin:left center;opacity:0;animation:rayOut 5s ease-out infinite}
+@media (prefers-reduced-motion: reduce){.pop,.rise,.d1,.d2,.d3{animation:none}.fx{display:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: {{muted}}">Benen · oefening 3 van 6</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">47:20</span>
+      </div>
+      <button style="height: 44px; padding: 0 18px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Afronden</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: {{accent}}">Oefening klaar</span>
+      <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">Beenpers</h1>
+    </div>
+
+    <div class="pop" style="min-height: 76px; box-sizing: border-box; padding: 12px 16px; border-radius: 18px; background: {{accent}}; color: {{bg}}; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 14px">
+      <span style="width: 40px; height: 40px; border-radius: 20px; background: {{bg}}; color: {{accent}}; display: flex; align-items: center; justify-content: center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/></svg>
+      </span>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 18px; font-weight: 700">Beter dan vorige week</span>
+        <span style="font-size: 14px; font-weight: 500">+2 herhalingen · +280 kg volume</span>
+      </div>
+    </div>
+
+    <div class="rise" style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; padding: 8px 14px; display: flex; flex-direction: column">
+      <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 44px; font-size: 12px; color: {{muted}}">
+        <span>Set</span><span>Vandaag</span><span>Vorige keer</span><span style="text-align: right">Verschil</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 48px; border-top: 1px solid {{line}}">
+        <span style="color: {{muted}}">1</span>
+        <span style="font-size: 17px; font-weight: 600">140 kg × 9</span>
+        <span style="color: {{muted}}">× 8</span>
+        <span class="d1" style="text-align: right; font-weight: 700; color: {{accent}}">↑ +1</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 48px; border-top: 1px solid {{line}}">
+        <span style="color: {{muted}}">2</span>
+        <span style="font-size: 17px; font-weight: 600">140 kg × 8</span>
+        <span style="color: {{muted}}">× 8</span>
+        <span class="d2" style="text-align: right; color: {{muted}}">gelijk</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 48px; border-top: 1px solid {{line}}">
+        <span style="color: {{muted}}">3</span>
+        <span style="font-size: 17px; font-weight: 600">140 kg × 8</span>
+        <span style="color: {{muted}}">× 7</span>
+        <span class="d3" style="text-align: right; font-weight: 700; color: {{accent}}">↑ +1</span>
+      </div>
+    </div>
+
+    <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 13px; color: {{muted}}">Straks</span>
+      <span style="font-size: 15px; font-weight: 600">Beenstrekken · 3 × 12</span>
+    </div>
+  </div>
+
+  <div style="flex: 1"></div>
+
+  <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+    <button style="height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">Volgende oefening</button>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <button style="height: 48px; border: 1px solid {{line}}; border-radius: 14px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">+ Nog een set</button>
+      <button style="height: 48px; border: 1px solid {{line}}; border-radius: 14px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Beenstrekken overslaan</button>
+    </div>
+  </div>
+
+  <div class="fx" aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none">
+    <sc-for list="{{rays}}" as="ray" hint-placeholder-count="3">
+      <div style="{{ray.outer}}"><div class="ray" style="{{ray.inner}}"></div></div>
+    </sc-for>
+    <sc-for list="{{pieces}}" as="pc" hint-placeholder-count="3">
+      <div class="piece" style="{{pc.style}}"></div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const accent = p.accent ?? '#C8F135';
+    const accent2 = p.accent2 ?? '#7C9CFF';
+    const text = p.text ?? '#F1F4FB';
+    const palette = [accent, accent2, text, '#FF7A59', '#FFB84D'];
+    const rnd = (i, k) => {
+      const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const pieces = [];
+    for (let i = 0; i < 40; i++) {
+      const ang = ((-170 + rnd(i, 1) * 160) * Math.PI) / 180;
+      const dist = 100 + rnd(i, 2) * 170;
+      const dx = Math.cos(ang) * dist;
+      const dy = Math.sin(ang) * dist;
+      const size = 6 + Math.floor(rnd(i, 3) * 5);
+      const rot = (rnd(i, 4) > 0.5 ? 1 : -1) * (360 + rnd(i, 5) * 540);
+      const kind = i % 3;
+      const shape = kind === 0
+        ? 'width:' + size + 'px;height:' + Math.round(size * 1.8) + 'px;'
+        : kind === 1
+          ? 'width:' + (size + 2) + 'px;height:' + (size + 2) + 'px;border-radius:50%;'
+          : 'width:' + (size + 4) + 'px;height:' + (size + 4) + 'px;clip-path:polygon(50% 0,100% 100%,0 100%);';
+      pieces.push({
+        style: 'position:absolute;left:195px;top:200px;background:' + palette[i % 5] + ';' + shape +
+          '--dx:' + dx.toFixed(0) + 'px;--dy:' + dy.toFixed(0) + 'px;--rot:' + rot.toFixed(0) + 'deg;animation-delay:' + (rnd(i, 6) * 0.18).toFixed(2) + 's;'
+      });
+    }
+    const bursts = [
+      { x: 60, y: 110, color: accent, delay: 0.1 },
+      { x: 332, y: 150, color: accent2, delay: 0.35 },
+      { x: 200, y: 56, color: '#FFB84D', delay: 0.6 }
+    ];
+    const rays = [];
+    bursts.forEach((b) => {
+      for (let k = 0; k < 12; k++) {
+        rays.push({
+          outer: 'position:absolute;left:' + b.x + 'px;top:' + b.y + 'px;width:0;height:0;transform:rotate(' + (k * 30) + 'deg);',
+          inner: 'background:' + (k % 2 ? b.color : text) + ';animation-delay:' + b.delay + 's;'
+        });
+      }
+    });
+    return {
+      pieces,
+      rays,
+      bg: p.bg ?? '#0A0E1A',
+      surface: p.surface ?? '#131A2B',
+      line: p.line ?? '#26324F',
+      text,
+      muted: p.muted ?? '#9AA6C2',
+      accent,
+      accent2
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Instellingen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="flex: 1; padding: 22px 20px 0; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; padding: 0 2px">Instellingen</h1>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: {{muted}}; padding: 0 2px">Training</span>
+      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; display: flex; flex-direction: column; padding: 0 16px">
+        <sc-for list="{{values}}" as="v" hint-placeholder-count="2">
+          <button style="min-height: 56px; border: 0; border-top: {{v.border}}; background: transparent; color: {{text}}; display: flex; justify-content: space-between; align-items: center; font-size: 15px; cursor: pointer">
+            <span>{{v.label}}</span>
+            <span style="color: {{muted}}">{{v.value}}</span>
+          </button>
+        </sc-for>
+        <sc-for list="{{switches}}" as="s" hint-placeholder-count="4">
+          <div style="min-height: 60px; border-top: 1px solid {{line}}; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 15px">{{s.label}}</span>
+              <span style="font-size: 12px; color: {{muted}}">{{s.hint}}</span>
+            </span>
+            <button role="switch" aria-checked="{{s.checked}}" aria-label="{{s.label}}" style="{{s.track}}"><span style="{{s.knob}}"></span></button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: {{muted}}; padding: 0 2px">Gegevens</span>
+      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; display: flex; flex-direction: column; padding: 0 16px">
+        <button style="min-height: 56px; border: 0; background: transparent; color: {{text}}; display: flex; justify-content: space-between; align-items: center; font-size: 15px; cursor: pointer"><span>Exporteer trainingen (CSV)</span><span style="color: {{muted}}">›</span></button>
+        <button style="min-height: 56px; border: 0; border-top: 1px solid {{line}}; background: transparent; color: {{text}}; display: flex; justify-content: space-between; align-items: center; font-size: 15px; cursor: pointer"><span>Account</span><span style="color: {{muted}}">›</span></button>
+      </div>
+    </div>
+  </div>
+
+  <nav aria-label="Hoofdnavigatie" style="height: 76px; box-sizing: border-box; border-top: 1px solid {{line}}; background: {{surface}}; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 10px">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5">
+      <button style="{{n.style}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{n.sw}}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"/></svg>{{n.label}}</button>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props;
+    const c = {
+      bg: P.bg ?? '#0A0E1A', surface: P.surface ?? '#131A2B', line: P.line ?? '#26324F',
+      text: P.text ?? '#F1F4FB', muted: P.muted ?? '#9AA6C2', accent: P.accent ?? '#C8F135', accent2: P.accent2 ?? '#7C9CFF'
+    };
+    const ACTIVE = 'Meer';
+    const defs = [
+      ['Home', 'M3 11l9-8 9 8M5 10v10h14V10', 1.75],
+      ['Train', 'M7 4l13 8-13 8z', 1.75],
+      ['Habits', 'M9 6h11M9 12h11M9 18h11M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5', 1.75],
+      ['Progressie', 'M3 17l6-6 4 4 8-9M15 6h6v6', 1.75],
+      ['Meer', 'M5 12h.01M12 12h.01M19 12h.01', 3.5]
+    ];
+    const base = 'border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;cursor:pointer;';
+    const nav = defs.map((x) => ({ label: x[0], d: x[1], sw: x[2], style: base + 'color:' + (x[0] === ACTIVE ? c.accent + ';font-weight:600;' : c.muted + ';') }));
+    const values = [
+      { label: 'Standaard rusttijd', value: '1:30', border: 'none' },
+      { label: 'Gewichtsstap', value: '2,5 kg', border: '1px solid ' + c.line },
+      { label: 'Eenheid', value: 'kg', border: '1px solid ' + c.line }
+    ];
+    const mk = (label, hint, on) => ({
+      label, hint,
+      checked: on ? 'true' : 'false',
+      track: 'width: 52px; height: 32px; box-sizing: border-box; padding: 3px; border: 0; border-radius: 16px; cursor: pointer; display: flex; align-items: center; justify-content: ' + (on ? 'flex-end' : 'flex-start') + '; background: ' + (on ? c.accent : c.line) + ';',
+      knob: 'width: 26px; height: 26px; border-radius: 13px; background: ' + (on ? c.bg : c.muted) + ';'
+    });
+    const switches = [
+      mk('Scherm aan tijdens training', 'Voorkomt dat je telefoon tussen sets op slot gaat', true),
+      mk('Trillen aan het einde van de rust', 'Alleen op apparaten die dit ondersteunen', true),
+      mk('Viering bij verbetering', 'Vuurwerk en confetti na een betere oefening', true),
+      mk('Rusttimer automatisch starten', 'Direct na elke afgeronde set', true)
+    ];
+    return Object.assign({}, c, { nav, values, switches });
+  }
+}
+</script>
+</body>
+</html>

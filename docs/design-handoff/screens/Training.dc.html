@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Training</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+input{font-family:inherit}
+@keyframes cPop{0%{transform:scale(.6);opacity:0}16%{transform:scale(1.08);opacity:1}28%,100%{transform:scale(1);opacity:1}}
+@keyframes cRow{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes confetti{0%{transform:translate(-50%,-50%) scale(.2) rotate(0deg);opacity:0}4%{opacity:1}22%{transform:translate(calc(var(--dx) - 50%),calc(var(--dy) - 50%)) scale(1) rotate(calc(var(--rot) * .5));animation-timing-function:cubic-bezier(.5,0,.9,.6)}68%{opacity:1}76%,100%{transform:translate(calc(var(--dx) * 1.2 - 50%),620px) scale(1) rotate(var(--rot));opacity:0}}
+@keyframes rayOut{0%{transform:translateX(4px) scaleX(.2);opacity:0}6%{opacity:1}28%{transform:translateX(38px) scaleX(1)}55%,100%{transform:translateX(60px) scaleX(.15);opacity:0}}
+.cpop{animation:cPop .9s ease-out both}
+.cfade{animation:cRow .6s ease-out .3s both}
+.crow{animation:cRow .5s ease-out both}
+.cpiece{opacity:0;animation:confetti 4.5s cubic-bezier(.15,.8,.3,1) forwards}
+.cray{position:absolute;left:0;top:-1.5px;width:16px;height:3px;border-radius:2px;transform-origin:left center;opacity:0;animation:rayOut 3.2s ease-out forwards}
+@media (prefers-reduced-motion: reduce){.cpop,.cfade,.crow{animation:none}.fx{display:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: {{muted}}">{{barLabel}}</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">42:18</span>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <button aria-label="Oefeningen in deze training" onClick="{{openSheet}}" style="width: 44px; height: 44px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; display: flex; align-items: center; justify-content: center; cursor: pointer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+        </button>
+        <button style="height: 44px; padding: 0 18px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Afronden</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">{{name}}</h1>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+        <span style="font-size: 14px; color: {{muted}}">{{prevLine}}</span>
+        <sc-if value="{{showGoal}}" hint-placeholder-val="{{ true }}">
+          <span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: {{line}}; color: {{accent}}">{{goalText}}</span>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+        <div style="{{r.box}}">
+          <span style="{{r.badge}}">{{r.num}}</span>
+          <span style="font-size: 17px; font-weight: 500">{{r.label}}</span>
+          <span style="{{r.tag}}">{{r.status}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{showSetTools}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <button onClick="{{addSet}}" style="height: 44px; padding: 0 4px; border: 0; background: transparent; color: {{accent}}; font-size: 14px; font-weight: 600; cursor: pointer">+ Set toevoegen</button>
+        <button onClick="{{removeSet}}" style="height: 44px; padding: 0 4px; border: 0; background: transparent; color: {{muted}}; font-size: 14px; cursor: pointer">Laatste set weghalen</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showRest}}" hint-placeholder-val="{{ true }}">
+      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 14px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 14px; color: {{muted}}">Rust</span>
+          <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 20px; font-weight: 700; color: {{accent2}}">1:12</span>
+          <button style="height: 36px; padding: 0 12px; border: 0; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">+30 sec</button>
+        </div>
+        <div style="height: 4px; border-radius: 2px; background: {{line}}"><div style="width: 55%; height: 4px; border-radius: 2px; background: {{accent2}}"></div></div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex: 1"></div>
+
+  <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px">
+    <sc-if value="{{showSteppers}}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; color: {{muted}}; text-align: center">Gewicht (kg)</span>
+          <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; background: {{bg}}; border-radius: 16px; padding: 4px">
+            <button aria-label="Gewicht 2,5 kg minder" onClick="{{wMinus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+            <span style="text-align: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700">{{wText}}</span>
+            <button aria-label="Gewicht 2,5 kg meer" onClick="{{wPlus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; color: {{muted}}; text-align: center">Herhalingen</span>
+          <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; background: {{bg}}; border-radius: 16px; padding: 4px">
+            <button aria-label="Eén herhaling minder" onClick="{{rMinus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+            <span style="text-align: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700">{{rText}}</span>
+            <button aria-label="Eén herhaling meer" onClick="{{rPlus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <button onClick="{{complete}}" style="height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">{{buttonLabel}}</button>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+      <span style="font-size: 13px; color: {{muted}}; min-width: 0">{{nextLine}}</span>
+      <sc-if value="{{showSkip}}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{skipCurrent}}" style="flex: none; height: 44px; padding: 0 16px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">Oefening overslaan</button>
+      </sc-if>
+      <sc-if value="{{showAddFromEnd}}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{openAdd}}" style="flex: none; height: 44px; padding: 0 16px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">+ Oefening toevoegen</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{celebrate}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{bg}}; display: flex; flex-direction: column; overflow: hidden">
+      <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; color: {{muted}}">{{barLabel}}</span>
+          <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">47:20</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: {{accent}}">Oefening klaar</span>
+          <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">{{name}}</span>
+        </div>
+        <div class="cpop" style="min-height: 76px; box-sizing: border-box; padding: 12px 16px; border-radius: 18px; background: {{accent}}; color: {{bg}}; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 14px">
+          <span style="width: 40px; height: 40px; border-radius: 20px; background: {{bg}}; color: {{accent}}; display: flex; align-items: center; justify-content: center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/></svg>
+          </span>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 18px; font-weight: 700">Beter dan vorige week</span>
+            <span style="font-size: 14px; font-weight: 500">{{bannerSub}}</span>
+          </div>
+        </div>
+        <div class="cfade" style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; padding: 8px 14px; display: flex; flex-direction: column">
+          <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 40px; font-size: 12px; color: {{muted}}">
+            <span>Set</span><span>Vandaag</span><span>Vorige keer</span><span style="text-align: right">Verschil</span>
+          </div>
+          <sc-for list="{{compRows}}" as="c" hint-placeholder-count="3">
+            <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 72px 72px; align-items: center; min-height: 44px; border-top: 1px solid {{line}}">
+              <span style="color: {{muted}}">{{c.num}}</span>
+              <span style="font-size: 16px; font-weight: 600">{{c.today}}</span>
+              <span style="color: {{muted}}">{{c.prev}}</span>
+              <span class="crow" style="{{c.style}}">{{c.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px">
+          <span style="font-size: 13px; color: {{muted}}">Straks</span>
+          <span style="font-size: 15px; font-weight: 600">{{nextShort}}</span>
+        </div>
+      </div>
+      <div style="flex: 1"></div>
+      <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+        <button onClick="{{finishNext}}" style="height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">{{buttonLabel}}</button>
+        <div style="display: flex; gap: 8px">
+          <button onClick="{{anotherSet}}" style="flex: 1; height: 48px; border: 1px solid {{line}}; border-radius: 14px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">+ Nog een set</button>
+          <sc-if value="{{showSkipNext}}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{skipNextAfter}}" style="flex: 1; height: 48px; border: 1px solid {{line}}; border-radius: 14px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">{{skipNextLabel}}</button>
+          </sc-if>
+        </div>
+      </div>
+      <div class="fx" aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none">
+        <sc-for list="{{rays}}" as="ray" hint-placeholder-count="3">
+          <div style="{{ray.outer}}"><div class="cray" style="{{ray.inner}}"></div></div>
+        </sc-for>
+        <sc-for list="{{pieces}}" as="pc" hint-placeholder-count="3">
+          <div class="cpiece" style="{{pc.style}}"></div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: flex-end">
+      <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px; max-height: 760px; overflow: auto">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h2 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">Oefeningen</h2>
+          <button onClick="{{closeSheet}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 22px; background: {{accent}}; color: {{bg}}; font-size: 14px; font-weight: 700; cursor: pointer">Klaar</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{exRows}}" as="x" hint-placeholder-count="6">
+            <div style="{{x.box}}">
+              <button onClick="{{x.jump}}" style="min-width: 0; height: 56px; border: 0; background: transparent; color: inherit; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 12px; padding: 0; text-align: left; cursor: pointer">
+                <span style="{{x.badge}}">{{x.num}}</span>
+                <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 16px; font-weight: 600">{{x.name}}</span>
+                  <span style="font-size: 12px; color: {{muted}}">{{x.meta}}</span>
+                </span>
+              </button>
+              <sc-if value="{{x.showSkip}}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{x.skip}}" style="height: 44px; padding: 0 12px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">Overslaan</button>
+              </sc-if>
+              <sc-if value="{{x.showRestore}}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{x.restore}}" style="height: 44px; padding: 0 12px; border: 1px solid {{accent}}; border-radius: 22px; background: transparent; color: {{accent}}; font-size: 13px; font-weight: 600; cursor: pointer">Terugzetten</button>
+              </sc-if>
+              <sc-if value="{{x.showTag}}" hint-placeholder-val="{{ false }}">
+                <span style="{{x.tagStyle}}">{{x.tag}}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <button onClick="{{toggleAdd}}" style="height: 52px; border: 1px dashed {{accent}}; border-radius: 14px; background: transparent; color: {{accent}}; font-size: 15px; font-weight: 600; cursor: pointer">+ Oefening toevoegen</button>
+
+        <sc-if value="{{add}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px">
+              <input aria-label="Naam van de oefening" placeholder="Zoek of maak een oefening" onInput="{{onQ}}" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{line}}; border-radius: 14px; background: {{bg}}; color: {{text}}; font-size: 15px">
+              <button onClick="{{addCustom}}" style="height: 48px; padding: 0 16px; border: 0; border-radius: 14px; background: {{accent}}; color: {{bg}}; font-size: 14px; font-weight: 700; cursor: pointer">Voeg toe</button>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <sc-for list="{{suggestions}}" as="s" hint-placeholder-count="4">
+                <button onClick="{{s.add}}" style="height: 44px; padding: 0 14px; border: 1px solid {{line}}; border-radius: 22px; background: {{bg}}; color: {{text}}; font-size: 14px; cursor: pointer">{{s.name}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  initial() {
+    return {
+      ex: [
+        { name: 'Squat', prev: '100 × 8 · 8 · 8', top: '100 × 8', goal: 'Doel: 100 kg × 9', w: 100, r: 8, sets: 3, status: 'done' },
+        { name: 'Romeinse deadlift', prev: '90 × 10 · 10 · 9', top: '90 × 10', goal: 'Doel: 90 kg × 11', w: 90, r: 10, sets: 3, status: 'done' },
+        { name: 'Beenpers', prev: '140 × 8 · 8 · 7', top: '140 × 8', goal: 'Doel: 140 kg × 9', w: 140, r: 8, sets: 3, status: 'todo' },
+        { name: 'Beenstrekken', prev: '50 × 12 · 12 · 11', top: '50 × 12', goal: 'Doel: 50 kg × 13', w: 50, r: 12, sets: 3, status: 'todo' },
+        { name: 'Beencurl', prev: '45 × 12 · 12 · 10', top: '45 × 12', goal: 'Doel: 45 kg × 13', w: 45, r: 12, sets: 3, status: 'todo' },
+        { name: 'Kuitheffen', prev: '80 × 15 · 15 · 15', top: '80 × 15', goal: 'Doel: 80 kg × 16', w: 80, r: 15, sets: 3, status: 'todo' }
+      ],
+      cur: 2,
+      done: [{ w: 140, r: 8 }, { w: 140, r: 8 }],
+      w: 140,
+      r: 8,
+      total: 3,
+      sheet: false,
+      add: false,
+      q: '',
+      finished: false,
+      celebrate: false
+    };
+  }
+
+  renderVals() {
+    const st = this.state || {};
+    const d = this.initial();
+    const g = (k) => (st[k] === undefined || st[k] === null ? d[k] : st[k]);
+    const ex = g('ex');
+    const cur = g('cur');
+    const done = g('done');
+    const w = g('w');
+    const r = g('r');
+    const total = g('total');
+    const sheet = g('sheet');
+    const add = g('add');
+    const q = g('q');
+    const finished = g('finished');
+    const celebrate = g('celebrate');
+
+    const p = this.props;
+    const bg = p.bg ?? '#0A0E1A';
+    const surface = p.surface ?? '#131A2B';
+    const line = p.line ?? '#26324F';
+    const text = p.text ?? '#F1F4FB';
+    const muted = p.muted ?? '#9AA6C2';
+    const accent = p.accent ?? '#C8F135';
+    const accent2 = p.accent2 ?? '#7C9CFF';
+
+    const fmt = (n) => String(n).replace('.', ',');
+    const e = ex[cur];
+    const complete = done.length >= total;
+
+    const go = (list, idx) => ({
+      ex: list.map((x, i) => (i === idx ? Object.assign({}, x, { status: 'todo' }) : x)),
+      cur: idx,
+      done: [],
+      w: list[idx].w,
+      r: list[idx].r,
+      total: list[idx].sets,
+      finished: false,
+      celebrate: false
+    });
+    const findNext = (list, from) => {
+      for (let i = from + 1; i < list.length; i++) if (list[i].status === 'todo') return i;
+      for (let i = 0; i < from; i++) if (list[i].status === 'todo') return i;
+      return -1;
+    };
+    const mark = (list, idx, status) => list.map((x, i) => (i === idx ? Object.assign({}, x, { status }) : x));
+    const leave = (list, idx) => {
+      const n = findNext(list, idx);
+      return n >= 0 ? go(list, n) : { ex: list, finished: true, done: [], celebrate: false };
+    };
+
+    const boxBase = 'min-height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 14px; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px;';
+    const badgeBase = 'width: 28px; height: 28px; box-sizing: border-box; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;';
+    const rows = finished ? [] : Array.from({ length: total }, (_, i) => {
+      if (i < done.length) {
+        return {
+          num: String(i + 1),
+          label: fmt(done[i].w) + ' kg × ' + done[i].r,
+          status: 'Klaar',
+          box: boxBase + ' background: ' + surface + '; color: ' + text + ';',
+          badge: badgeBase + ' background: ' + accent + '; color: ' + bg + ';',
+          tag: 'font-size: 13px; color: ' + muted + ';'
+        };
+      }
+      if (i === done.length) {
+        return {
+          num: String(i + 1),
+          label: fmt(w) + ' kg × ' + r,
+          status: 'Nu',
+          box: boxBase + ' background: ' + bg + '; border: 2px solid ' + accent + '; color: ' + text + ';',
+          badge: badgeBase + ' background: transparent; border: 2px solid ' + accent + '; color: ' + accent + ';',
+          tag: 'font-size: 13px; font-weight: 700; color: ' + accent + ';'
+        };
+      }
+      return {
+        num: String(i + 1),
+        label: fmt(w) + ' kg × ' + r,
+        status: '',
+        box: boxBase + ' background: transparent; border: 1px dashed ' + line + '; color: ' + muted + ';',
+        badge: badgeBase + ' background: ' + line + '; color: ' + muted + ';',
+        tag: 'font-size: 13px; color: ' + muted + ';'
+      };
+    });
+
+    const nextIdx = findNext(ex, cur);
+    const nextEx = nextIdx >= 0 && !finished ? ex[nextIdx] : null;
+    const nextLine = finished
+      ? 'Alle oefeningen zijn gedaan of overgeslagen.'
+      : nextEx
+        ? 'Straks: ' + nextEx.name + ' · ' + nextEx.sets + ' × ' + nextEx.r
+        : 'Dit is de laatste oefening.';
+
+    const parsePrev = (s) => {
+      if (!s) return null;
+      const parts = s.split(' × ');
+      return { pw: Number(parts[0]), reps: parts[1].split(' · ').map(Number) };
+    };
+    const stats = (sets, cx) => {
+      const pv = parsePrev(cx.prev);
+      if (!pv) return null;
+      const nowVol = sets.reduce((a, s) => a + s.w * s.r, 0);
+      const prevVol = pv.reps.reduce((a, n) => a + n * pv.pw, 0);
+      const nowReps = sets.reduce((a, s) => a + s.r, 0);
+      const prevReps = pv.reps.reduce((a, n) => a + n, 0);
+      return { pv, nowVol, prevVol, nowReps, prevReps, better: nowVol > prevVol };
+    };
+    const cs = celebrate && !finished ? stats(done, e) : null;
+    const compRows = cs
+      ? done.map((s, i) => {
+          const pr = cs.pv.reps[i];
+          let label;
+          let up = false;
+          if (pr === undefined) {
+            label = 'extra set';
+            up = true;
+          } else if (s.w === cs.pv.pw) {
+            const dd = s.r - pr;
+            label = dd > 0 ? '↑ +' + dd : dd === 0 ? 'gelijk' : '↓ ' + Math.abs(dd);
+            up = dd > 0;
+          } else {
+            const dv = Math.round(s.w * s.r - cs.pv.pw * pr);
+            label = dv > 0 ? '↑ +' + dv + ' kg' : dv === 0 ? 'gelijk' : '↓ ' + Math.abs(dv) + ' kg';
+            up = dv > 0;
+          }
+          return {
+            num: String(i + 1),
+            today: fmt(s.w) + ' kg × ' + s.r,
+            prev: pr === undefined ? '–' : '× ' + pr,
+            label,
+            style: 'text-align: right; font-weight: ' + (up ? 700 : 400) + '; color: ' + (up ? accent : muted) + '; animation-delay: ' + (0.5 + i * 0.18).toFixed(2) + 's;'
+          };
+        })
+      : [];
+    const repsDiff = cs ? cs.nowReps - cs.prevReps : 0;
+    const volDiff = cs ? Math.round(cs.nowVol - cs.prevVol) : 0;
+    const bannerSub = [repsDiff > 0 ? '+' + repsDiff + ' herhalingen' : '', '+' + volDiff + ' kg volume'].filter(Boolean).join(' · ');
+
+    const palette = [accent, accent2, text, '#FF7A59', '#FFB84D'];
+    const rnd = (i, k) => {
+      const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const pieces = [];
+    for (let i = 0; i < 40; i++) {
+      const ang = ((-170 + rnd(i, 1) * 160) * Math.PI) / 180;
+      const dist = 100 + rnd(i, 2) * 170;
+      const sz = 6 + Math.floor(rnd(i, 3) * 5);
+      const rot = (rnd(i, 4) > 0.5 ? 1 : -1) * (360 + rnd(i, 5) * 540);
+      const kind = i % 3;
+      const shape = kind === 0
+        ? 'width:' + sz + 'px;height:' + Math.round(sz * 1.8) + 'px;'
+        : kind === 1
+          ? 'width:' + (sz + 2) + 'px;height:' + (sz + 2) + 'px;border-radius:50%;'
+          : 'width:' + (sz + 4) + 'px;height:' + (sz + 4) + 'px;clip-path:polygon(50% 0,100% 100%,0 100%);';
+      pieces.push({
+        style: 'position:absolute;left:195px;top:200px;background:' + palette[i % 5] + ';' + shape +
+          '--dx:' + (Math.cos(ang) * dist).toFixed(0) + 'px;--dy:' + (Math.sin(ang) * dist).toFixed(0) + 'px;--rot:' + rot.toFixed(0) + 'deg;animation-delay:' + (rnd(i, 6) * 0.18).toFixed(2) + 's;'
+      });
+    }
+    const bursts = [
+      { x: 60, y: 110, color: accent, delay: 0.1 },
+      { x: 332, y: 150, color: accent2, delay: 0.35 },
+      { x: 200, y: 56, color: '#FFB84D', delay: 0.6 }
+    ];
+    const rays = [];
+    bursts.forEach((b) => {
+      for (let k = 0; k < 12; k++) {
+        rays.push({
+          outer: 'position:absolute;left:' + b.x + 'px;top:' + b.y + 'px;width:0;height:0;transform:rotate(' + (k * 30) + 'deg);',
+          inner: 'background:' + (k % 2 ? b.color : text) + ';animation-delay:' + b.delay + 's;'
+        });
+      }
+    });
+
+    const exRows = ex.map((x, i) => {
+      const isCur = i === cur && !finished && x.status === 'todo';
+      const skipped = x.status === 'skipped';
+      const isDone = x.status === 'done';
+      const rowBase = 'display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-radius: 14px; padding: 0 10px 0 12px;';
+      return {
+        num: isDone ? '✓' : String(i + 1),
+        name: x.name,
+        meta: x.sets + ' sets' + (x.top ? ' · vorige ' + x.top : ' · nieuw'),
+        box: rowBase + (isCur ? ' background: ' + bg + '; border: 2px solid ' + accent + ';' : ' background: ' + bg + '; border: 1px solid ' + line + ';') + (skipped ? ' opacity: 0.75;' : ''),
+        badge: badgeBase + (isDone ? ' background: ' + accent + '; color: ' + bg + ';' : isCur ? ' border: 2px solid ' + accent + '; color: ' + accent + ';' : ' background: ' + line + '; color: ' + muted + ';'),
+        showSkip: x.status === 'todo',
+        showRestore: skipped,
+        showTag: isDone,
+        tag: 'Klaar',
+        tagStyle: 'font-size: 13px; color: ' + muted + ';',
+        jump: () => this.setState(Object.assign(go(ex, i), { sheet: false, add: false })),
+        skip: () => {
+          const list = mark(ex, i, 'skipped');
+          this.setState(i === cur && !finished ? leave(list, i) : { ex: list });
+        },
+        restore: () => {
+          const list = mark(ex, i, 'todo');
+          this.setState(finished ? Object.assign(go(list, i), { sheet: true }) : { ex: list });
+        }
+      };
+    });
+
+    const have = ex.map((x) => x.name);
+    const suggestionNames = ['Hip thrust', 'Walking lunges', 'Bulgarian split squat', 'Kuitheffen zittend', 'Goblet squat'].filter((n) => have.indexOf(n) < 0);
+    const addEx = (name) => {
+      const entry = { name, prev: '', top: '', goal: '', w: 20, r: 10, sets: 3, status: 'todo' };
+      const list = ex.concat([entry]);
+      this.setState(finished ? Object.assign(go(list, list.length - 1), { sheet: false, add: false, q: '' }) : { ex: list, add: false, q: '' });
+    };
+    const suggestions = suggestionNames.map((n) => ({ name: n, add: () => addEx(n) }));
+
+    const completeAction = () => {
+      if (finished) return;
+      if (!complete) {
+        const nd = done.concat([{ w, r }]);
+        const after = nd.length >= total ? stats(nd, e) : null;
+        this.setState({ done: nd, celebrate: !!(after && after.better) });
+        return;
+      }
+      const list = mark(ex, cur, 'done');
+      this.setState(leave(list, cur));
+    };
+
+    return {
+      bg, surface, line, text, muted, accent, accent2,
+      rows, exRows, suggestions, nextLine, sheet, add,
+      celebrate: !!cs, compRows, bannerSub, pieces, rays,
+      nextShort: nextEx ? nextEx.name + ' · ' + nextEx.sets + ' × ' + nextEx.r : 'Laatste oefening',
+      showSkipNext: !!nextEx,
+      skipNextLabel: nextEx ? nextEx.name + ' overslaan' : '',
+      finishNext: () => this.setState(leave(mark(ex, cur, 'done'), cur)),
+      anotherSet: () => this.setState({ celebrate: false, total: Math.min(8, total + 1) }),
+      skipNextAfter: () => {
+        if (nextIdx < 0) return;
+        this.setState(leave(mark(mark(ex, cur, 'done'), nextIdx, 'skipped'), cur));
+      },
+      barLabel: finished ? 'Benen · klaar' : 'Benen · oefening ' + (cur + 1) + ' van ' + ex.length,
+      name: finished ? 'Training klaar' : e.name,
+      prevLine: finished ? 'Rond af, of voeg nog een oefening toe.' : e.prev ? 'Vorige keer: ' + e.prev : 'Nieuw in deze training',
+      showGoal: !finished && !!e.goal,
+      goalText: e.goal,
+      showSetTools: !finished,
+      showRest: !finished && done.length > 0 && !complete,
+      showSteppers: !finished,
+      showSkip: !finished,
+      showAddFromEnd: finished,
+      wText: fmt(w),
+      rText: String(r),
+      buttonLabel: finished ? 'Training afronden' : complete ? (nextEx ? 'Volgende oefening' : 'Laatste oefening afronden') : 'Set klaar',
+      wMinus: () => this.setState({ w: Math.max(0, w - 2.5) }),
+      wPlus: () => this.setState({ w: w + 2.5 }),
+      rMinus: () => this.setState({ r: Math.max(1, r - 1) }),
+      rPlus: () => this.setState({ r: r + 1 }),
+      addSet: () => this.setState({ total: Math.min(8, total + 1) }),
+      removeSet: () => this.setState({ total: Math.max(1, Math.max(done.length, total - 1)) }),
+      complete: completeAction,
+      skipCurrent: () => this.setState(leave(mark(ex, cur, 'skipped'), cur)),
+      openSheet: () => this.setState({ sheet: true }),
+      closeSheet: () => this.setState({ sheet: false, add: false }),
+      openAdd: () => this.setState({ sheet: true, add: true }),
+      toggleAdd: () => this.setState({ add: !add }),
+      onQ: (ev) => this.setState({ q: ev && ev.target ? ev.target.value : '' }),
+      addCustom: () => {
+        const n = (q || '').trim();
+        if (n) addEx(n);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
