@@ -31,8 +31,8 @@ Beslissingen (stand 2026-11-08):
    - Sets met meer dan 12 herhalingen tellen niet mee (consistent met DESIGN §7). Als daardoor niets overblijft: geen viering.
    - Banner-subregel (DESIGN §8) wordt `+{x} kg geschat 1RM`; het deel `+n herhalingen` blijft alleen als herhalingen in totaal toenamen. Het volume-deel vervalt. Per-setverschil in de vergelijkingstabel blijft zoals ontworpen.
    - Eén pure functie in `features/training/lib/` (bv. `improvement.ts`) met unit tests; ook voor het "Beter dan"-label elders gebruikt.
-3. Volume-delta in de tile: nog open (DESIGN §12.7). Standaard tot de eerste PR: vorige week volledig, zoals in het ontwerp.
-4. Unit-testframework: nog open. Aanbeveling Vitest.
+3. **Volume-delta in de tile: uitgesteld.** Tot er een besluit is: vorige week volledig, zoals in het ontwerp (DESIGN §12.7). Bouw het zo dat de vergelijkingsperiode op één plek staat.
+4. **Vitest: ja, maar zuinig.** Alleen unit tests voor pure logica die echt kan misgaan: de trainingsstatemachine (DESIGN §6, vooral de zoekregel voor de huidige oefening), de viering-trigger (beslissing 2) en de afgeleide berekeningen uit §7 (1RM, plateau, 7-daags gemiddelde). Geen tests voor UI, componenten of triviale helpers; UI blijft via de bestaande e2e gedekt.
 
 ## 2. Aanpak en risico's
 
@@ -51,8 +51,9 @@ Elk pakket = eigen branch + PR vanaf `main`, `npm run build` + `npm run e2e` gro
 geeft volgorde; pakketten zonder afhankelijkheid kunnen parallel.
 
 ### WP0 Besluiten en testbasis (klein, eerst)
-- Beslissing 3 en 4 afronden (zie §1); 1 en 2 zijn genomen.
-- Voeg zo nodig Vitest toe + `npm test` script; documenteer in `CLAUDE.md` (Testing-sectie).
+- Alle vier de beslissingen zijn genomen of bewust uitgesteld (zie §1).
+- Voeg Vitest toe met `npm test`; houd de testset klein (zie beslissing 4).
+- Documenteer Vitest in `CLAUDE.md` (Testing-sectie: "geen unit tests" klopt dan niet meer).
 - Update `CLAUDE.md`: habits, design-handoff, nieuwe conventies.
 
 ### WP1 Fundament (blokkeert alles)
