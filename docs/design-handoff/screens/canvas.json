@@ -1,0 +1,36 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-08T13:58:00Z" },
+  "title": "Tracker redesign",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "A · Kobalt & limoen", "radius": 28 },
+    "HomeB.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "B · Inkt & koraal", "radius": 28 },
+    "HomeC.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "C · Violet & amber", "radius": 28 },
+    "Training.dc.html": { "x": 0, "y": 1200, "w": 390, "h": 844, "title": "Training (richting A)", "radius": 28, "is_interactive": true },
+    "Progressie.dc.html": { "x": 470, "y": 1200, "w": 390, "h": 844, "title": "Progressie (richting A)", "radius": 28 },
+    "Train.dc.html": { "x": 0, "y": 2900, "w": 390, "h": 844, "title": "Start training", "radius": 28 },
+    "HomeLeeg.dc.html": { "x": 470, "y": 2900, "w": 390, "h": 844, "title": "Home · lege toestand", "radius": 28 },
+    "Habits.dc.html": { "x": 940, "y": 2900, "w": 390, "h": 844, "title": "Habits", "radius": 28, "is_interactive": true },
+    "Schemas.dc.html": { "x": 1410, "y": 2900, "w": 390, "h": 844, "title": "Schema's", "radius": 28 },
+    "SchemaEdit.dc.html": { "x": 1880, "y": 2900, "w": 390, "h": 844, "title": "Schema bewerken", "radius": 28 },
+    "Oefeningen.dc.html": { "x": 0, "y": 3864, "w": 390, "h": 844, "title": "Oefeningen", "radius": 28 },
+    "Instellingen.dc.html": { "x": 470, "y": 3864, "w": 390, "h": 844, "title": "Instellingen", "radius": 28 },
+    "ProgOverzicht.dc.html": { "x": 940, "y": 3864, "w": 390, "h": 844, "title": "Progressie · Overzicht", "radius": 28 },
+    "ProgGewicht.dc.html": { "x": 1410, "y": 3864, "w": 390, "h": 844, "title": "Progressie · Gewicht", "radius": 28 },
+    "Meer.dc.html": { "x": 1880, "y": 3864, "w": 390, "h": 844, "title": "Meer (sheet)", "radius": 28 },
+    "Moment.dc.html": { "x": 1410, "y": 1200, "w": 390, "h": 844, "title": "Oefening klaar (animatie)", "radius": 28 }
+  },
+  "order": ["Main.dc.html", "HomeB.dc.html", "HomeC.dc.html", "Training.dc.html", "Progressie.dc.html", "Moment.dc.html", "Train.dc.html", "HomeLeeg.dc.html", "Habits.dc.html", "Schemas.dc.html", "SchemaEdit.dc.html", "Oefeningen.dc.html", "Instellingen.dc.html", "ProgOverzicht.dc.html", "ProgGewicht.dc.html", "Meer.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -260, "text": "Home: drie kleurrichtingen", "kind": "title1", "maxW": 1330 },
+    "t2": { "x": 0, "y": 940, "text": "Trainen en inzichten (richting A)", "kind": "title1", "maxW": 860 },
+    "t3": { "x": 0, "y": 2640, "text": "Overige schermen", "kind": "title1", "maxW": 2270 },
+    "ux1": { "x": 940, "y": 1200, "w": 380, "fill": "blue", "text": "Tijdens de training\n\n1. Alles op één scherm per oefening: vorige keer, doel van vandaag en de huidige set.\n2. Grote stappers (± 2,5 kg, ± 1 rep), vooraf ingevuld met je vorige set.\n3. Eén grote knop 'Set klaar' onderaan, binnen duimbereik.\n4. Rusttimer start vanzelf na elke set.\n5. Scherm blijft aan en de navigatiebalk verdwijnt, zodat je niet per ongeluk wegtikt." },
+    "ux2": { "x": 940, "y": 1740, "w": 380, "fill": "green", "text": "Inzichten\n\n1. Home toont wat nu telt: voorgestelde training, weekritme en welke spiergroep aan de beurt is.\n2. Per oefening een geschat 1RM-verloop met PR-markering.\n3. Plateau-signaal: drie sessies zonder progressie geeft een concrete suggestie.\n4. Sets per spiergroep per week, zodat je ziet wat achterblijft.\n5. Gewicht als 7-daags gemiddelde in plaats van losse metingen." },
+    "anim": { "x": 1410, "y": 2124, "w": 390, "fill": "purple", "text": "Animatie na de hele oefening (lus van 5 s)\n\nIn het klikbare trainingsscherm speel je dit zelf af: tik op 'Set klaar' voor de laatste set van Beenpers. Dit scherm is een doorlopende lus ter vergelijking.\n\nDe viering start pas als je de laatste set van de oefening afrondt en het totaal beter is dan vorige week.\n\n1. Vuurwerk en confetti barsten los vanuit de banner 'Beter dan vorige week'.\n2. De sets vergeleken met vorige keer verschijnen een voor een met hun verschil.\n3. Daaronder staan de knoppen: volgende oefening, nog een set, of de volgende oefening overslaan.\n\nMet 'verminder beweging' aan blijft alleen de statische melding staan." },
+    "ex": { "x": 1410, "y": 0, "w": 300, "fill": "orange", "text": "Let op: alle cijfers en oefeningen zijn voorbeelddata. De live app was nog leeg, dus de echte training- en progressieschermen kon ik niet zien. Die zijn hier een voorstel." }
+  },
+  "designSystems": []
+}

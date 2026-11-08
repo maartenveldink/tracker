@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Progressie, overzicht</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="flex: 1; padding: 22px 20px 0; display: flex; flex-direction: column; gap: 12px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; padding: 0 2px">Progressie</h1>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: {{surface}}; border-radius: 16px; padding: 4px">
+      <button style="height: 40px; border: 0; border-radius: 12px; background: transparent; color: {{muted}}; font-size: 14px; cursor: pointer">Oefeningen</button>
+      <button style="height: 40px; border: 0; border-radius: 12px; background: {{accent}}; color: {{bg}}; font-size: 14px; font-weight: 600; cursor: pointer">Overzicht</button>
+      <button style="height: 40px; border: 0; border-radius: 12px; background: transparent; color: {{muted}}; font-size: 14px; cursor: pointer">Gewicht</button>
+    </div>
+
+    <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 20px; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; color: {{muted}}">Volume per week</span>
+          <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">12,4k <span style="font-size: 16px; font-weight: 500; color: {{muted}}">kg</span></span>
+        </div>
+        <span style="font-size: 13px; color: {{accent2}}">↑ 8% t.o.v. vorige week</span>
+      </div>
+      <svg viewBox="0 0 320 120" width="100%" height="120" role="img" aria-label="Staafgrafiek van het wekelijkse volume over acht weken, de laatste week is de hoogste">
+        <line x1="0" y1="110" x2="320" y2="110" stroke="{{line}}" stroke-width="1"/>
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="8">
+          <rect x="{{b.x}}" y="{{b.y}}" width="28" height="{{b.h}}" rx="6" fill="{{b.fill}}"/>
+        </sc-for>
+      </svg>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: {{muted}}"><span>8 weken geleden</span><span>Deze week</span></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; color: {{muted}}">Sessies per week</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 24px; font-weight: 700">2,8</span>
+        <span style="font-size: 12px; color: {{muted}}">gemiddeld, laatste 4 weken</span>
+      </div>
+      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; color: {{muted}}">Duur per training</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 24px; font-weight: 700">54 min</span>
+        <span style="font-size: 12px; color: {{muted}}">gemiddeld, laatste 4 weken</span>
+      </div>
+    </div>
+
+    <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 14px; font-weight: 600; padding-bottom: 4px">Recente PR's</span>
+      <sc-for list="{{prs}}" as="p" hint-placeholder-count="3">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-height: 44px; border-top: 1px solid {{line}}">
+          <span style="display: flex; flex-direction: column; gap: 1px">
+            <span style="font-size: 15px; font-weight: 600">{{p.name}}</span>
+            <span style="font-size: 12px; color: {{muted}}">{{p.when}}</span>
+          </span>
+          <span style="font-size: 14px; font-weight: 700; color: {{accent}}">{{p.value}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <nav aria-label="Hoofdnavigatie" style="height: 76px; box-sizing: border-box; border-top: 1px solid {{line}}; background: {{surface}}; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 10px">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5">
+      <button style="{{n.style}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{n.sw}}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"/></svg>{{n.label}}</button>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props;
+    const c = {
+      bg: P.bg ?? '#0A0E1A', surface: P.surface ?? '#131A2B', line: P.line ?? '#26324F',
+      text: P.text ?? '#F1F4FB', muted: P.muted ?? '#9AA6C2', accent: P.accent ?? '#C8F135', accent2: P.accent2 ?? '#7C9CFF'
+    };
+    const ACTIVE = 'Progressie';
+    const defs = [
+      ['Home', 'M3 11l9-8 9 8M5 10v10h14V10', 1.75],
+      ['Train', 'M7 4l13 8-13 8z', 1.75],
+      ['Habits', 'M9 6h11M9 12h11M9 18h11M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5', 1.75],
+      ['Progressie', 'M3 17l6-6 4 4 8-9M15 6h6v6', 1.75],
+      ['Meer', 'M5 12h.01M12 12h.01M19 12h.01', 3.5]
+    ];
+    const base = 'border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;cursor:pointer;';
+    const nav = defs.map((x) => ({ label: x[0], d: x[1], sw: x[2], style: base + 'color:' + (x[0] === ACTIVE ? c.accent + ';font-weight:600;' : c.muted + ';') }));
+    const vals = [9.8, 10.4, 8.9, 11.2, 11.5, 10.9, 11.5, 12.4];
+    const bars = vals.map((v, i) => {
+      const h = Math.round((v / 14) * 100);
+      return { x: String(i * 40 + 6), y: String(110 - h), h: String(h), fill: i === vals.length - 1 ? c.accent : c.line };
+    });
+    const prs = [
+      { name: 'Beenpers', when: '2 dagen geleden · geschat 1RM', value: '187 kg' },
+      { name: 'Bankdrukken', when: '9 dagen geleden · geschat 1RM', value: '102 kg' },
+      { name: 'Optrekken', when: '12 dagen geleden · meeste herhalingen', value: '+10 kg × 7' }
+    ];
+    return Object.assign({}, c, { nav, bars, prs });
+  }
+}
+</script>
+</body>
+</html>

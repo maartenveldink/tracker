@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Start training</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="flex: 1; padding: 24px 20px 0; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; padding: 0 2px">Start training</h1>
+
+    <div style="background: {{surface}}; border: 2px solid {{accent}}; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: {{accent}}">Voorgesteld</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Benen</span>
+        <span style="font-size: 14px; line-height: 1.45; color: {{muted}}">Op maat, gericht op spiergroepen die je lang niet trainde.</span>
+      </div>
+      <div style="display: flex; gap: 16px; font-size: 13px; color: {{muted}}">
+        <span>6 oefeningen</span><span>ca. 55 min</span><span>Laatst 6 dagen geleden</span>
+      </div>
+      <button style="height: 56px; border: 0; border-radius: 16px; background: {{accent}}; color: {{bg}}; font-size: 17px; font-weight: 600; cursor: pointer">Start Benen</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px">
+        <span style="font-size: 14px; font-weight: 600">Uit je schema</span>
+        <span style="font-size: 13px; color: {{muted}}">Kracht 3 dagen</span>
+      </div>
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="3">
+        <button style="min-height: 64px; box-sizing: border-box; padding: 0 16px; border: 1px solid {{line}}; border-radius: 16px; background: {{surface}}; color: {{text}}; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; cursor: pointer">
+          <span style="width: 32px; height: 32px; border-radius: 16px; background: {{line}}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">{{d.key}}</span>
+          <span style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 16px; font-weight: 600">{{d.name}}</span>
+            <span style="font-size: 12px; color: {{muted}}">{{d.meta}}</span>
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </sc-for>
+    </div>
+
+    <button style="min-height: 72px; box-sizing: border-box; padding: 12px 16px; border: 1px dashed {{line}}; border-radius: 16px; background: transparent; color: {{text}}; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; cursor: pointer">
+      <span style="font-size: 16px; font-weight: 600">Vrije training</span>
+      <span style="font-size: 13px; color: {{muted}}">Start zonder schema, voeg oefeningen toe tijdens het trainen</span>
+    </button>
+  </div>
+
+  <nav aria-label="Hoofdnavigatie" style="height: 76px; box-sizing: border-box; border-top: 1px solid {{line}}; background: {{surface}}; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 10px">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5">
+      <button style="{{n.style}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{n.sw}}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"/></svg>{{n.label}}</button>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props;
+    const c = {
+      bg: P.bg ?? '#0A0E1A', surface: P.surface ?? '#131A2B', line: P.line ?? '#26324F',
+      text: P.text ?? '#F1F4FB', muted: P.muted ?? '#9AA6C2', accent: P.accent ?? '#C8F135', accent2: P.accent2 ?? '#7C9CFF'
+    };
+    const ACTIVE = 'Train';
+    const defs = [
+      ['Home', 'M3 11l9-8 9 8M5 10v10h14V10', 1.75],
+      ['Train', 'M7 4l13 8-13 8z', 1.75],
+      ['Habits', 'M9 6h11M9 12h11M9 18h11M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5', 1.75],
+      ['Progressie', 'M3 17l6-6 4 4 8-9M15 6h6v6', 1.75],
+      ['Meer', 'M5 12h.01M12 12h.01M19 12h.01', 3.5]
+    ];
+    const base = 'border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;cursor:pointer;';
+    const nav = defs.map((x) => ({ label: x[0], d: x[1], sw: x[2], style: base + 'color:' + (x[0] === ACTIVE ? c.accent + ';font-weight:600;' : c.muted + ';') }));
+    const days = [
+      { key: 'A', name: 'Benen', meta: '6 oefeningen · ca. 55 min' },
+      { key: 'B', name: 'Rug & biceps', meta: '6 oefeningen · ca. 50 min' },
+      { key: 'C', name: 'Borst, schouders & triceps', meta: '7 oefeningen · ca. 60 min' }
+    ];
+    return Object.assign({}, c, { nav, days });
+  }
+}
+</script>
+</body>
+</html>
