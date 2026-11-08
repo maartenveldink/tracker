@@ -19,7 +19,7 @@ Antwoorden op DESIGN.md §12, om agents tijd te besparen. Agents verifiëren ze 
 | 2 | Voorgestelde training | `SuggestWorkoutPage`, `lib/` in `features/training`; behouden. Vorige-sessiedata bestaat (weight prefill/carry-over, previous-session refs). |
 | 5 | Bestaande viering | Zoek in `WorkoutPage`/`WorkoutSummaryPage`/`lib/metrics`; koppel aan trigger uit DESIGN.md §8. |
 | - | Habits | **Bestaan** (`src/features/habits`, `docs/plan.habit-tracker.md`), ook al noemt `CLAUDE.md` ze niet. |
-| - | Tests | Alleen Playwright e2e (`e2e/`, Page Objects). **Er zijn geen unit tests**: DESIGN.md vraagt eenheidstests voor §6/§7/§8-logica. Beslis in stap 0: Vitest toevoegen (aanbevolen, kleine devDependency) of via e2e dekken. |
+| - | Tests | Alleen Playwright e2e (`e2e/`, Page Objects). **Er zijn geen unit tests**: DESIGN.md vraagt eenheidstests voor §6/§7/§8-logica. Besluit: Vitest toevoegen, zuinig (zie beslissing 4). |
 | - | `theme-color` | `index.html` en `vite.config.ts` (manifest) staan op `#1e293b` -> `#0A0E1A`. |
 
 Beslissingen (stand 2026-11-08):
