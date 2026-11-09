@@ -3,7 +3,7 @@ import { ClientResponseError } from 'pocketbase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useAuth } from './AuthContext';
 
 type Mode = 'login' | 'register';
@@ -48,14 +48,17 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{mode === 'login' ? 'Inloggen' : 'Account aanmaken'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1.5">
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-8 text-text">
+      <div className="w-full max-w-sm space-y-5">
+        <div className="space-y-1 px-0.5">
+          <div className="text-caption font-semibold uppercase tracking-[0.08em] text-accent">Tracker</div>
+          <h1 className="font-display text-screen font-bold tracking-tight">
+            {mode === 'login' ? 'Inloggen' : 'Account aanmaken'}
+          </h1>
+        </div>
+        <Card className="p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="username">Gebruikersnaam</Label>
               <Input
                 id="username"
@@ -64,7 +67,7 @@ export function LoginPage() {
                 onChange={e => setUsername(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="password">Wachtwoord</Label>
               <Input
                 id="password"
@@ -74,8 +77,10 @@ export function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={busy}>
+            {error && (
+              <p role="alert" className="text-small text-destructive">{error}</p>
+            )}
+            <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {mode === 'login' ? 'Inloggen' : 'Account aanmaken'}
             </Button>
           </form>
@@ -84,7 +89,8 @@ export function LoginPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full mt-2"
+              size="lg"
+              className="mt-2 w-full"
               disabled={busy}
               onClick={handleGoogle}
             >
@@ -94,13 +100,13 @@ export function LoginPage() {
 
           <button
             type="button"
-            className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
+            className="mt-4 min-h-touch w-full text-small text-muted hover:text-text"
             onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }}
           >
             {mode === 'login' ? 'Nog geen account? Maak er een aan' : 'Al een account? Inloggen'}
           </button>
 
-          <div className="mt-4 border-t border-border pt-4">
+          <div className="mt-2 border-t border-line pt-4">
             <Button
               type="button"
               variant="ghost"
@@ -110,13 +116,13 @@ export function LoginPage() {
             >
               Verder zonder account
             </Button>
-            <p className="mt-1 text-center text-xs text-muted-foreground">
+            <p className="mt-1 text-center text-caption text-muted">
               Je data blijft dan alleen op dit apparaat. Je kunt later alsnog een
               account maken om te synchroniseren.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

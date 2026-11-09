@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { UserCircle, LogOut, LogIn, RefreshCw, Check, CloudOff, AlertTriangle } from 'lucide-react';
+import { LogOut, LogIn, RefreshCw, Check, CloudOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,9 @@ const STATUS_LABEL: Record<SyncState, string> = {
 function StatusIcon({ state }: { state: SyncState }) {
   if (state === 'syncing') return <RefreshCw className="h-4 w-4 animate-spin" />;
   if (state === 'synced') return <Check className="h-4 w-4 text-primary" />;
-  if (state === 'offline') return <CloudOff className="h-4 w-4 text-muted-foreground" />;
+  if (state === 'offline') return <CloudOff className="h-4 w-4 text-muted" />;
   if (state === 'error') return <AlertTriangle className="h-4 w-4 text-destructive" />;
-  return <RefreshCw className="h-4 w-4 text-muted-foreground" />;
+  return <RefreshCw className="h-4 w-4 text-muted" />;
 }
 
 export function AccountCard() {
@@ -35,24 +35,19 @@ export function AccountCard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <UserCircle className="h-4 w-4" />
-          Account
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <section className="space-y-1.5">
+      <h2 className="px-0.5 text-caption font-semibold uppercase tracking-[0.08em] text-muted">Account</h2>
+      <Card className="space-y-3 p-4">
         {mode === 'authed' ? (
           <>
-            <div className="text-sm">
-              Ingelogd als <span className="font-medium">{username ?? 'onbekend'}</span>
+            <div className="text-body">
+              Ingelogd als <span className="font-semibold">{username ?? 'onbekend'}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-small text-muted">
               <StatusIcon state={state} />
               {STATUS_LABEL[state]}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => void syncNow()} disabled={state === 'syncing'}>
                 <RefreshCw className="h-4 w-4" />
                 Nu synchroniseren
@@ -65,7 +60,7 @@ export function AccountCard() {
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-small text-muted">
               <CloudOff className="h-4 w-4" />
               Lokaal — je data staat alleen op dit apparaat
             </div>
@@ -77,7 +72,7 @@ export function AccountCard() {
             )}
           </>
         )}
-      </CardContent>
+      </Card>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
@@ -95,6 +90,6 @@ export function AccountCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </section>
   );
 }
