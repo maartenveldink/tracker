@@ -60,3 +60,19 @@ export function getMuscleGroupById(id: string): MuscleGroup | undefined {
 export function getAllGlobalMuscleIds(): string[] {
   return MUSCLE_GROUPS.filter(m => m.level === 'global').map(m => m.id);
 }
+
+export type MuscleLevel = 'global' | 'detailed';
+
+// Category name → global muscle id, to collapse detailed ids to their global group.
+const CATEGORY_TO_GLOBAL = new Map<string, string>(
+  MUSCLE_GROUPS.filter(m => m.level === 'global').map(m => [m.category, m.id]),
+);
+
+/** Maps a tagged muscle id onto the grouping for the given detail level. */
+export function toTargetId(muscleId: string, level: MuscleLevel): string {
+  const g = getMuscleGroupById(muscleId);
+  if (!g) return muscleId;
+  if (level === 'detailed') return muscleId;
+  if (g.level === 'global') return g.id;
+  return CATEGORY_TO_GLOBAL.get(g.category) ?? muscleId;
+}
