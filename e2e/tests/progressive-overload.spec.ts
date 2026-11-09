@@ -25,6 +25,6 @@ test.describe('Progressive overload', () => {
     // Session 2: the app suggests one increment heavier (60 + 1.25 = 61.25).
     await startWorkout.goto();
     await startWorkout.start('E2E Overload');
-    await expect(workout.setWeightInput(0)).toHaveAttribute('placeholder', '61.25');
+    await expect(workout.weightInput).toHaveValue('61,25');
   });
 });

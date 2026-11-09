@@ -62,8 +62,8 @@ test.describe('Live workout', () => {
 
     await workout.completeActiveSet(62.5, 10);
 
-    // Set 2 (index 1) inherits the weight that was just logged for set 1.
-    await expect(workout.setWeightInput(1)).toHaveValue('62.5');
+    // Set 2 inherits the weight that was just logged for set 1 (the stepper stays put).
+    await expect(workout.weightInput).toHaveValue('62,5');
   });
 
   test('starts the rest timer after a normal set', async ({

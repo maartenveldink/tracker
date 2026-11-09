@@ -18,7 +18,7 @@ test.describe('Live workout — advanced', () => {
     await startWorkout.goto();
     await startWorkout.start('E2E Sets');
 
-    expect(await workout.setCount()).toBe(3); // default
+    await expect.poll(() => workout.setCount()).toBe(3); // default
     await workout.addSet();
     await expect.poll(() => workout.setCount()).toBe(4);
 
@@ -52,8 +52,8 @@ test.describe('Live workout — advanced', () => {
     // The exercise does not exist yet — create it in full from the sheet.
     await workout.createAndAddExercise(NEW, 'Explosieve hip hinge');
 
-    // It becomes the expanded card and can be logged like any other exercise.
-    await expect.poll(() => workout.expandedExerciseName()).toBe(NEW);
+    // It becomes the current exercise and can be logged like any other exercise.
+    await expect(workout.currentTitle).toHaveText(NEW);
     await workout.completeActiveSet(24, 12);
     await workout.finish();
     await expect(page.getByRole('heading', { name: 'Samenvatting' })).toBeVisible();
@@ -80,6 +80,6 @@ test.describe('Live workout — advanced', () => {
     // Next session keeps the same weight (no progression).
     await startWorkout.goto();
     await startWorkout.start('E2E NoBump');
-    await expect(workout.setWeightInput(0)).toHaveAttribute('placeholder', '60');
+    await expect(workout.weightInput).toHaveValue('60');
   });
 });
