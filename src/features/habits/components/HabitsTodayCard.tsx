@@ -5,6 +5,7 @@ import { useHabits, useHabitLogs } from '../hooks/useHabits';
 import { isScheduledOn, isHabitDone } from '../lib/schedule';
 import { HabitControl } from './HabitControl';
 import { toISODate } from '../../../lib/dateUtils';
+import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 
 /**
@@ -37,26 +38,27 @@ export function HabitsTodayCard() {
   const doneCount = scheduled.filter(h => isHabitDone(h, valueByHabit.get(h.id) ?? 0)).length;
 
   return (
-    <Card>
-      <CardContent className="p-3">
+    <Card data-testid="habits-today-card">
+      <CardContent className="p-4 flex flex-col gap-3">
         <button
           type="button"
           onClick={() => navigate('/habits')}
-          className="w-full flex items-center justify-between mb-2"
+          className="w-full flex items-center justify-between min-h-touch -my-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-row"
         >
-          <span className="text-xs font-medium flex items-center gap-1.5">
-            <ListChecks className="h-4 w-4 text-primary" />
+          <span className="text-small font-semibold flex items-center gap-2">
+            <ListChecks className="h-[18px] w-[18px] text-accent" aria-hidden="true" />
             Habits vandaag
           </span>
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <span className="text-caption text-muted flex items-center gap-1">
             {doneCount}/{scheduled.length}
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
         </button>
-        <ul className="space-y-1.5">
+        <Progress value={(doneCount / scheduled.length) * 100} aria-label={`${doneCount} van ${scheduled.length} habits gedaan`} />
+        <ul className="flex flex-col gap-1">
           {scheduled.map(habit => (
-            <li key={habit.id} className="flex items-center justify-between gap-2">
-              <span className="text-sm truncate flex items-center gap-1.5">
+            <li key={habit.id} className="flex min-h-touch items-center justify-between gap-3">
+              <span className="text-small font-medium truncate flex items-center gap-1.5">
                 {habit.emoji && <span>{habit.emoji}</span>}
                 {habit.name}
               </span>

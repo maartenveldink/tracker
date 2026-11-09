@@ -48,19 +48,19 @@ export function HabitHeatmap({ schedule, doneByDate }: HabitHeatmapProps) {
 
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-xs text-muted-foreground mb-2">
-          {doneCount} {doneCount === 1 ? 'keer' : 'keer'} voltooid in de laatste {WEEKS} weken
+      <CardContent className="p-4">
+        <p className="text-caption text-muted mb-3">
+          {doneCount}× voltooid in de laatste {WEEKS} weken
         </p>
         <div className="flex gap-2">
           <div className="flex flex-col gap-1 pt-0.5">
             {WEEKDAY_LABELS.map((l, i) => (
-              <span key={l} className="h-3 text-[9px] leading-3 text-muted-foreground">
+              <span key={l} className="h-3 text-caption leading-3 text-muted">
                 {i % 2 === 0 ? l : ''}
               </span>
             ))}
           </div>
-          <div className="flex gap-1 overflow-x-auto">
+          <div className="flex gap-1 overflow-x-auto" role="img" aria-label={`${doneCount} keer voltooid in de laatste ${WEEKS} weken`}>
             {columns.map((col, i) => (
               <div key={i} className="flex flex-col gap-1">
                 {col.map(cell => (
@@ -69,7 +69,7 @@ export function HabitHeatmap({ schedule, doneByDate }: HabitHeatmapProps) {
                     title={cell.scheduled ? `${cell.key}: ${cell.done ? 'voltooid' : 'niet voltooid'}` : undefined}
                     className={cn(
                       'h-3 w-3 rounded-sm',
-                      !cell.scheduled ? 'bg-transparent' : cell.done ? 'bg-primary' : 'bg-line',
+                      !cell.scheduled ? 'bg-transparent' : cell.done ? 'bg-accent' : 'bg-line',
                     )}
                   />
                 ))}

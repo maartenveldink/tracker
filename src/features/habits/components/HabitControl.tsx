@@ -31,11 +31,11 @@ export function HabitControl({
         aria-label={done ? 'Afvinken ongedaan maken' : 'Afvinken'}
         aria-pressed={done}
         className={cn(
-          'h-9 w-9 rounded-full border flex items-center justify-center transition-colors shrink-0',
-          done ? 'bg-primary border-primary text-primary-foreground' : 'border-border text-muted-foreground',
+          'h-touch w-touch rounded-full flex items-center justify-center transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          done ? 'bg-accent text-on-accent' : 'border-2 border-line-strong text-muted',
         )}
       >
-        <Check className="h-5 w-5" />
+        <Check className={cn('h-5 w-5', !done && 'opacity-0')} strokeWidth={3} />
       </button>
     );
   }
@@ -45,19 +45,19 @@ export function HabitControl({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8"
+        className="h-touch w-touch"
         onClick={() => void stepHabitCount(habit.id!, dateKey, -1, habit.target)}
         aria-label="Minder"
       >
         <Minus className="h-4 w-4" />
       </Button>
-      <span className={cn('tabular-nums text-sm w-12 text-center', done && 'text-primary font-semibold')}>
+      <span className={cn('tabular-nums text-small w-12 text-center', done && 'text-accent font-semibold')}>
         {value}/{habit.target ?? 1}
       </span>
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8"
+        className="h-touch w-touch"
         onClick={() => void stepHabitCount(habit.id!, dateKey, 1, habit.target)}
         aria-label="Meer"
       >
@@ -100,10 +100,10 @@ function AmountControl({
         value={draft}
         onChange={e => commit(e.target.value)}
         aria-label="Waarde"
-        className={cn('h-8 w-16 text-right tabular-nums', done && 'border-primary text-primary')}
+        className={cn('h-touch w-20 text-right tabular-nums', done && 'border-accent text-accent')}
       />
       {(habit.target != null || habit.unit) && (
-        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        <span className="text-caption text-muted tabular-nums whitespace-nowrap">
           {habit.target != null ? `/ ${habit.target}` : ''}
           {habit.unit ? ` ${habit.unit}` : ''}
         </span>

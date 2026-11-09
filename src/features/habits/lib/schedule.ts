@@ -113,3 +113,21 @@ export function completionRate(
 
   return scheduled === 0 ? 0 : done / scheduled;
 }
+
+const WEEKDAY_SHORT = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+
+/** Short Dutch description of a schedule for list rows ("Elke dag", "ma, wo, vr"). */
+export function scheduleLabel(schedule: HabitSchedule): string {
+  switch (schedule.kind) {
+    case 'daily':
+      return 'Elke dag';
+    case 'interval':
+      return schedule.everyDays === 1 ? 'Elke dag' : `Elke ${schedule.everyDays} dagen`;
+    case 'weekdays': {
+      const days = [...schedule.days].sort((a, b) => a - b);
+      return days.length === 7 ? 'Elke dag' : days.map(d => WEEKDAY_SHORT[d]).join(', ');
+    }
+    case 'monthdays':
+      return `Dag ${[...schedule.days].sort((a, b) => a - b).join(', ')} van de maand`;
+  }
+}
