@@ -39,11 +39,11 @@ test.describe('Habit tracker', () => {
 
     // Below target: not done, no streak yet.
     await habits.setAmount('Eiwitten', 120);
-    await expect(row).not.toHaveClass(/border-primary/);
+    await expect(row).not.toHaveClass(/border-accent/);
 
     // Reaching the target completes it (card gets the done border).
     await habits.setAmount('Eiwitten', 160);
-    await expect(row).toHaveClass(/border-primary/);
+    await expect(row).toHaveClass(/border-accent/);
   });
 
   test('an amount habit without a target just tracks the value', async ({ habits }) => {
@@ -55,7 +55,7 @@ test.describe('Habit tracker', () => {
 
     // Any logged value counts as tracked for the day.
     await habits.setAmount('Water', 500);
-    await expect(row).toHaveClass(/border-primary/);
+    await expect(row).toHaveClass(/border-accent/);
   });
 
   test('a weekday habit shows only on its scheduled days', async ({ habits }) => {
