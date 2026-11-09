@@ -70,13 +70,18 @@ export type PeriodFilter = '4w' | '3m' | 'all';
 
 // --- Hook ---
 
-export function useCompletedWorkouts() {
+/** Raw live query: `undefined` while loading (lets screens tell "loading" from "no workouts"). */
+export function useCompletedWorkoutsQuery() {
   return useLiveQuery(
     async () => {
       const done = await db.workouts.where('status').equals('completed').sortBy('startedAt');
       return done.filter(w => !w.deleted);
     },
-  ) ?? [];
+  );
+}
+
+export function useCompletedWorkouts() {
+  return useCompletedWorkoutsQuery() ?? [];
 }
 
 /** Pure: builds the session history for one exercise from a list of workouts. */
