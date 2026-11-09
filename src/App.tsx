@@ -9,6 +9,7 @@ import { startSync } from './lib/sync';
 
 // Core training pages — eager, this is the main flow
 import { ExercisesPage } from './features/training/pages/ExercisesPage';
+import { ExerciseDetailPage } from './features/training/pages/ExerciseDetailPage';
 import { ExerciseFormPage } from './features/training/pages/ExerciseFormPage';
 import { SchemasPage } from './features/training/pages/SchemasPage';
 import { SchemaFormPage } from './features/training/pages/SchemaFormPage';
@@ -58,6 +59,7 @@ export function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/new" element={<ExerciseFormPage />} />
+          <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
           <Route path="/schemas" element={<SchemasPage />} />
           <Route path="/schemas/new" element={<SchemaFormPage />} />

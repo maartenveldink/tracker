@@ -73,6 +73,7 @@ The suite exercises the main user flows across the app:
 - **Schema import & AI-coach** — readable-JSON import (valid, invalid with per-path errors, unknown exercise), "Kopieer voor AI" summary/clipboard.
 - **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, an added exercise lands after the last finished one.
 - **Data** — export → wipe → import (replace and merge), dates revived, `schemaId` remapped; deleted exercises keep their name in history.
+- **Exercise detail** — a list row opens `/exercises/:id` (`exercise-info` card, goal, 1RM chart, sessions); `exercises.open(name)` goes on via "Bewerk" to the form, `exercises.openDetail(name)` stays on the detail page.
 - **Progress extras** — month calendar, exercise goal progress bar, deload suggestion.
 - **Accessibility** — `a11y.spec.ts`: touch targets >= 44px (tabs, calendar buttons) and the 560px nav column on a wide viewport. No automated contrast check; contrast is measured against the tokens (see `docs/redesign-wp8-review.md`).
 - **Settings** — 1RM formula, weight-step and muscle-detail persistence,

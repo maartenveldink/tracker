@@ -21,9 +21,17 @@ export class ExercisesPage {
     return this.page.getByRole('heading', { name, exact: true });
   }
 
+  /** Opens the edit form: list row -> detail page -> "Bewerk". */
   async open(name: string): Promise<void> {
-    await this.card(name).click();
+    await this.openDetail(name);
+    await this.page.getByRole('link', { name: `Bewerk ${name}` }).click();
     await this.page.waitForURL(/\/exercises\/[^\/]+\/edit$/);
+  }
+
+  /** Opens the read-only detail page (`/exercises/:id`). */
+  async openDetail(name: string): Promise<void> {
+    await this.card(name).click();
+    await this.page.waitForURL(/\/exercises\/[^\/]+$/);
   }
 
   async delete(name: string): Promise<void> {
