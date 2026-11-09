@@ -22,15 +22,25 @@ npm run dev      # Start dev server (http://localhost:5173)
 npm run build    # TypeScript check + Vite production build
 npm run preview  # Preview production build
 npx tsc --noEmit # Type-check only
+npm test         # Vitest unit tests (pure logic only, Node, fast)
 npm run e2e      # Playwright end-to-end tests (auto-starts dev server)
 ```
 
 ## Testing
 
-End-to-end tests use Playwright (`e2e/`, Page Object Model + fixtures, mobile
-Chromium). See `docs/e2e-testing.md` for the architecture and conventions. There
-are no unit tests; the suite drives the real app + IndexedDB. Run `npm run e2e`
-(and `npm run e2e:typecheck`) before pushing test changes.
+Two layers, deliberately small:
+
+- **Vitest** (`npm test`, config `vitest.config.ts`, Node environment, `src/**/*.test.ts`)
+  for **pure logic only** that can really go wrong: state machines, derived
+  calculations (1RM, plateau, averages), celebration triggers. No jsdom, no
+  component or UI tests, no tests for trivial helpers. Test files sit next to the
+  lib (`sets.ts` -> `sets.test.ts`).
+- **Playwright e2e** (`e2e/`, Page Object Model + fixtures, mobile Chromium) drives
+  the real app + IndexedDB and covers the UI. See `docs/e2e-testing.md`.
+
+Run `npm test` and `npx tsc --noEmit` while working; `npm run build` and
+`npm run e2e` (plus `npm run e2e:typecheck` for test changes) before pushing. The
+machine is small: run e2e once, never two browsers at the same time.
 
 ## Project Structure
 
@@ -53,6 +63,7 @@ src/
       lib/        # restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
       pages/      # Exercise*, Schema*, SchemaImport, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
       components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
+    habits/       # Habit tracker (/habits): pages/ (list, detail, form), components/ (HabitControl, HabitHeatmap, HabitsTodayCard), hooks/useHabits, lib/schedule (pure schedule + streak logic)
   App.tsx         # Routes (Dashboard is "/"), lazy-loads the Progress page
   main.tsx        # Entry point (seeds DB, inits settings, renders app)
   index.css       # Tailwind directives
@@ -81,8 +92,23 @@ src/
 - **Progressive overload**: hitting the top of the rep range on every set bumps the next session's suggested weight by one increment (per-exercise `weightStep` override, else the equipment/global step).
 - **Epic 8**: Settings — 1RM formula, muscle detail level, workout density, per-equipment weight steps, rest timer + alert toggles + laterality×movement-type rest-defaults matrix; clear data, JSON export/import.
 
+- **Habits** (`docs/plan.habit-tracker.md`, `docs/requirements.habit-tracker.md`): daily habits (on/off or counter) with flexible schedules (daily, every x days, weekdays, month days), streaks, heatmap, own tab (`/habits`) and a "today" card on the Dashboard. Tables `habits`/`habitLogs` (DB v16).
 - **AI-coach** (`docs/plan.ai-coach.md`): step 1 readable schema JSON + import screen; step 2 "Kopieer voor AI" on the schema detail (`coachSummary` + `coachPrompt`, no raw sets, relative weeks) — copy/paste into an AI chat, answer pasted back via the import screen. Step 3 (direct Anthropic API call with a local API key) was built and then removed again; it is in git history (PR #3, `cb9f719`). Step 4 (reminder card) is not built.
 - **Import/export**: JSON import revives `Date` fields and, in merge mode, remaps `schemaId`/`exerciseId`.
+
+## Redesign (design handoff)
+
+A visual makeover is planned in `docs/plan.redesign.md` (work packages WP0-WP8). Source of
+truth for looks: `docs/design-handoff/` (`DESIGN.md`, `tokens/`, `screens/*.dc.html`, which
+are readable specs and do not run). Rule: the repo wins for behaviour and data, the design
+wins for looks. Conventions for redesigned screens:
+
+- Use design tokens (Tailwind classes mapped to `tokens.css`), no loose hex values and no `slate-*` classes.
+- Keep existing e2e labels/aria names, or update the Page Objects in the same PR.
+- Never drop an existing feature (calendar, heatmap, goals, deload) without the owner deciding.
+- No data model, sync or API changes unless a work package says so.
+- Respect `prefers-reduced-motion`; fonts are self-hosted (`@fontsource-*`) for offline use.
+- Pure logic from the design (training state machine, "better than last time" trigger = average estimated 1RM over weighted sets, derived stats) goes in `features/training/lib/` with Vitest tests.
 
 ## Rest-time resolution
 

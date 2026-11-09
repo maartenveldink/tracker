@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Meer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="flex: 1; padding: 24px 20px 0; display: flex; flex-direction: column; gap: 12px; opacity: 0.35" aria-hidden="true">
+    <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; padding: 0 2px">Progressie</span>
+    <div style="height: 200px; border-radius: 20px; background: {{surface}}; border: 1px solid {{line}}"></div>
+    <div style="height: 80px; border-radius: 20px; background: {{surface}}; border: 1px solid {{line}}"></div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 28px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 4px">
+      <h2 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">Meer</h2>
+      <button aria-label="Sluiten" style="width: 44px; height: 44px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="3">
+      <button style="min-height: 60px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{line}}; border-radius: 16px; background: {{bg}}; color: {{text}}; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; cursor: pointer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{i.d}}"/></svg>
+        <span style="display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 16px; font-weight: 600">{{i.label}}</span>
+          <span style="font-size: 12px; color: {{muted}}">{{i.hint}}</span>
+        </span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props;
+    const items = [
+      { label: 'Oefeningen', hint: 'Bibliotheek met al je oefeningen', d: 'M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12' },
+      { label: "Schema's", hint: 'Trainingen en schema’s beheren', d: 'M9 4h6a2 2 0 0 1 2 2v14H7V6a2 2 0 0 1 2-2zM10 9h4M10 13h4' },
+      { label: 'Instellingen', hint: 'Rusttijd, gewichtsstap en meldingen', d: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4' }
+    ];
+    return {
+      bg: P.bg ?? '#0A0E1A', surface: P.surface ?? '#131A2B', line: P.line ?? '#26324F',
+      text: P.text ?? '#F1F4FB', muted: P.muted ?? '#9AA6C2', accent: P.accent ?? '#C8F135', accent2: P.accent2 ?? '#7C9CFF',
+      items
+    };
+  }
+}
+</script>
+</body>
+</html>
