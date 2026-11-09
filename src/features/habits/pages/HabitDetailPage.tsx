@@ -7,7 +7,8 @@ import { HabitHeatmap } from '../components/HabitHeatmap';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { StatTile } from '@/components/ui/stat-tile';
+import { Chip } from '@/components/ui/chip';
 
 type Period = '4w' | '3m' | 'all';
 
@@ -75,34 +76,19 @@ export function HabitDetailPage() {
         }
       />
 
-      <div className="px-4 py-3 space-y-4">
+      <div className="px-screen-x py-4 space-y-gap">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">{streak}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">dagen streak</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">{Math.round(rate * 100)}%</div>
-              <div className="text-xs text-muted-foreground mt-0.5">voltooid</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-gap">
+          <StatTile value={streak} label="dagen streak" />
+          <StatTile value={`${Math.round(rate * 100)}%`} label="voltooid" />
         </div>
 
         {/* Period filter */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {PERIODS.map(p => (
-            <Button
-              key={p.value}
-              variant={period === p.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPeriod(p.value)}
-            >
+            <Chip key={p.value} selected={period === p.value} onClick={() => setPeriod(p.value)}>
               {p.label}
-            </Button>
+            </Chip>
           ))}
         </div>
 

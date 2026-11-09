@@ -5,8 +5,8 @@ import { createHabit, updateHabit, useHabit } from '../hooks/useHabits';
 import { todayISO } from '../../../lib/dateUtils';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 type ScheduleKind = HabitSchedule['kind'];
 
@@ -104,7 +104,7 @@ export function HabitFormPage() {
     <div>
       <PageHeader title={habitId != null ? 'Habit bewerken' : 'Nieuwe habit'} backTo="/habits" />
 
-      <div className="px-4 py-4 space-y-6">
+      <div className="px-screen-x py-5 space-y-6">
         {/* Basis */}
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -114,7 +114,7 @@ export function HabitFormPage() {
               placeholder="🙂"
               maxLength={2}
               aria-label="Emoji"
-              className="w-16 text-center text-lg"
+              className="w-16 px-0 text-center text-lg"
             />
             <Input
               value={name}
@@ -128,23 +128,18 @@ export function HabitFormPage() {
 
         {/* Type */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Type</p>
+          <p className="text-small font-semibold">Type</p>
           <div className="flex gap-2">
             {(['boolean', 'count', 'amount'] as HabitType[]).map(t => (
-              <Button
-                key={t}
-                variant={type === t ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setType(t)}
-              >
+              <Chip key={t} selected={type === t} onClick={() => setType(t)}>
                 {t === 'boolean' ? 'Aan/uit' : t === 'count' ? 'Teller' : 'Getal'}
-              </Button>
+              </Chip>
             ))}
           </div>
           {(type === 'count' || type === 'amount') && (
             <div className="space-y-1 pt-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-small text-muted">
                   {type === 'amount' ? 'Doel per dag (optioneel)' : 'Doel per dag'}
                 </span>
                 <Input
@@ -168,7 +163,7 @@ export function HabitFormPage() {
                 )}
               </div>
               {type === 'amount' && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted">
                   Zonder doel houd je de waarde alleen bij, zonder gehaald/niet-gehaald.
                 </p>
               )}
@@ -178,23 +173,18 @@ export function HabitFormPage() {
 
         {/* Schema */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Schema</p>
+          <p className="text-small font-semibold">Schema</p>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(KIND_LABELS) as ScheduleKind[]).map(k => (
-              <Button
-                key={k}
-                variant={kind === k ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setKind(k)}
-              >
+              <Chip key={k} selected={kind === k} onClick={() => setKind(k)} className="px-2">
                 {KIND_LABELS[k]}
-              </Button>
+              </Chip>
             ))}
           </div>
 
           {kind === 'interval' && (
             <div className="flex items-center gap-2 pt-2">
-              <span className="text-sm text-muted-foreground">Elke</span>
+              <span className="text-small text-muted">Elke</span>
               <Input
                 type="number"
                 min={1}
@@ -203,26 +193,21 @@ export function HabitFormPage() {
                 aria-label="Aantal dagen"
                 className="w-20"
               />
-              <span className="text-sm text-muted-foreground">dagen</span>
+              <span className="text-small text-muted">dagen</span>
             </div>
           )}
 
           {kind === 'weekdays' && (
             <div className="flex flex-wrap gap-1.5 pt-2">
               {WEEKDAYS.map((label, i) => (
-                <button
+                <Chip
                   key={label}
-                  type="button"
+                  selected={weekdays.includes(i)}
                   onClick={() => setWeekdays(prev => toggleIn(prev, i))}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize',
-                    weekdays.includes(i)
-                      ? 'bg-primary border-primary text-primary-foreground'
-                      : 'border-border text-muted-foreground',
-                  )}
+                  className="px-3.5 capitalize"
                 >
                   {label}
-                </button>
+                </Chip>
               ))}
             </div>
           )}
@@ -230,19 +215,14 @@ export function HabitFormPage() {
           {kind === 'monthdays' && (
             <div className="grid grid-cols-7 gap-1.5 pt-2">
               {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                <button
+                <Chip
                   key={day}
-                  type="button"
+                  selected={monthdays.includes(day)}
                   onClick={() => setMonthdays(prev => toggleIn(prev, day))}
-                  className={cn(
-                    'h-8 rounded-md text-xs font-medium border transition-colors',
-                    monthdays.includes(day)
-                      ? 'bg-primary border-primary text-primary-foreground'
-                      : 'border-border text-muted-foreground',
-                  )}
+                  className="px-0 text-caption"
                 >
                   {day}
-                </button>
+                </Chip>
               ))}
             </div>
           )}

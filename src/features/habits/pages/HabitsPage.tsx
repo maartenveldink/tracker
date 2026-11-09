@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import type { Habit, HabitLog } from '../../../db/index';
 import { useHabits, useHabitLogs, reorderHabits } from '../hooks/useHabits';
-import { isScheduledOn, doneByDateForHabit, habitStreak, isHabitDone } from '../lib/schedule';
+import { isScheduledOn, doneByDateForHabit, habitStreak, isHabitDone, scheduleLabel } from '../lib/schedule';
 import { toISODate } from '../../../lib/dateUtils';
-import { PageHeader } from '../../../components/PageHeader';
 import { HabitControl } from '../components/HabitControl';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 function formatDayLabel(date: Date, todayKey: string): string {
@@ -73,25 +73,26 @@ export function HabitsPage() {
     void reorderHabits(ids);
   }
 
+  const doneCount = scheduled.filter(h => isHabitDone(h, valueByHabit.get(h.id) ?? 0)).length;
+  const percent = scheduled.length > 0 ? Math.round((doneCount / scheduled.length) * 100) : 0;
+
   return (
-    <div>
-      <PageHeader
-        title="Habits"
-        actions={
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/habits/new" aria-label="Nieuwe habit">
-              <Plus className="h-4 w-4" /> Nieuw
-            </Link>
-          </Button>
-        }
-      />
+    <div className="px-screen-x pt-6 pb-4 space-y-gap">
+      <header className="flex items-center justify-between px-0.5">
+        <h1 className="font-display text-screen font-bold tracking-tight">Habits</h1>
+        <Button asChild variant="outline" className="rounded-pill px-4">
+          <Link to="/habits/new" aria-label="Nieuwe habit">
+            + Nieuw
+          </Link>
+        </Button>
+      </header>
 
       {/* Day navigator */}
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center">
         <Button variant="ghost" size="icon" onClick={() => shiftDay(-1)} aria-label="Vorige dag">
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-[18px] w-[18px]" />
         </Button>
-        <span className="text-sm font-medium capitalize">{formatDayLabel(selected, todayKey)}</span>
+        <span className="text-center text-body font-semibold capitalize">{formatDayLabel(selected, todayKey)}</span>
         <Button
           variant="ghost"
           size="icon"
@@ -99,21 +100,33 @@ export function HabitsPage() {
           disabled={isToday}
           aria-label="Volgende dag"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-[18px] w-[18px]" />
         </Button>
       </div>
 
-      <div className="px-4 space-y-2">
+      {scheduled.length > 0 && (
+        <Card className="p-[18px] flex flex-col gap-2.5" data-testid="habits-summary">
+          <div className="flex items-baseline justify-between">
+            <span className="text-small font-semibold">
+              {doneCount} van {scheduled.length} gedaan
+            </span>
+            <span className="text-caption text-muted">{percent}%</span>
+          </div>
+          <Progress value={percent} aria-label={`${percent}% van de habits gedaan`} />
+        </Card>
+      )}
+
+      <div className="flex flex-col gap-2">
         {habits.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground text-sm">
+          <div className="py-16 text-center text-muted text-small">
             Nog geen habits.{' '}
-            <Link to="/habits/new" className="text-primary underline">
+            <Link to="/habits/new" className="text-accent underline">
               Maak je eerste habit
             </Link>
             .
           </div>
         ) : scheduled.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground text-sm">
+          <div className="py-16 text-center text-muted text-small">
             Geen habits gepland voor deze dag.
           </div>
         ) : (
@@ -161,47 +174,46 @@ function HabitRow({
     [habit, logs],
   );
 
-  return (
-    <Card data-testid="habit-row" className={cn(done && 'border-primary/50')}>
-      <CardContent className="p-3 flex items-center gap-2">
-        {(canMoveUp || canMoveDown) && (
-          <div className="flex flex-col -my-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground"
-              onClick={() => onMove(-1)}
-              disabled={!canMoveUp}
-              aria-label="Omhoog"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground"
-              onClick={() => onMove(1)}
-              disabled={!canMoveDown}
-              aria-label="Omlaag"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left">
-          <div className="flex items-center gap-2">
-            {habit.emoji && <span className="text-lg">{habit.emoji}</span>}
-            <span className="font-medium text-sm truncate">{habit.name}</span>
-          </div>
-          {streak > 0 && (
-            <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-amber-400">
-              <Flame className="h-3 w-3" /> {streak}
-            </span>
-          )}
-        </button>
+  const isBoolean = habit.type === 'boolean';
 
-        <HabitControl habit={habit} value={value} dateKey={dateKey} />
-      </CardContent>
+  return (
+    <Card data-testid="habit-row" className={cn('rounded-row min-h-16 flex items-center gap-2 py-2 pl-2.5 pr-4', done && 'border-accent/50')}>
+      {isBoolean && <HabitControl habit={habit} value={value} dateKey={dateKey} />}
+      <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left rounded-row focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="flex items-center gap-2">
+          {habit.emoji && <span className="text-lg">{habit.emoji}</span>}
+          <span className="text-body-lg font-semibold truncate">{habit.name}</span>
+        </span>
+        <span className="block text-caption text-muted truncate">
+          {scheduleLabel(habit.schedule)}
+          {streak > 0 && ` · ${streak} ${streak === 1 ? 'dag' : 'dagen'}`}
+        </span>
+      </button>
+      {!isBoolean && <HabitControl habit={habit} value={value} dateKey={dateKey} />}
+      {(canMoveUp || canMoveDown) && (
+        <div className="flex flex-col shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-8 text-muted"
+            onClick={() => onMove(-1)}
+            disabled={!canMoveUp}
+            aria-label="Omhoog"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-8 text-muted"
+            onClick={() => onMove(1)}
+            disabled={!canMoveDown}
+            aria-label="Omlaag"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }
