@@ -148,7 +148,7 @@ export function ExercisesPage() {
             <div key={exercise.id} className={cn(listRowClass, 'gap-1 py-0 pr-1')}>
               <button
                 type="button"
-                onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
+                onClick={() => navigate(`/exercises/${exercise.id}`)}
                 className="grid min-h-14 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="flex min-w-0 flex-col">

@@ -32,6 +32,23 @@ test.describe('Exercise library', () => {
     await expect(exercises.card('E2E Temp')).toHaveCount(0);
   });
 
+  test('a list row opens the detail page, which links to the edit form', async ({
+    page,
+    exerciseForm,
+    exercises,
+  }) => {
+    await exerciseForm.create('E2E Detail', 'Notitie voor detail');
+
+    await exercises.goto();
+    await exercises.openDetail('E2E Detail');
+
+    await expect(page.getByTestId('exercise-info')).toContainText('Notitie voor detail');
+    await expect(page.getByText('Nog geen gelogde sets')).toBeVisible();
+
+    await page.getByRole('link', { name: 'Bewerk E2E Detail' }).click();
+    await expect(page).toHaveURL(/\/exercises\/[^/]+\/edit$/);
+  });
+
   test('deletes a custom exercise', async ({ exerciseForm, exercises }) => {
     await exerciseForm.create('E2E Deletable');
 
