@@ -15,7 +15,7 @@ test.describe('Suggested workout', () => {
     expect(await suggest.count()).toBeGreaterThan(0);
 
     await suggest.start();
-    await expect(page.getByTestId('exercise-card').first()).toBeVisible();
+    await expect(page.getByTestId('current-exercise')).toBeVisible();
   });
 
   test('explains why each exercise was chosen', async ({ startWorkout, suggest, page }) => {

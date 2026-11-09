@@ -13,9 +13,9 @@ export class StartWorkoutPage {
     // Scoped to the schema list: the suggested card may show the same name.
     await this.page.getByTestId('schema-list').getByText(schemaName, { exact: true }).click();
     await this.page.waitForURL(/\/workout\/[^\/]+$/);
-    // Wait until the exercise cards have rendered so callers can assert on the
-    // set grid immediately.
-    await this.page.getByTestId('exercise-card').first().waitFor({ state: 'visible' });
+    // Wait until the current exercise has rendered so callers can assert on the
+    // set list immediately.
+    await this.page.getByTestId('current-exercise').waitFor({ state: 'visible' });
   }
 
   /** Starts an ad-hoc ("Vrije training") workout with no schema. */

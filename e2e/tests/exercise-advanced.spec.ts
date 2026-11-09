@@ -32,6 +32,6 @@ test.describe('Exercises — advanced', () => {
     // Session 2: bump uses the 2.5 kg override → 62.5 (not the 1.25 default).
     await startWorkout.goto();
     await startWorkout.start('E2E Step Override');
-    await expect(workout.setWeightInput(0)).toHaveAttribute('placeholder', '62.5');
+    await expect(workout.weightInput).toHaveValue('62,5');
   });
 });

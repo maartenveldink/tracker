@@ -23,20 +23,20 @@ test.describe('Supersets — advanced', () => {
     await startWorkout.start('E2E Triset');
 
     // A → B (no rest)
-    await expect(workout.expandedTitle).toContainText(A);
+    await expect(workout.currentTitle).toContainText(A);
     await workout.completeActiveSet(60, 10);
-    await expect(workout.expandedTitle).toContainText(B);
+    await expect(workout.currentTitle).toContainText(B);
     await expect(workout.restTimer).toHaveCount(0);
 
     // B → C (no rest)
     await workout.completeActiveSet(50, 10);
-    await expect(workout.expandedTitle).toContainText(C);
+    await expect(workout.currentTitle).toContainText(C);
     await expect(workout.restTimer).toHaveCount(0);
 
     // C ends the round: rest starts, focus returns to A.
     await workout.completeActiveSet(40, 10);
     await expect(workout.restTimer).toBeVisible();
-    await expect(workout.expandedTitle).toContainText(A);
+    await expect(workout.currentTitle).toContainText(A);
   });
 
   test('shows supersets on the schema detail page', async ({ schemaEditor, page }) => {
