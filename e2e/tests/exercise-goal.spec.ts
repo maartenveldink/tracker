@@ -166,7 +166,7 @@ test.describe('Exercise goal', () => {
 
     await progress.goto();
     await progress.openExercise(ROW);
-    await expect(page.getByText('Geschatte 1RM (kg)')).toBeVisible();
+    await expect(page.getByText('Geschat 1RM', { exact: true })).toBeVisible();
     await expect(page.getByText('Sessies (1)')).toBeVisible();
     await expect(progress.goalBar(ROW)).toHaveCount(0);
   });
