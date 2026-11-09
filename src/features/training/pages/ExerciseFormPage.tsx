@@ -26,7 +26,7 @@ export function ExerciseFormPage() {
         title={isEditing ? 'Oefening bewerken' : 'Nieuwe oefening'}
         backTo="/exercises"
       />
-      <div className="px-4 py-4">
+      <div className="px-5 py-4">
         <ExerciseForm existing={existing} onSaved={() => navigate('/exercises')} />
       </div>
     </div>
