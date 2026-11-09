@@ -19,7 +19,6 @@ import { useWakeLock } from '../hooks/useWakeLock';
 import { resolveRestSeconds } from '../lib/restTime';
 import { resolveStep, steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { groupSupersets } from '../lib/superset';
-import { isExerciseDone } from '../lib/insertPosition';
 import {
   activeSetIndex,
   afterSetLogged,
@@ -39,8 +38,9 @@ import {
 } from '../lib/liveTraining';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
-import { bestOneRMForExercise, previousBestOneRM } from '../lib/progression';
-import { CelebrationBurst } from '../components/CelebrationBurst';
+import { compareSessions } from '../lib/celebration';
+import { CelebrationEffects, prefersReducedMotion } from '../components/CelebrationEffects';
+import { ExerciseMoment } from '../components/ExerciseMoment';
 import { LiveStepper } from '../components/LiveStepper';
 import { LiveRestStrip, type RestTimerState } from '../components/LiveRestStrip';
 import { LiveOverviewSheet, type OverviewRow } from '../components/LiveOverviewSheet';
@@ -53,6 +53,10 @@ import { isWeightedSet } from '../lib/sets';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, ListChecks, Minus, Plus, Link2, History } from 'lucide-react';
 import type { Workout } from '../../../db/index';
+
+function completedLines(sets: Workout['exercises'][number]['sets']): { weight: number; reps: number }[] {
+  return sets.filter(isWeightedSet).map(set => ({ weight: set.weight!, reps: set.actualReps! }));
+}
 
 // --- Previous session reference (E3-10) ---
 
@@ -258,36 +262,43 @@ export function WorkoutPage() {
     }
   }, [workout?.status, workoutId, navigate]);
 
-  // --- WP5 extension point ("Oefening klaar" celebration) ---------------------
-  // Fires once per exercise at the moment its last set is settled with a better
-  // best-1RM than the previous session. WP5 replaces CelebrationBurst + this
-  // effect with the full "Oefening klaar" moment (banner, comparison table,
-  // confetti); the state machine (`lib/liveTraining.ts`) needs no change: the
-  // moment is "the current exercise is complete" (see `exerciseComplete` below).
-  const celebratedRef = useRef<Set<string>>(new Set());
+  // "Oefening klaar" celebration (DESIGN §8). The banner + comparison table are
+  // derived from the stored sets (`moment` below). The one-off effects (confetti,
+  // fireworks, vibration) fire only when the current exercise *becomes* complete
+  // during this mount: an exercise first seen already complete (reload, jumping
+  // back to a finished one) never replays them. Reopening it re-arms it.
+  const armedRef = useRef<Set<string>>(new Set());
+  const firedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    armedRef.current = new Set();
+    firedRef.current = new Set();
+  }, [workoutId]);
   const [celebrateNonce, setCelebrateNonce] = useState(0);
   useEffect(() => {
-    celebratedRef.current = new Set();
-  }, [workoutId]);
-  useEffect(() => {
-    if (!workout || workout.status === 'completed') return;
-    const formula = settings.oneRMFormula;
-    for (const we of workout.exercises) {
-      const done = isExerciseDone(we);
-      const hasCompleted = we.sets.some(isWeightedSet);
-      if (!done || !hasCompleted) {
-        // Not finished (or edited back open) — let it celebrate again later.
-        celebratedRef.current.delete(we.exerciseId);
-        continue;
-      }
-      if (celebratedRef.current.has(we.exerciseId)) continue;
-      celebratedRef.current.add(we.exerciseId);
-      const current = bestOneRMForExercise(workout, we.exerciseId, formula);
-      const previous = previousBestOneRM(completedWorkouts, workoutId, we.exerciseId, formula);
-      if (previous !== null && current > previous) setCelebrateNonce(n => n + 1);
+    if (!workout || !workoutId || workout.status === 'completed' || curState === undefined) return;
+    const we = workout.exercises[curState];
+    if (!we) return;
+    const key = we.exerciseId;
+    const complete = we.sets.length > 0 && activeSetIndex(we.sets) < 0;
+    if (!complete) {
+      armedRef.current.add(key);
+      firedRef.current.delete(key);
+      return;
     }
-  }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
-  // -----------------------------------------------------------------------------
+    if (!armedRef.current.has(key) || firedRef.current.has(key)) return;
+    const comparison = compareSessions(
+      completedLines(we.sets),
+      previousSessions.get(key)?.sets ?? null,
+      settings.oneRMFormula,
+    );
+    if (!comparison?.improved) return;
+    firedRef.current.add(key);
+    if (!settings.celebrationEnabled) return;
+    setCelebrateNonce(n => n + 1);
+    if (settings.celebrationVibrate && !prefersReducedMotion() && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([20, 40, 20]);
+    }
+  }, [workout, workoutId, curState, previousSessions, settings.oneRMFormula, settings.celebrationEnabled, settings.celebrationVibrate]);
 
   // Pin the current-exercise pointer once the workout has loaded, so finishing
   // the last set of an exercise leaves it current ("Volgende oefening") instead
@@ -333,6 +344,10 @@ export function WorkoutPage() {
   const nextIdx = finished ? -1 : findNextTodo(statuses, cur);
   const nextEx = nextIdx >= 0 ? exercises[nextIdx] : undefined;
   const ssInfo = current ? groupSupersets(exercises)[cur] : undefined;
+  const moment =
+    exerciseComplete && current
+      ? compareSessions(completedLines(sets), prevSession?.sets ?? null, settings.oneRMFormula)
+      : null;
   const action = primaryAction({ finished, exerciseComplete, hasNext: nextIdx >= 0 });
   const isPaused = workout.status === 'paused';
   const openExercises = statuses.filter(s => s === 'todo').length;
@@ -581,7 +596,7 @@ export function WorkoutPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-column flex-col bg-bg text-text">
-      <CelebrationBurst key={celebrateNonce} play={celebrateNonce > 0} />
+      <CelebrationEffects key={celebrateNonce} play={celebrateNonce > 0} />
 
       <div className="flex flex-col gap-3.5 px-screen-x pt-5">
         {/* Header: no navigation bar during training (DESIGN §6) */}
@@ -654,6 +669,10 @@ export function WorkoutPage() {
             )}
           </div>
         </div>
+
+        {moment?.improved && (
+          <ExerciseMoment comparison={moment} animate={settings.celebrationEnabled && celebrateNonce > 0} />
+        )}
 
         {/* Set list: klaar / nu / komt nog (DESIGN §4 "Set-rij") */}
         {current && (

@@ -349,7 +349,7 @@ export function WorkoutSummaryPage() {
 
   return (
     <div className="min-h-screen">
-      <CelebrationBurst play={prExercises.size > 0 || improvedExerciseIds.size > 0} />
+      <CelebrationBurst play={settings.celebrationEnabled && (prExercises.size > 0 || improvedExerciseIds.size > 0)} />
       <PageHeader
         title="Samenvatting"
         actions={

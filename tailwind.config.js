@@ -88,6 +88,29 @@ export default {
           '70%': { transform: 'scale(0.95)', opacity: '1' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        // WP5: two-phase confetti (burst out, then fall + fade). Per-piece
+        // --cx/--cy (burst offset), --cr (spin) are set inline.
+        confetti: {
+          '0%': { transform: 'translate(0,0) rotate(0deg)', opacity: '1', animationTimingFunction: 'ease-out' },
+          '22%': { transform: 'translate(var(--cx),var(--cy)) rotate(var(--cr))', opacity: '1', animationTimingFunction: 'ease-in' },
+          '68%': { opacity: '1' },
+          '76%': { transform: 'translate(calc(var(--cx) * 1.15),620px) rotate(calc(var(--cr) * 2))', opacity: '0' },
+          '100%': { transform: 'translate(calc(var(--cx) * 1.15),620px) rotate(calc(var(--cr) * 2))', opacity: '0' },
+        },
+        // Firework ray: --fa is the ray angle.
+        'firework-ray': {
+          '0%': { transform: 'rotate(var(--fa)) translateX(4px) scaleX(1)', opacity: '1' },
+          '100%': { transform: 'rotate(var(--fa)) translateX(60px) scaleX(0.2)', opacity: '0' },
+        },
+        'banner-pop': {
+          '0%': { transform: 'scale(0.6)', opacity: '0' },
+          '60%': { transform: 'scale(1.08)', opacity: '1' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'moment-fade': {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
         'float-up': {
           '0%': { transform: 'translateY(8px) scale(0.8)', opacity: '0' },
           '30%': { opacity: '1' },
@@ -99,6 +122,8 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         celebrate: 'celebrate 0.6s ease-out both',
         'float-up': 'float-up 1.4s ease-out forwards',
+        'banner-pop': 'banner-pop var(--motion-pop) both',
+        'moment-fade': 'moment-fade var(--motion-row) both',
       },
     },
   },
