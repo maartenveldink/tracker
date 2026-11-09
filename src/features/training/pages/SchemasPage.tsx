@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useSchemas, deleteSchema, copySchema } from '../hooks/useSchemas';
+import { useSchemas, deleteSchema, copySchema, setSchemaActive } from '../hooks/useSchemas';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useState } from 'react';
-import { Copy, Pencil, Trash2, Upload } from 'lucide-react';
+import { Check, Copy, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -50,13 +50,29 @@ export function SchemasPage() {
                 onClick={() => navigate(`/schemas/${schema.id}`)}
                 className="flex-1 text-left min-w-0 min-h-touch rounded-row focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <h3 className="font-display text-title font-bold truncate">{schema.name}</h3>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="font-display text-title font-bold truncate">{schema.name}</h3>
+                  {schema.active && (
+                    <span className="shrink-0 rounded-pill bg-accent px-2.5 py-0.5 text-caption font-bold text-accent-foreground">
+                      Actief
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted text-caption mt-0.5">
                   {schema.days && schema.days.length > 0
                     ? `${schema.days.length} dagen · ${schema.days.reduce((sum, d) => sum + d.exercises.length, 0)} oefeningen`
                     : `${schema.exercises.length} oefening${schema.exercises.length !== 1 ? 'en' : ''}`}
                 </p>
               </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={schema.active ? 'text-accent' : 'text-muted'}
+                onClick={() => setSchemaActive(schema.id, !schema.active)}
+                aria-label={schema.active ? `Niet meer actief: ${schema.name}` : `Activeer ${schema.name}`}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"

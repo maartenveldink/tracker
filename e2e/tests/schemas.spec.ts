@@ -32,6 +32,32 @@ test.describe('Training schemas', () => {
     await expect(schemas.card('E2E Original (kopie)')).toBeVisible();
   });
 
+  test('activating a schema limits the Train tab to active schemas', async ({ schemaEditor, schemas, page }) => {
+    for (const name of ['E2E Actief', 'E2E Rust']) {
+      await schemaEditor.gotoNew();
+      await schemaEditor.setName(name);
+      await schemaEditor.addExercise(A);
+      await schemaEditor.save();
+    }
+    const list = page.getByTestId('schema-list');
+
+    // None active: everything shows, no "Alle schema's" row.
+    await page.goto('/start');
+    await expect(list.getByText('E2E Actief', { exact: true })).toBeVisible();
+    await expect(list.getByText('E2E Rust', { exact: true })).toBeVisible();
+
+    await schemas.goto();
+    await page.getByRole('button', { name: 'Activeer E2E Actief' }).click();
+    await expect(page.getByText('Actief', { exact: true })).toBeVisible();
+
+    await page.goto('/start');
+    await expect(list.getByText('E2E Actief', { exact: true })).toBeVisible();
+    await expect(list.getByText('E2E Rust', { exact: true })).toHaveCount(0);
+    await page.getByText("Alle schema's", { exact: true }).click();
+    await expect(page).toHaveURL(/\/schemas$/);
+    await expect(schemas.card('E2E Rust')).toBeVisible();
+  });
+
   test('deletes a schema', async ({ schemaEditor, schemas }) => {
     await schemaEditor.gotoNew();
     await schemaEditor.setName('E2E Disposable');

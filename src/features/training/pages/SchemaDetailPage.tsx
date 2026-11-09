@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
+import { useSchema, setSchemaActive, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
@@ -405,6 +405,14 @@ export function SchemaDetailPage() {
         backTo="/schemas"
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              variant={schema.active ? 'default' : 'secondary'}
+              size="sm"
+              onClick={() => setSchemaActive(schema.id, !schema.active)}
+            >
+              <Check className="h-4 w-4" />
+              {schema.active ? 'Actief' : 'Activeren'}
+            </Button>
             <Button
               variant="secondary"
               size="sm"

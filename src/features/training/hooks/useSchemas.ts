@@ -49,7 +49,7 @@ export async function createSchema(
 
 export async function updateSchema(
   id: string,
-  data: Partial<Pick<TrainingSchema, 'name' | 'exercises' | 'days' | 'rotation'>>,
+  data: Partial<Pick<TrainingSchema, 'name' | 'exercises' | 'days' | 'rotation' | 'active'>>,
 ): Promise<void> {
   await db.schemas.update(id, { ...data, updatedAt: new Date(), ...touchSyncMeta() });
 }
@@ -87,4 +87,8 @@ export async function copySchema(id: string): Promise<string> {
     ...freshSyncMeta(now.getTime()),
   });
   return copyId;
+}
+
+export async function setSchemaActive(id: string, active: boolean): Promise<void> {
+  await db.schemas.update(id, { active, updatedAt: new Date(), ...touchSyncMeta() });
 }
