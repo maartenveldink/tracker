@@ -3,6 +3,7 @@ import type { Exercise, TrainingSchema, Workout } from '../../../db/index';
 import {
   isEmptyHome,
   lastTrainedGroups,
+  nextDayId,
   nextTraining,
   volumeDeltaPct,
   weekDots,
@@ -141,5 +142,31 @@ describe('nextTraining', () => {
   it('ignores deleted schemas of the last workout', () => {
     const w = [workout({ daysAgo: 1, schemaId: 'gone' })];
     expect(nextTraining([single], w)?.schema.id).toBe('s1');
+  });
+});
+
+describe('nextDayId', () => {
+  const day = (id: string, order: number) => ({ id, name: id, order, exercises: [] });
+  const multi = {
+    id: 's2',
+    name: 'PPL',
+    exercises: [],
+    days: [day('d1', 0), day('d2', 1), day('d3', 2)],
+  } as unknown as TrainingSchema;
+  const single = { id: 's1', name: 'Full body', exercises: [] } as unknown as TrainingSchema;
+
+  it('is null for single-day schemas', () => expect(nextDayId(single, [])).toBeNull());
+  it('starts with the first day', () => expect(nextDayId(multi, [])).toBe('d1'));
+  it('counts only completed sessions of that schema with a day', () => {
+    const w = [
+      workout({ daysAgo: 3, schemaId: 's2', schemaDayId: 'd1' }),
+      workout({ daysAgo: 2, schemaId: 's1' }),
+      workout({ daysAgo: 1, schemaId: 'other', schemaDayId: 'x' }),
+    ];
+    expect(nextDayId(multi, w)).toBe('d2');
+  });
+  it('wraps around', () => {
+    const w = [1, 2, 3].map(i => workout({ daysAgo: 10 - i, schemaId: 's2', schemaDayId: 'd' + i }));
+    expect(nextDayId(multi, w)).toBe('d1');
   });
 });

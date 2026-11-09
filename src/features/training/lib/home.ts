@@ -84,6 +84,21 @@ export interface NextTraining {
 }
 
 /**
+ * The day of a multi-day schema that is up next in its rotation: completed
+ * multi-day sessions of this schema modulo the rotation length. Null for
+ * single-day schemas.
+ */
+export function nextDayId(schema: TrainingSchema, completedWorkouts: Workout[]): string | null {
+  if (!isMultiDay(schema)) return null;
+  const days = getSortedDays(schema);
+  if (days.length === 0) return null;
+  const rotation = getRotation(schema);
+  const done = completedWorkouts.filter(w => w.schemaId === schema.id && w.schemaDayId).length;
+  const id = rotation.length > 0 ? rotation[done % rotation.length] : undefined;
+  return id ?? days[0]!.id;
+}
+
+/**
  * The training that is up next: the schema trained last (else the first one),
  * and for multi-day schemas the next day in its rotation (same rule as the
  * Start screen: completed multi-day sessions modulo rotation length).
@@ -95,14 +110,8 @@ export function nextTraining(schemas: TrainingSchema[], completedWorkouts: Worko
   const lastWithSchema = recent.find(w => w.schemaId !== null && byId.has(w.schemaId));
   const schema = (lastWithSchema && byId.get(lastWithSchema.schemaId!)) || schemas[0]!;
 
-  let day: SchemaDay | null = null;
-  if (isMultiDay(schema)) {
-    const days = getSortedDays(schema);
-    const rotation = getRotation(schema);
-    const done = completedWorkouts.filter(w => w.schemaId === schema.id && w.schemaDayId).length;
-    const dayId = rotation[done % rotation.length] ?? days[0]!.id;
-    day = days.find(d => d.id === dayId) ?? days[0]!;
-  }
+  const dayId = nextDayId(schema, completedWorkouts);
+  const day = dayId ? getSortedDays(schema).find(d => d.id === dayId) ?? null : null;
   const lastDate = recent.find(w => w.schemaId === schema.id)?.startedAt ?? null;
   return { schema, day, lastDate };
 }
