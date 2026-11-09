@@ -1,0 +1,92 @@
+/*
+ * Tracker design tokens: richting A "Kobalt & limoen" (aanbevolen).
+ * Framework-onafhankelijk. Importeer dit bestand eenmalig globaal en verwijs
+ * overal naar de variabelen, nooit naar losse hex-waarden.
+ * Alleen donker thema. Er is geen licht thema ontworpen.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Kleur */
+  --color-bg: #0a0e1a;            /* paginaachtergrond */
+  --color-surface: #131a2b;       /* kaarten, navigatiebalk, sheets */
+  --color-line: #26324f;          /* decoratieve randen en scheidingslijnen (geen UI-grens, 1,4:1) */
+  --color-line-strong: #5b6c99;   /* randen van invoervelden, uitgevinkte cirkels, switch-spoor uit (>= 3:1) */
+  --color-text: #f1f4fb;          /* primaire tekst */
+  --color-muted: #9aa6c2;         /* secundaire tekst en inactieve iconen */
+  --color-accent: #c8f135;        /* primaire acties, voortgang, positief verschil, PR */
+  --color-on-accent: #0a0e1a;     /* tekst en iconen op accent (zelfde als --color-bg) */
+  --color-accent-2: #7c9cff;      /* data, rusttimer, huidige oefening in voortgang, delta-tekst */
+  --color-accent-soft: #c8f13533; /* accent met 20% dekking */
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Alleen voor confetti (naast accent, accent-2 en text) */
+  --color-confetti-coral: #ff7a59;
+  --color-confetti-amber: #ffb84d;
+
+  /* Typografie */
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  --text-caption: 12px;     /* hints, labels in tabellen, tile-labels */
+  --text-nav: 11px;         /* labels in de navigatiebalk */
+  --text-small: 13px;       /* secundaire regels */
+  --text-body: 15px;        /* standaard lijstregel */
+  --text-body-lg: 17px;     /* sets, belangrijke lijstregel, knoptekst */
+  --text-title: 22px;       /* kaarttitel, sheet-titel, timer */
+  --text-stat: 24px;        /* getal in stat-tile */
+  --text-screen: 28px;      /* schermtitel (h1) */
+  --text-hero: 32px;        /* oefeningnaam, hero-titel, banner-getal */
+  --text-big: 34px;         /* grote waarde in grafiekkaart */
+  --text-stepper: 28px;     /* waarde in stappers */
+
+  /* Afrondingen */
+  --radius-chip: 12px;
+  --radius-row: 14px;       /* lijstrijen, invoervelden, secundaire knoppen */
+  --radius-button: 16px;    /* primaire knop 56px hoog (18px bij de 64px "Set klaar") */
+  --radius-tile: 18px;
+  --radius-card: 20px;
+  --radius-sheet: 28px;     /* alleen bovenhoeken */
+  --radius-pill: 22px;      /* alles dat 44px hoog en rond is */
+
+  /* Ruimte */
+  --space-screen-x: 20px;
+  --space-screen-top: 24px;
+  --space-gap: 12px;        /* tussen kaarten */
+  --space-gap-tight: 6px;   /* tussen rijen in een lijst */
+  --space-card: 16px;       /* binnenmarge kaart (20px bij hero-kaart) */
+
+  /* Maten */
+  --size-touch: 44px;       /* minimale tikdoelen */
+  --size-button: 56px;      /* primaire knop */
+  --size-button-train: 64px;/* "Set klaar" */
+  --size-nav: 76px;
+
+  /* Beweging */
+  --motion-pop: 0.9s ease-out;
+  --motion-row: 0.5s ease-out;
+  --motion-celebration: 4.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-pop: 0s;
+    --motion-row: 0s;
+    --motion-celebration: 0s;
+  }
+}
+
+/* Basis */
+html { background: var(--color-bg); }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, .display { font-family: var(--font-display); letter-spacing: -0.02em; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+button { font-family: inherit; }

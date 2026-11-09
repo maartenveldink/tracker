@@ -19,8 +19,8 @@ export default defineConfig({
         name: 'Tracker - Fitness Logger',
         short_name: 'Tracker',
         description: 'Track your workouts offline',
-        theme_color: '#1e293b',
-        background_color: '#0f172a',
+        theme_color: '#0A0E1A',
+        background_color: '#0A0E1A',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
@@ -38,7 +38,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Never let the SW navigation fallback or precache intercept PocketBase
         // API calls — they must always hit the network (or fail → offline sync).
         navigateFallbackDenylist: [/^\/api\//, /^\/_\//],

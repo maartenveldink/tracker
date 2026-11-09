@@ -8,7 +8,7 @@ const WEEKS = 26;
 const WEEKDAY_LABELS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 
 function levelClass(count: number): string {
-  if (count <= 0) return 'bg-muted';
+  if (count <= 0) return 'bg-line';
   if (count === 1) return 'bg-primary/40';
   if (count === 2) return 'bg-primary/70';
   return 'bg-primary';
@@ -82,7 +82,7 @@ export function ConsistencyHeatmap() {
           {/* Legend */}
           <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-muted-foreground">
             <span>minder</span>
-            <div className="h-3 w-3 rounded-sm bg-muted" />
+            <div className="h-3 w-3 rounded-sm bg-line" />
             <div className="h-3 w-3 rounded-sm bg-primary/40" />
             <div className="h-3 w-3 rounded-sm bg-primary/70" />
             <div className="h-3 w-3 rounded-sm bg-primary" />

@@ -418,7 +418,7 @@ function ComparisonView() {
                   'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
                   selected
                     ? 'text-white border-transparent'
-                    : 'bg-secondary text-muted-foreground border-border hover:bg-accent',
+                    : 'bg-secondary text-muted-foreground border-border hover:bg-line/60',
                 )}
                 style={selected ? { backgroundColor: color } : undefined}
               >
@@ -572,7 +572,7 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: string) => void }) {
             const down = row.pct != null && row.pct < 0;
             return (
               <button key={row.id} onClick={() => onSelect(row.id)} className="w-full text-left">
-                <Card className="hover:bg-accent/40 transition-colors">
+                <Card className="hover:bg-line/40 transition-colors">
                   <CardContent className="px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="font-medium text-sm truncate">{row.name}</div>

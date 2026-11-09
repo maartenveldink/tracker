@@ -161,7 +161,7 @@ function PreviousSessionBar({ reference, currentSetCount }: {
   const setsToShow = reference.sets.slice(0, currentSetCount);
 
   return (
-    <div className="px-3 py-2 border-b border-border bg-muted/30">
+    <div className="px-3 py-2 border-b border-border bg-line/30">
       <div className="flex items-center gap-1.5 mb-1">
         <History className="h-3 w-3 text-muted-foreground" />
         <span className="text-[11px] text-muted-foreground font-medium">
@@ -252,7 +252,7 @@ function QuickRepsBar({
   btnClass: string;
 }) {
   return (
-    <div data-testid="quick-reps" className="px-3 py-1.5 border-b border-border bg-muted/20">
+    <div data-testid="quick-reps" className="px-3 py-1.5 border-b border-border bg-line/20">
       <div className="grid grid-cols-6 gap-1">
         {QUICK_REP_VALUES.map(n => (
           <Button
@@ -292,7 +292,7 @@ function RestControlBar({
   onSaveDefault: () => void;
 }) {
   return (
-    <div className="px-3 py-1.5 border-b border-border bg-muted/20 flex items-center gap-2">
+    <div className="px-3 py-1.5 border-b border-border bg-line/20 flex items-center gap-2">
       <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <span className="text-[11px] text-muted-foreground">Rust</span>
       <Button
@@ -901,7 +901,7 @@ export function WorkoutPage() {
           {/* NAV-06: "+" pill to add exercise */}
           <button
             onClick={() => setShowAddExercise(true)}
-            className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border border-dashed border-muted-foreground/40 text-muted-foreground hover:bg-accent transition-colors"
+            className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border border-dashed border-muted-foreground/40 text-muted-foreground hover:bg-line/60 transition-colors"
           >
             <Plus className="h-3 w-3 inline -mt-0.5" />
           </button>
@@ -1065,7 +1065,7 @@ export function WorkoutPage() {
               {prevSession ? (
                 <PreviousSessionBar reference={prevSession} currentSetCount={totalSets} />
               ) : (
-                <div className="px-3 py-1.5 border-b border-border bg-muted/30">
+                <div className="px-3 py-1.5 border-b border-border bg-line/30">
                   <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1.5">
                     <History className="h-3 w-3" />
                     Geen eerdere sessie
@@ -1247,7 +1247,7 @@ export function WorkoutPage() {
                         <button
                           type="button"
                           onClick={() => handleSameAsPrevious(exIdx, setIdx, prevSet)}
-                          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-accent"
+                          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-line/60"
                         >
                           <History className="h-3 w-3" />
                           Zelfde als vorige: {prevSet.weight}kg × {prevSet.reps}
@@ -1355,7 +1355,7 @@ export function WorkoutPage() {
                       <button
                         key={ex.id}
                         onClick={() => handleAddExercise(ex.id!)}
-                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
                       >
                         {ex.name}
                       </button>
@@ -1368,7 +1368,7 @@ export function WorkoutPage() {
                       ) && (
                         <button
                           onClick={() => setCreatingExercise(exerciseSearch.trim())}
-                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-accent transition-colors"
+                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-line/60 transition-colors"
                         >
                           <Plus className="h-4 w-4 shrink-0" />
                           <span>

@@ -800,7 +800,7 @@ export function SchemaFormPage() {
               {days.map((day, dayIndex) => (
                 <TabsContent key={day.id} value={day.id} className="space-y-3 mt-3">
                   {/* Day header with rename, reorder, delete */}
-                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2 p-2 bg-line/50 rounded-md">
                     {editingDayId === day.id ? (
                       <Input
                         value={editingDayName}
@@ -1037,7 +1037,7 @@ export function SchemaFormPage() {
                         key={ex.id}
                         type="button"
                         onClick={() => addExercise(ex.id)}
-                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
                       >
                         {ex.name}
                       </button>
@@ -1051,7 +1051,7 @@ export function SchemaFormPage() {
                         <button
                           type="button"
                           onClick={() => setCreatingExercise(exerciseSearch.trim())}
-                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-accent transition-colors"
+                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-line/60 transition-colors"
                         >
                           <Plus className="h-4 w-4 shrink-0" />
                           <span>

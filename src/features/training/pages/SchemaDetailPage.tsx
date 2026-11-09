@@ -136,7 +136,7 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
                   type="button"
                   data-testid="muscle-bar"
                   onClick={() => setSelected(stat)}
-                  className="w-full text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-accent/50 transition-colors"
+                  className="w-full text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-line/40 transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs mb-0.5">
                     <span className="text-card-foreground">{stat.name}</span>

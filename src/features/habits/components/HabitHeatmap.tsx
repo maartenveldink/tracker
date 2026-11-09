@@ -69,7 +69,7 @@ export function HabitHeatmap({ schedule, doneByDate }: HabitHeatmapProps) {
                     title={cell.scheduled ? `${cell.key}: ${cell.done ? 'voltooid' : 'niet voltooid'}` : undefined}
                     className={cn(
                       'h-3 w-3 rounded-sm',
-                      !cell.scheduled ? 'bg-transparent' : cell.done ? 'bg-primary' : 'bg-muted',
+                      !cell.scheduled ? 'bg-transparent' : cell.done ? 'bg-primary' : 'bg-line',
                     )}
                   />
                 ))}

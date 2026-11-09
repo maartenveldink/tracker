@@ -47,7 +47,7 @@ export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: string) => v
           <Card key={pr.exerciseId} className="shadow-none overflow-hidden">
             <button
               onClick={() => onSelect(pr.exerciseId)}
-              className="w-full text-left hover:bg-accent/40 transition-colors"
+              className="w-full text-left hover:bg-line/40 transition-colors"
             >
               <CardContent className="p-3 flex items-center gap-3">
                 <Trophy className="h-4 w-4 text-amber-500 shrink-0" />

@@ -137,7 +137,7 @@ export function VolumeTrendChart() {
               {muscleBars.rows.map(row => (
                 <div key={row.id} className="flex items-center gap-2">
                   <span className="w-24 shrink-0 text-xs truncate">{row.name}</span>
-                  <div className="flex-1 h-3 rounded bg-muted overflow-hidden">
+                  <div className="flex-1 h-3 rounded bg-line overflow-hidden">
                     <div
                       className="h-full bg-primary rounded"
                       style={{ width: `${muscleBars.max > 0 ? (row.volume / muscleBars.max) * 100 : 0}%` }}

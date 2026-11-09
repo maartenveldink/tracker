@@ -463,7 +463,7 @@ export function SuggestWorkoutPage() {
                   key={e.id}
                   type="button"
                   onClick={() => swapAt(swapIndex!, e.id)}
-                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
                 >
                   {e.name}
                 </button>
@@ -494,7 +494,7 @@ export function SuggestWorkoutPage() {
                   key={e.id}
                   type="button"
                   onClick={() => addExercise(e.id)}
-                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
                 >
                   {e.name}
                 </button>

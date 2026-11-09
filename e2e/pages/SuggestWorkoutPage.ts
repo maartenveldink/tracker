@@ -52,7 +52,7 @@ export class SuggestWorkoutPage {
   async addFirstAvailable(): Promise<string> {
     await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();
     const dialog = this.page.getByRole('dialog');
-    const candidate = dialog.getByRole('button').filter({ hasNotText: 'Close' }).first();
+    const candidate = dialog.getByRole('button').filter({ hasNotText: 'Sluiten' }).first();
     const name = (await candidate.innerText()).trim();
     await candidate.click();
     return name;
