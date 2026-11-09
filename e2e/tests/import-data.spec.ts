@@ -68,7 +68,7 @@ test.describe('JSON import', () => {
     await workout.finish();
     await dashboard.goto();
     await dashboard.weighIn(80.5);
-    await expect(dashboard.latestWeight()).toContainText('80.5');
+    await expect(dashboard.latestWeight()).toContainText('80,5');
 
     // Export, wipe, import (replace).
     await settings.goto();
@@ -88,7 +88,7 @@ test.describe('JSON import', () => {
 
     // The screens that read the dates do not crash and show the data.
     await dashboard.goto();
-    await expect(dashboard.latestWeight()).toContainText('80.5');
+    await expect(dashboard.latestWeight()).toContainText('80,5');
     await history.goto();
     await expect(history.entries).toHaveCount(1);
     await progress.goto();
