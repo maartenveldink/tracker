@@ -103,13 +103,13 @@ function StepperRow({
     <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium">{label}</span>
+          <span className="text-small font-medium">{label}</span>
           {onReset && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-5 w-5 text-muted-foreground"
+              className="h-5 w-5 text-muted"
               onClick={onReset}
               aria-label={`${label} terug naar suggestie`}
             >
@@ -117,7 +117,7 @@ function StepperRow({
             </Button>
           )}
         </div>
-        {caption && <p className="text-xs leading-tight text-muted-foreground">{caption}</p>}
+        {caption && <p className="text-caption leading-tight text-muted">{caption}</p>}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button
@@ -131,7 +131,7 @@ function StepperRow({
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <span className="w-16 text-center text-sm font-semibold tabular-nums select-none">
+        <span className="w-16 text-center text-small font-semibold tabular-nums select-none">
           {value}
         </span>
         <Button
@@ -601,21 +601,21 @@ export function SchemaFormPage() {
                   aria-expanded={isExpanded}
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
                   )}
                   {info.inSuperset ? (
-                    <span className="w-4 text-center shrink-0 text-xs font-semibold text-primary">{info.label}</span>
+                    <span className="w-4 text-center shrink-0 text-caption font-semibold text-primary">{info.label}</span>
                   ) : (
-                    <span className="text-muted-foreground text-xs w-4 text-center shrink-0">{i + 1}</span>
+                    <span className="text-muted text-caption w-4 text-center shrink-0">{i + 1}</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium truncate">
+                    <span className="block text-small font-medium truncate">
                       {nameOf(ex.exerciseId)}
                     </span>
                     {!isExpanded && (
-                      <span className="block text-xs text-muted-foreground truncate">{summary}</span>
+                      <span className="block text-caption text-muted truncate">{summary}</span>
                     )}
                   </span>
                 </button>
@@ -624,7 +624,7 @@ export function SchemaFormPage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn('h-7 w-7', isLinkedAbove ? 'text-primary' : 'text-muted-foreground')}
+                    className={cn('h-7 w-7', isLinkedAbove ? 'text-primary' : 'text-muted')}
                     onClick={() => toggleSupersetLink(i)}
                     aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
                     title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
@@ -636,7 +636,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground"
+                  className="h-7 w-7 text-muted"
                   onClick={() => moveExercise(i, 'up')}
                   disabled={i === 0}
                   aria-label="Omhoog"
@@ -647,7 +647,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground"
+                  className="h-7 w-7 text-muted"
                   onClick={() => moveExercise(i, 'down')}
                   disabled={i === totalLength - 1}
                   aria-label="Omlaag"
@@ -658,7 +658,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  className="h-7 w-7 text-muted hover:text-destructive"
                   onClick={() => removeExercise(i)}
                   aria-label="Verwijderen"
                 >
@@ -736,7 +736,7 @@ export function SchemaFormPage() {
               data-testid="superset-group"
               className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-1.5"
             >
-              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-caption font-medium text-primary">
                 <Link2 className="h-3 w-3" />
                 Superset
               </div>
@@ -755,7 +755,7 @@ export function SchemaFormPage() {
         backTo="/schemas"
       />
 
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+      <form onSubmit={handleSubmit} className="px-screen-x py-4 space-y-4">
         <div className="space-y-2">
           <Label htmlFor="schema-name">Naam *</Label>
           <Input
@@ -779,7 +779,7 @@ export function SchemaFormPage() {
               variant="outline"
               size="sm"
               onClick={addDay}
-              className="h-7 text-xs"
+              className="h-7 text-caption"
             >
               <Plus className="h-3 w-3" />
               Dag toevoegen
@@ -800,24 +800,24 @@ export function SchemaFormPage() {
               {days.map((day, dayIndex) => (
                 <TabsContent key={day.id} value={day.id} className="space-y-3 mt-3">
                   {/* Day header with rename, reorder, delete */}
-                  <div className="flex items-center gap-2 p-2 bg-line/50 rounded-md">
+                  <div className="flex items-center gap-2 p-2 bg-line/50 rounded-row">
                     {editingDayId === day.id ? (
                       <Input
                         value={editingDayName}
                         onChange={e => setEditingDayName(e.target.value)}
                         onBlur={saveDayName}
                         onKeyDown={e => { if (e.key === 'Enter') saveDayName(); }}
-                        className="h-7 text-sm flex-1"
+                        className="h-7 text-small flex-1"
                         autoFocus
                       />
                     ) : (
-                      <span className="text-sm font-medium flex-1 truncate">{day.name}</span>
+                      <span className="text-small font-medium flex-1 truncate">{day.name}</span>
                     )}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground"
+                      className="h-7 w-7 text-muted"
                       onClick={() => startEditDayName(day.id)}
                       aria-label="Dag hernoemen"
                     >
@@ -827,7 +827,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground"
+                      className="h-7 w-7 text-muted"
                       onClick={() => moveDayOrder(day.id, 'up')}
                       disabled={dayIndex === 0}
                       aria-label="Dag omhoog"
@@ -838,7 +838,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground"
+                      className="h-7 w-7 text-muted"
                       onClick={() => moveDayOrder(day.id, 'down')}
                       disabled={dayIndex === days.length - 1}
                       aria-label="Dag omlaag"
@@ -849,7 +849,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-7 w-7 text-muted hover:text-destructive"
                       onClick={() => removeDay(day.id)}
                       aria-label="Dag verwijderen"
                     >
@@ -860,7 +860,7 @@ export function SchemaFormPage() {
                   {renderExerciseList(day.exercises, day.exercises.length)}
 
                   {day.exercises.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted">
                       Geschatte duur: {formatEstimatedTime(estimateExercisesSeconds(day.exercises, exerciseById, settings))}
                     </p>
                   )}
@@ -868,7 +868,7 @@ export function SchemaFormPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-dashed text-muted-foreground"
+                    className="w-full border-dashed text-muted"
                     onClick={() => openPicker(day.id)}
                   >
                     <Plus className="h-4 w-4" />
@@ -882,7 +882,7 @@ export function SchemaFormPage() {
             <div className="mt-5 space-y-2">
               <div>
                 <Label className="block">Herhalingsritme</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-caption text-muted mt-0.5">
                   Bepaal in welke volgorde de dagen elkaar opvolgen. Laat leeg voor de
                   standaardvolgorde ({days.map(d => d.name).join(' → ')}).
                 </p>
@@ -896,14 +896,14 @@ export function SchemaFormPage() {
                       key={`${dayId}-${i}`}
                       className="flex items-center gap-0.5 rounded-full bg-primary/10 border border-primary/30 pl-2.5 pr-1 py-0.5"
                     >
-                      <span className="text-xs font-medium">
+                      <span className="text-caption font-medium">
                         {i + 1}. {dayName(dayId)}
                       </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 text-muted-foreground"
+                        className="h-5 w-5 text-muted"
                         onClick={() => moveRotationStep(i, 'left')}
                         disabled={i === 0}
                         aria-label="Stap naar links"
@@ -914,7 +914,7 @@ export function SchemaFormPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 text-muted-foreground"
+                        className="h-5 w-5 text-muted"
                         onClick={() => moveRotationStep(i, 'right')}
                         disabled={i === rotation.length - 1}
                         aria-label="Stap naar rechts"
@@ -925,7 +925,7 @@ export function SchemaFormPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                        className="h-5 w-5 text-muted hover:text-destructive"
                         onClick={() => removeRotationStep(i)}
                         aria-label="Stap verwijderen"
                       >
@@ -937,14 +937,14 @@ export function SchemaFormPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-muted-foreground"
+                    className="h-6 text-caption text-muted"
                     onClick={() => setRotation([])}
                   >
                     Wissen
                   </Button>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground/70 italic">
+                <p className="text-caption text-muted/70 italic">
                   Nog geen eigen ritme — dagen volgen elkaar op volgorde op.
                 </p>
               )}
@@ -957,7 +957,7 @@ export function SchemaFormPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs border-dashed"
+                    className="h-7 text-caption border-dashed"
                     onClick={() => addRotationStep(day.id)}
                   >
                     <Plus className="h-3 w-3" />
@@ -971,14 +971,14 @@ export function SchemaFormPage() {
             <>
               {renderExerciseList(exercises, exercises.length)}
               {exercises.length > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-caption text-muted">
                   Geschatte duur: {formatEstimatedTime(estimateExercisesSeconds(exercises, exerciseById, settings))}
                 </p>
               )}
               <Button
                 type="button"
                 variant="outline"
-                className="mt-3 w-full border-dashed text-muted-foreground"
+                className="mt-3 w-full border-dashed text-muted"
                 onClick={() => openPicker(null)}
               >
                 <Plus className="h-4 w-4" />
@@ -1004,7 +1004,7 @@ export function SchemaFormPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="mb-3 -ml-2 text-xs text-muted-foreground"
+                    className="mb-3 -ml-2 text-caption text-muted"
                     onClick={() => setCreatingExercise(null)}
                   >
                     <ChevronDown className="h-4 w-4 rotate-90" />
@@ -1037,7 +1037,7 @@ export function SchemaFormPage() {
                         key={ex.id}
                         type="button"
                         onClick={() => addExercise(ex.id)}
-                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
+                        className="w-full text-left px-3 py-2 text-small rounded-row hover:bg-line/60 transition-colors"
                       >
                         {ex.name}
                       </button>
@@ -1051,7 +1051,7 @@ export function SchemaFormPage() {
                         <button
                           type="button"
                           onClick={() => setCreatingExercise(exerciseSearch.trim())}
-                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-sm rounded-md text-primary hover:bg-line/60 transition-colors"
+                          className="flex w-full items-center gap-2 text-left px-3 py-2 text-small rounded-row text-primary hover:bg-line/60 transition-colors"
                         >
                           <Plus className="h-4 w-4 shrink-0" />
                           <span>
@@ -1060,7 +1060,7 @@ export function SchemaFormPage() {
                         </button>
                       )}
                     {filteredExercises.length === 0 && !exerciseSearch.trim() && (
-                      <p className="text-muted-foreground text-xs text-center py-2">Nog geen oefeningen.</p>
+                      <p className="text-muted text-caption text-center py-2">Nog geen oefeningen.</p>
                     )}
                   </div>
                 </div>
@@ -1077,7 +1077,7 @@ export function SchemaFormPage() {
           <Button
             type="button"
             variant="ghost"
-            className="w-full text-muted-foreground"
+            className="w-full text-muted"
             onClick={discardDraft}
           >
             Concept wissen
