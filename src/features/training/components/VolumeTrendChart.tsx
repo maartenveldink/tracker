@@ -12,14 +12,9 @@ import { useCompletedWorkouts, type PeriodFilter } from '../hooks/useProgress';
 import { useExercises } from '../hooks/useExercises';
 import { weeklyVolumeSeries, volumePerMuscleGroup } from '../lib/metrics';
 import { getMuscleGroupById } from '../db/muscles';
-import { Button } from '@/components/ui/button';
+import { PeriodChips } from './PeriodChips';
+import { ChartFrame, axisTick, tooltipStyles, useChartColors } from './chartTheme';
 import { Card, CardContent } from '@/components/ui/card';
-
-const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
-  { value: '4w', label: '4 weken' },
-  { value: '3m', label: '3 maanden' },
-  { value: 'all', label: 'Alles' },
-];
 
 function cutoffFor(period: PeriodFilter): number {
   if (period === 'all') return 0;
@@ -34,6 +29,7 @@ function formatWeek(date: Date): string {
 }
 
 export function VolumeTrendChart() {
+  const colors = useChartColors();
   const workouts = useCompletedWorkouts();
   const exercises = useExercises();
   const [period, setPeriod] = useState<PeriodFilter>('3m');
@@ -65,7 +61,7 @@ export function VolumeTrendChart() {
 
   if (workouts.length === 0) {
     return (
-      <div className="px-4 py-16 text-center text-muted-foreground text-sm">
+      <div className="px-4 py-16 text-center text-muted-foreground text-small">
         Nog geen gelogde trainingen om volume te tonen.
       </div>
     );
@@ -74,54 +70,39 @@ export function VolumeTrendChart() {
   return (
     <div className="px-4 py-3 space-y-4">
       {/* Period filter */}
-      <div className="flex gap-2">
-        {PERIOD_OPTIONS.map(opt => (
-          <Button
-            key={opt.value}
-            variant={period === opt.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod(opt.value)}
-          >
-            {opt.label}
-          </Button>
-        ))}
-      </div>
+      <PeriodChips value={period} onChange={setPeriod} />
 
       {/* Weekly volume */}
       <Card>
         <CardContent className="p-3">
-          <p className="text-xs text-muted-foreground mb-2">Volume per week (kg)</p>
+          <p className="text-caption text-muted mb-2">Volume per week (kg)</p>
           {weekly.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Geen sessies in deze periode.</p>
+            <p className="text-small text-muted-foreground text-center py-8">Geen sessies in deze periode.</p>
           ) : (
+            <ChartFrame label="Staafgrafiek: trainingsvolume per week in kg">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={weekly}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.line} />
                 <XAxis
                   dataKey="week"
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={axisTick(colors)}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={axisTick(colors)}
                   tickLine={false}
                   axisLine={false}
                   width={45}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                  }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  {...tooltipStyles(colors)}
                   formatter={(value) => [`${value} kg`, 'Volume']}
                 />
-                <Bar dataKey="volume" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="volume" fill={colors.accent2} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            </ChartFrame>
           )}
         </CardContent>
       </Card>
@@ -129,21 +110,21 @@ export function VolumeTrendChart() {
       {/* Muscle balance */}
       <Card>
         <CardContent className="p-3">
-          <p className="text-xs text-muted-foreground mb-2">Volume per spiergroep</p>
+          <p className="text-caption text-muted-foreground mb-2">Volume per spiergroep</p>
           {muscleBars.rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Geen data in deze periode.</p>
+            <p className="text-small text-muted-foreground text-center py-6">Geen data in deze periode.</p>
           ) : (
             <div className="space-y-1.5">
               {muscleBars.rows.map(row => (
                 <div key={row.id} className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 text-xs truncate">{row.name}</span>
+                  <span className="w-24 shrink-0 text-caption truncate">{row.name}</span>
                   <div className="flex-1 h-3 rounded bg-line overflow-hidden">
                     <div
                       className="h-full bg-primary rounded"
                       style={{ width: `${muscleBars.max > 0 ? (row.volume / muscleBars.max) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                  <span className="w-14 shrink-0 text-right text-caption tabular-nums text-muted-foreground">
                     {Math.round(row.volume)}
                   </span>
                 </div>

@@ -49,7 +49,7 @@ export function ConsistencyHeatmap() {
     <div className="px-4 py-3 space-y-3">
       <Card>
         <CardContent className="p-3">
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-caption text-muted-foreground mb-2">
             Getraind op {totalDays} {totalDays === 1 ? 'dag' : 'dagen'} in de laatste {WEEKS} weken
           </p>
           <div className="flex gap-2">

@@ -31,7 +31,7 @@ export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: string) => v
 
   if (records.length === 0) {
     return (
-      <div className="px-4 py-16 text-center text-muted-foreground text-sm">
+      <div className="px-4 py-16 text-center text-muted-foreground text-small">
         Nog geen records. Log een training om je persoonlijke records te zien.
       </div>
     );
@@ -50,15 +50,15 @@ export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: string) => v
               className="w-full text-left hover:bg-line/40 transition-colors"
             >
               <CardContent className="p-3 flex items-center gap-3">
-                <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+                <Trophy className="h-4 w-4 text-accent shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-small font-medium truncate">{name}</p>
+                  <p className="text-caption text-muted-foreground">
                     {pr.weight} kg × {pr.reps} · {formatDate(pr.date)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold tabular-nums">~{Math.round(pr.best1RM)} kg</p>
+                  <p className="text-small font-semibold tabular-nums">~{Math.round(pr.best1RM)} kg</p>
                   <p className="text-[11px] text-muted-foreground">geschat 1RM</p>
                 </div>
               </CardContent>

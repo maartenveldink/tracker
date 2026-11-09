@@ -27,10 +27,10 @@ export function GoalProgressBar({
   const { goal, estimatedWeight, percent, achieved } = progress;
   return (
     <div className={cn('space-y-1', className)}>
-      <div className="flex items-center justify-between gap-2 text-xs">
+      <div className="flex items-center justify-between gap-2 text-caption">
         <span className="inline-flex items-center gap-1 text-muted-foreground min-w-0">
           {achieved ? (
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
           ) : (
             <Target className="h-3.5 w-3.5 shrink-0" />
           )}
@@ -41,7 +41,7 @@ export function GoalProgressBar({
         <span
           className={cn(
             'font-semibold tabular-nums shrink-0',
-            achieved ? 'text-emerald-400' : 'text-foreground',
+            achieved ? 'text-accent' : 'text-foreground',
           )}
         >
           {percent}%
@@ -53,16 +53,16 @@ export function GoalProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        className="h-2 w-full overflow-hidden rounded-full bg-secondary"
+        className="h-2 w-full overflow-hidden rounded-full bg-line"
       >
         <div
-          className={cn('h-full rounded-full transition-all', achieved ? 'bg-emerald-500' : 'bg-primary')}
+          className={cn('h-full rounded-full transition-all', achieved ? 'bg-accent' : 'bg-primary')}
           style={{ width: `${percent}%` }}
         />
       </div>
-      <div className="flex items-center justify-between gap-2 text-[11px]">
+      <div className="flex items-center justify-between gap-2 text-caption">
         {achieved ? (
-          <span className="font-medium text-emerald-400">Doel gehaald!</span>
+          <span className="font-medium text-accent">Doel gehaald!</span>
         ) : (
           <span className="text-muted-foreground">
             {estimatedWeight > 0

@@ -66,14 +66,14 @@ export function TrainingCalendar() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium capitalize" aria-live="polite" data-testid="calendar-month">
+              <h3 className="text-small font-medium capitalize" aria-live="polite" data-testid="calendar-month">
                 {MONTH_NAMES[view.month]} {view.year}
               </h3>
               {/* Stays mounted (aria-disabled, not removed) so keyboard focus is not lost. */}
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs aria-disabled:opacity-40"
+                className="h-8 px-2 text-caption aria-disabled:opacity-40"
                 aria-disabled={isCurrentMonth}
                 onClick={() => {
                   if (!isCurrentMonth) go(now);
@@ -116,7 +116,7 @@ export function TrainingCalendar() {
                   aria-current={isToday ? 'date' : undefined}
                   onClick={() => setSelected(isSelected ? null : cell.key)}
                   className={cn(
-                    'relative flex aspect-square items-center justify-center rounded-md text-xs',
+                    'relative flex aspect-square items-center justify-center rounded-md text-caption',
                     count > 0
                       ? 'bg-primary/40 font-medium text-foreground'
                       : 'text-muted-foreground',
@@ -142,7 +142,7 @@ export function TrainingCalendar() {
 
       {selected && (
         <div className="space-y-2" data-testid="calendar-day-details">
-          <p className="text-xs text-muted-foreground" aria-live="polite">
+          <p className="text-caption text-muted-foreground" aria-live="polite">
             {selectedSessions.length === 0
               ? `Geen training op ${formatDayLabel(selected)}`
               : formatDayLabel(selected, true)}
@@ -161,7 +161,7 @@ export function TrainingCalendar() {
               >
                 <Card className="shadow-none">
                   <CardContent className="p-3">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-small font-medium truncate">
                       {w.schemaName ?? 'Vrije training'}
                       {w.schemaDayName ? ` — ${w.schemaDayName}` : ''}
                     </p>

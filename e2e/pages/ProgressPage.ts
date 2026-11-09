@@ -11,7 +11,7 @@ export class ProgressPage {
   }
 
   async openTab(tab: Tab): Promise<void> {
-    await this.page.getByRole('button', { name: tab, exact: true }).click();
+    await this.page.getByRole('tab', { name: tab, exact: true }).click();
   }
 
   /** Opens an exercise's history (1RM chart + sessions) from the Oefeningen list. */

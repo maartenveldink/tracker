@@ -33,20 +33,20 @@ export function DeloadCard() {
   if (!advice?.suggest || Date.now() < dismissedUntil) return null;
 
   return (
-    <Card className="border-amber-500/50 bg-amber-500/5" data-testid="deload-card">
+    <Card className="border-accent/50 bg-accent/5" data-testid="deload-card">
       <CardContent className="p-3">
-        <p className="text-sm font-medium flex items-center gap-1.5">
-          <BatteryLow className="h-4 w-4 text-amber-500" />
+        <p className="text-small font-medium flex items-center gap-1.5">
+          <BatteryLow className="h-4 w-4 text-accent" />
           Overweeg een deload-week
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-caption text-muted-foreground">
           Je geschatte 1RM stagneert of daalt de afgelopen weken bij {advice.exercises.length} van
           de {advice.assessable} oefeningen. Een rustigere week (±50% volume of gewicht) kan helpen
           om weer progressie te maken.
         </p>
         <ul className="mt-2 space-y-1">
           {advice.exercises.map(ex => (
-            <li key={ex.exerciseId} className="flex items-center justify-between text-sm gap-2">
+            <li key={ex.exerciseId} className="flex items-center justify-between text-small gap-2">
               <span className="truncate">{nameOf(ex.exerciseId)}</span>
               <span className="text-muted-foreground shrink-0 tabular-nums">
                 ~{Math.round(ex.recent1RM)} kg ({ex.change >= 0 ? '+' : ''}

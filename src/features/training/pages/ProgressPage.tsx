@@ -27,9 +27,19 @@ import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { shareText, svgToPngBlob, shareImage } from '../../../lib/share';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
 import { Separator } from '@/components/ui/separator';
+import { StatTile } from '@/components/ui/stat-tile';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { PeriodChips } from '../components/PeriodChips';
+import { WeeklySetsCard } from '../components/WeeklySetsCard';
+import { ChartFrame, axisTick, tooltipStyles, useChartColors } from '../components/chartTheme';
+import { detectPlateau, isNewPR, recentTrainingStats } from '../lib/progressInsights';
+import { resolveStep, weightStepForExercise } from '../lib/weightStep';
+import type { Exercise } from '../../../db/index';
 import { BodyWeightSection } from '../components/BodyWeightSection';
 import { RecordsBoard } from '../components/RecordsBoard';
 import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap';
@@ -37,69 +47,87 @@ import { TrainingCalendar } from '../components/TrainingCalendar';
 import { VolumeTrendChart } from '../components/VolumeTrendChart';
 import { GoalProgressBar } from '../components/GoalProgressBar';
 import { goalProgress } from '../lib/goalProgress';
-import type { ExerciseGoal } from '../../../db/index';
-
-const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
-  { value: '4w', label: '4 weken' },
-  { value: '3m', label: '3 maanden' },
-  { value: 'all', label: 'Alles' },
-];
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatKg(n: number): string {
+  return n.toLocaleString('nl-NL', { maximumFractionDigits: 1 });
 }
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 }
 
+// ── Shared bits ──────────────────────────────────────────────────────────────
+
+async function shareChartSvg(
+  container: HTMLElement | null,
+  caption: string,
+  filename: string,
+  background: string,
+) {
+  const svg = container?.querySelector('svg');
+  if (!svg) {
+    await shareText(caption, caption);
+    return;
+  }
+  try {
+    const blob = await svgToPngBlob(svg as SVGSVGElement, { background });
+    await shareImage(blob, filename, caption);
+  } catch {
+    await shareText(caption, caption);
+  }
+}
+
 // ── Detail view ──────────────────────────────────────────────────────────────
 
 function ExerciseDetail({
-  exerciseId,
-  exerciseName,
-  goal,
+  exercise,
   onBack,
 }: {
-  exerciseId: string;
-  exerciseName: string;
-  goal?: ExerciseGoal;
+  exercise: Exercise;
   onBack: () => void;
 }) {
   const navigate = useNavigate();
+  const exerciseId = exercise.id;
+  const exerciseName = exercise.name;
   const [period, setPeriod] = useState<PeriodFilter>('3m');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const colors = useChartColors();
 
   const settings = useSettings();
   const formula = settings.oneRMFormula;
   const sessions = useProgress(exerciseId, formula);
   const filteredSessions = useMemo(() => filterByPeriod(sessions, period), [sessions, period]);
-  // Goal progress uses the all-time best 1RM, independent of the period filter.
+  // Goal progress and PR use all-time data, independent of the period filter.
   const progress = useMemo(
-    () => goalProgress(goal, Math.max(0, ...sessions.map(s => s.best1RM)), formula),
-    [goal, sessions, formula],
+    () => goalProgress(exercise.goal, Math.max(0, ...sessions.map(s => s.best1RM)), formula),
+    [exercise.goal, sessions, formula],
+  );
+  const newPR = useMemo(() => isNewPR(sessions.map(s => s.best1RM)), [sessions]);
+  const plateau = useMemo(
+    () =>
+      detectPlateau(
+        sessions,
+        resolveStep(weightStepForExercise(exercise, settings.weightSteps)).stepKg,
+      ),
+    [sessions, exercise, settings.weightSteps],
   );
 
+  const latest = sessions[sessions.length - 1];
+  const periodDelta =
+    filteredSessions.length >= 2
+      ? filteredSessions[filteredSessions.length - 1]!.best1RM - filteredSessions[0]!.best1RM
+      : null;
+
   async function shareChart() {
-    const svg = chartRef.current?.querySelector('svg');
-    const latest = sessions[sessions.length - 1];
     const caption = latest
       ? `Progressie ${exerciseName} — beste 1RM ~${Math.round(latest.best1RM)} kg`
       : `Progressie ${exerciseName}`;
-    if (!svg) {
-      await shareText(caption, caption);
-      return;
-    }
-    try {
-      const cardVar = getComputedStyle(document.documentElement).getPropertyValue('--card').trim();
-      const blob = await svgToPngBlob(svg as SVGSVGElement, {
-        background: cardVar ? `hsl(${cardVar})` : '#0f172a',
-      });
-      await shareImage(blob, `progressie-${exerciseName}.png`, caption);
-    } catch {
-      await shareText(caption, caption);
-    }
+    await shareChartSvg(chartRef.current, caption, `progressie-${exerciseName}.png`, colors.surface);
   }
 
   const chartData = useMemo(
@@ -124,7 +152,7 @@ function ExerciseDetail({
         <Button variant="ghost" size="icon" onClick={onBack} aria-label="Terug">
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <h2 className="font-semibold text-base truncate flex-1">{exerciseName}</h2>
+        <h2 className="flex-1 truncate font-display text-title font-semibold">{exerciseName}</h2>
         {sessions.length > 0 && (
           <Button variant="ghost" size="sm" onClick={shareChart} aria-label="Progressie delen">
             <Share2 className="h-4 w-4" />
@@ -135,10 +163,10 @@ function ExerciseDetail({
 
       <Separator />
 
-      {progress && (
-        <div className="px-4 pt-3">
-          <Card className="shadow-none">
-            <CardContent className="p-3">
+      <div className="space-y-4 px-4 py-3">
+        {progress && (
+          <Card>
+            <CardContent className="py-3">
               <GoalProgressBar
                 progress={progress}
                 exerciseName={exerciseName}
@@ -146,141 +174,147 @@ function ExerciseDetail({
               />
             </CardContent>
           </Card>
-        </div>
-      )}
+        )}
 
-      {sessions.length === 0 ? (
-        <div className="px-4 py-12 text-center text-muted-foreground text-sm">
-          Nog geen gelogde sets voor{' '}
-          <span className="font-medium text-foreground">{exerciseName}</span>.
-        </div>
-      ) : (
-        <>
-          {/* Period filter */}
-          <div className="px-4 pt-3 pb-2 flex gap-2">
-            {PERIOD_OPTIONS.map(opt => (
-              <Button
-                key={opt.value}
-                variant={period === opt.value ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPeriod(opt.value)}
-              >
-                {opt.label}
-              </Button>
-            ))}
+        {sessions.length === 0 ? (
+          <div className="py-12 text-center text-small text-muted">
+            Nog geen gelogde sets voor{' '}
+            <span className="font-medium text-text">{exerciseName}</span>.
           </div>
+        ) : (
+          <>
+            {/* 1RM card */}
+            <Card>
+              <CardContent className="space-y-3">
+                <PeriodChips value={period} onChange={setPeriod} />
+                <div>
+                  <p className="text-caption text-muted">Geschat 1RM</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-big font-bold leading-tight">
+                      {latest ? Math.round(latest.best1RM) : 0} kg
+                    </p>
+                    {newPR && <Badge>Nieuw PR</Badge>}
+                  </div>
+                  {periodDelta !== null && (
+                    <p className="text-small text-accent-2">
+                      {periodDelta > 0 ? '↑ ' : periodDelta < 0 ? '↓ ' : ''}
+                      {formatKg(Math.abs(periodDelta))} kg in deze periode
+                    </p>
+                  )}
+                </div>
+                {filteredSessions.length > 0 ? (
+                  <div ref={chartRef}>
+                    <ChartFrame label={`Lijngrafiek: geschat 1RM van ${exerciseName} in kg`}>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={colors.line} />
+                          <XAxis dataKey="date" tick={axisTick(colors)} tickLine={false} axisLine={false} />
+                          <YAxis
+                            tick={axisTick(colors)}
+                            tickLine={false}
+                            axisLine={false}
+                            unit=" kg"
+                            width={55}
+                          />
+                          <Tooltip {...tooltipStyles(colors)} />
+                          <Line
+                            type="monotone"
+                            dataKey="1RM"
+                            stroke={colors.accent}
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: colors.accent }}
+                            activeDot={{ r: 5 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </ChartFrame>
+                  </div>
+                ) : (
+                  <p className="py-6 text-center text-small text-muted">Geen sessies in deze periode.</p>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* 1RM chart */}
-          {filteredSessions.length > 0 && (
-            <div className="px-4 pb-4" ref={chartRef}>
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-xs text-muted-foreground mb-2">Geschatte 1RM (kg)</p>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                        tickLine={false}
-                        axisLine={false}
-                        unit=" kg"
-                        width={55}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="1RM"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: 'hsl(var(--primary))' }}
-                        activeDot={{ r: 5 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+            {/* Plateau signal */}
+            {plateau && (
+              <Card data-testid="plateau-card" className="border-accent-2/50">
+                <CardContent className="space-y-1">
+                  <h3 className="font-display text-body-lg font-semibold">Plateau-signaal</h3>
+                  <p className="text-small text-muted">
+                    Je laatste {plateau.sessions} sessies bleven op {formatKg(plateau.weight)} kg ×{' '}
+                    {plateau.reps}. Probeer {formatKg(plateau.nextWeight)} kg, of ga naar{' '}
+                    {plateau.nextReps} herhalingen.
+                  </p>
                 </CardContent>
               </Card>
-            </div>
-          )}
+            )}
 
-          {/* Session list */}
-          <div className="px-4 space-y-2 pb-4">
-            <p className="text-xs text-muted-foreground">
-              Sessies ({filteredSessions.length})
-            </p>
-            {filteredSessions
-              .slice()
-              .reverse()
-              .map(session => (
-                <Card key={session.workoutId} className="shadow-none">
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{formatDate(session.date)}</span>
-                          {session.schemaName && (
-                            <span className="text-xs text-muted-foreground truncate">
-                              {session.schemaName}
+            <WeeklySetsCard />
+
+            {/* Session list */}
+            <section className="space-y-2" aria-label="Sessies">
+              <h3 className="font-display text-body-lg font-semibold">
+                Sessies ({filteredSessions.length})
+              </h3>
+              {filteredSessions
+                .slice()
+                .reverse()
+                .map(session => (
+                  <Card key={session.workoutId}>
+                    <CardContent className="py-3">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-small font-medium">{formatDate(session.date)}</span>
+                            {session.schemaName && (
+                              <span className="truncate text-caption text-muted">{session.schemaName}</span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-caption text-muted">
+                            {session.sets.map((s, i) => (
+                              <span key={s.setNumber}>
+                                {i > 0 && ', '}
+                                {s.reps} × {s.weight} kg
+                              </span>
+                            ))}
+                          </p>
+                          <p className="mt-1 text-caption">
+                            <span className="font-medium text-accent">
+                              Beste: {session.bestSet.reps} × {session.bestSet.weight} kg
                             </span>
-                          )}
+                            <span className="text-muted">
+                              {' '}— 1RM: ~{Math.round(session.best1RM * 10) / 10} kg
+                            </span>
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {session.sets.map((s, i) => (
-                            <span key={s.setNumber}>
-                              {i > 0 && ', '}
-                              {s.reps} × {s.weight} kg
-                            </span>
-                          ))}
-                        </p>
-                        <p className="text-xs mt-1">
-                          <span className="text-primary font-medium">
-                            Beste: {session.bestSet.reps} × {session.bestSet.weight} kg
-                          </span>
-                          <span className="text-muted-foreground">
-                            {' '}— 1RM: ~{Math.round(session.best1RM * 10) / 10} kg
-                          </span>
-                        </p>
+                        <div className="flex shrink-0 flex-col">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-touch w-touch text-muted"
+                            onClick={() => navigate(`/workout/${session.workoutId}/edit`)}
+                            aria-label="Bewerk training"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-touch w-touch text-muted hover:text-destructive"
+                            onClick={() => setDeleteTarget({ id: session.workoutId, date: session.date })}
+                            aria-label="Verwijder training"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground"
-                          onClick={() => navigate(`/workout/${session.workoutId}/edit`)}
-                          aria-label="Bewerk training"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeleteTarget({ id: session.workoutId, date: session.date })}
-                          aria-label="Verwijder training"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-        </>
-      )}
+                    </CardContent>
+                  </Card>
+                ))}
+            </section>
+          </>
+        )}
+      </div>
 
       <ConfirmDialog
         open={deleteTarget !== null}
@@ -297,14 +331,19 @@ function ExerciseDetail({
 
 // ── Comparison view ──────────────────────────────────────────────────────────
 
-const COMPARE_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6'];
-
 function ComparisonView() {
   const workouts = useCompletedWorkouts();
   const withSessions = useExercisesWithLastSession();
   const exercises = useExercises();
   const settings = useSettings();
   const formula = settings.oneRMFormula;
+  const colors = useChartColors();
+  // Series colours: data palette from the tokens (accent, accent-2, text) plus
+  // lighter/darker mixes are not designed, so cycle through the three tokens.
+  const seriesColors = useMemo(
+    () => [colors.accent2, colors.accent, colors.text, colors.muted],
+    [colors],
+  );
 
   const [period, setPeriod] = useState<PeriodFilter>('3m');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -337,7 +376,7 @@ function ComparisonView() {
       const baseline = s[0]?.best1RM ?? 0;
       return {
         name: nameById.get(id) ?? '?',
-        color: COMPARE_COLORS[i % COMPARE_COLORS.length]!,
+        color: seriesColors[i % seriesColors.length]!,
         points: s.map(x => ({
           t: x.date.getTime(),
           pct: baseline > 0 ? Math.round((x.best1RM / baseline) * 1000) / 10 : 100,
@@ -358,90 +397,48 @@ function ComparisonView() {
     });
 
     return { data: rows, lines: series.map(x => ({ name: x.name, color: x.color })) };
-  }, [selectedIds, workouts, formula, period, nameById]);
+  }, [selectedIds, workouts, formula, period, nameById, seriesColors]);
 
   async function shareChart() {
-    const svg = chartRef.current?.querySelector('svg');
     const caption = `1RM-vergelijking (${lines.map(l => l.name).join(', ')})`;
-    if (!svg) {
-      await shareText(caption, caption);
-      return;
-    }
-    try {
-      const cardVar = getComputedStyle(document.documentElement).getPropertyValue('--card').trim();
-      const blob = await svgToPngBlob(svg as SVGSVGElement, {
-        background: cardVar ? `hsl(${cardVar})` : '#0f172a',
-      });
-      await shareImage(blob, 'progressie-vergelijking.png', caption);
-    } catch {
-      await shareText(caption, caption);
-    }
+    await shareChartSvg(chartRef.current, caption, 'progressie-vergelijking.png', colors.surface);
   }
 
   if (selectable.length === 0) {
     return (
-      <div className="px-4 py-16 text-center text-muted-foreground text-sm">
+      <div className="px-4 py-16 text-center text-small text-muted">
         Nog geen gelogde trainingen om te vergelijken.
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-3 space-y-4">
-      {/* Period filter */}
-      <div className="flex gap-2">
-        {PERIOD_OPTIONS.map(opt => (
-          <Button
-            key={opt.value}
-            variant={period === opt.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod(opt.value)}
-          >
-            {opt.label}
-          </Button>
-        ))}
-      </div>
+    <div className="space-y-4 px-4 py-3">
+      <PeriodChips value={period} onChange={setPeriod} />
 
       {/* Exercise multi-select */}
       <div>
-        <p className="text-xs text-muted-foreground mb-2">Kies oefeningen om te vergelijken:</p>
-        <div className="flex flex-wrap gap-1.5">
-          {selectable.map(({ id, name }) => {
-            const idx = selectedIds.indexOf(id);
-            const selected = idx >= 0;
-            const color = selected ? COMPARE_COLORS[idx % COMPARE_COLORS.length] : undefined;
-            return (
-              <button
-                key={id}
-                onClick={() => toggle(id)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
-                  selected
-                    ? 'text-white border-transparent'
-                    : 'bg-secondary text-muted-foreground border-border hover:bg-line/60',
-                )}
-                style={selected ? { backgroundColor: color } : undefined}
-              >
-                {name}
-              </button>
-            );
-          })}
+        <p className="mb-2 text-caption text-muted">Kies oefeningen om te vergelijken:</p>
+        <div className="flex flex-wrap gap-2">
+          {selectable.map(({ id, name }) => (
+            <Chip key={id} selected={selectedIds.includes(id)} onClick={() => toggle(id)}>
+              {name}
+            </Chip>
+          ))}
         </div>
       </div>
 
       {/* Chart */}
       {selectedIds.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-8">
+        <p className="py-8 text-center text-small text-muted">
           Selecteer één of meer oefeningen hierboven.
         </p>
       ) : data.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-8">
-          Geen sessies in deze periode.
-        </p>
+        <p className="py-8 text-center text-small text-muted">Geen sessies in deze periode.</p>
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">Procentuele 1RM-progressie (start = 100%)</p>
+            <p className="text-caption text-muted">Procentuele 1RM-progressie (start = 100%)</p>
             <Button variant="ghost" size="sm" onClick={shareChart} aria-label="Vergelijking delen">
               <Share2 className="h-4 w-4" />
               Deel
@@ -450,47 +447,31 @@ function ComparisonView() {
           <div ref={chartRef}>
             <Card>
               <CardContent className="p-3">
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={false}
-                      axisLine={false}
-                      unit="%"
-                      width={45}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value) => [`${value}%`, '']}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <ReferenceLine y={100} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
-                    {lines.map(l => (
-                      <Line
-                        key={l.name}
-                        type="monotone"
-                        dataKey={l.name}
-                        stroke={l.color}
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        connectNulls
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
+                <ChartFrame
+                  label={`Lijngrafiek: procentuele 1RM-progressie van ${lines.map(l => l.name).join(', ')}`}
+                >
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={data}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={colors.line} />
+                      <XAxis dataKey="date" tick={axisTick(colors)} tickLine={false} axisLine={false} />
+                      <YAxis tick={axisTick(colors)} tickLine={false} axisLine={false} unit="%" width={45} />
+                      <Tooltip {...tooltipStyles(colors)} formatter={value => [`${value}%`, '']} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <ReferenceLine y={100} stroke={colors.muted} strokeDasharray="4 4" />
+                      {lines.map(l => (
+                        <Line
+                          key={l.name}
+                          type="monotone"
+                          dataKey={l.name}
+                          stroke={l.color}
+                          strokeWidth={2}
+                          dot={{ r: 2 }}
+                          connectNulls
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartFrame>
               </CardContent>
             </Card>
           </div>
@@ -546,23 +527,11 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: string) => void }) {
   }, [withSessions, nameById, workouts, formula, period]);
 
   return (
-    <div className="px-4 py-3 space-y-4">
-      {/* Period filter */}
-      <div className="flex gap-2">
-        {PERIOD_OPTIONS.map(opt => (
-          <Button
-            key={opt.value}
-            variant={period === opt.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod(opt.value)}
-          >
-            {opt.label}
-          </Button>
-        ))}
-      </div>
+    <div className="space-y-4 px-4 py-3">
+      <PeriodChips value={period} onChange={setPeriod} />
 
       {rows.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground text-sm">
+        <div className="py-12 text-center text-small text-muted">
           Nog geen gelogde oefeningen in deze periode.
         </div>
       ) : (
@@ -571,24 +540,24 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: string) => void }) {
             const up = row.pct != null && row.pct > 0;
             const down = row.pct != null && row.pct < 0;
             return (
-              <button key={row.id} onClick={() => onSelect(row.id)} className="w-full text-left">
-                <Card className="hover:bg-line/40 transition-colors">
-                  <CardContent className="px-4 py-3 flex items-center justify-between gap-3">
+              <button key={row.id} onClick={() => onSelect(row.id)} className="block w-full text-left">
+                <Card className="transition-colors hover:bg-line/40">
+                  <CardContent className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
-                      <div className="font-medium text-sm truncate">{row.name}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="truncate text-body font-medium">{row.name}</div>
+                      <div className="text-caption text-muted">
                         {row.pct === null
                           ? `~${Math.round(row.last)} kg · 1 sessie`
                           : `${Math.round(row.first)} → ${Math.round(row.last)} kg · ${row.sessions} sessies`}
                       </div>
                     </div>
                     {row.pct === null ? (
-                      <span className="shrink-0 text-sm text-muted-foreground">—</span>
+                      <span className="shrink-0 text-small text-muted">—</span>
                     ) : (
                       <span
                         className={cn(
-                          'shrink-0 inline-flex items-center gap-1 text-sm font-semibold tabular-nums',
-                          up ? 'text-emerald-400' : down ? 'text-red-400' : 'text-muted-foreground',
+                          'inline-flex shrink-0 items-center gap-1 text-small font-semibold tabular-nums',
+                          up ? 'text-accent' : 'text-muted',
                         )}
                       >
                         {up && <TrendingUp className="h-4 w-4" />}
@@ -607,6 +576,28 @@ function ProgressionOverview({ onSelect }: { onSelect: (id: string) => void }) {
   );
 }
 
+// ── Overview tiles ───────────────────────────────────────────────────────────
+
+function OverviewTiles() {
+  const workouts = useCompletedWorkouts();
+  const stats = useMemo(() => recentTrainingStats(workouts, 8), [workouts]);
+  if (workouts.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 gap-gap px-4 pt-3">
+      <StatTile
+        label="Sessies per week"
+        value={stats.sessionsPerWeek.toLocaleString('nl-NL')}
+        delta="gem. laatste 8 weken"
+      />
+      <StatTile
+        label="Duur per training"
+        value={stats.avgMinutes === null ? '—' : `${stats.avgMinutes} min`}
+        delta="gem. laatste 8 weken"
+      />
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 type ProgressTab = 'exercises' | 'overview' | 'weight';
@@ -617,18 +608,23 @@ const TAB_OPTIONS: { value: ProgressTab; label: string }[] = [
   { value: 'weight', label: 'Gewicht' },
 ];
 
+function isProgressTab(v: string | null): v is ProgressTab {
+  return TAB_OPTIONS.some(o => o.value === v);
+}
+
 function SectionHeading({ children }: { children: React.ReactNode }) {
-  return <h2 className="px-4 pt-4 pb-1 text-sm font-medium text-muted-foreground">{children}</h2>;
+  return (
+    <h2 className="px-4 pt-4 pb-1 font-display text-body-lg font-semibold">{children}</h2>
+  );
 }
 
 export function ProgressPage() {
   const exercises = useExercises();
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  // `?tab=overview` lets the calendar's session links return to this tab.
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<ProgressTab>(() =>
-    searchParams.get('tab') === 'overview' ? 'overview' : 'exercises',
-  );
+  // `?tab=exercises|overview|weight`; the calendar's session links return to `overview`.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: ProgressTab = isProgressTab(tabParam) ? tabParam : 'exercises';
   const [exerciseView, setExerciseView] = useState<'list' | 'compare'>('list');
 
   const selectedExercise = useMemo(
@@ -636,9 +632,14 @@ export function ProgressPage() {
     [exercises, selectedId],
   );
 
+  function changeTab(next: string) {
+    if (!isProgressTab(next)) return;
+    setSearchParams({ tab: next }, { replace: true });
+  }
+
   function openExercise(id: string) {
     setSelectedId(id);
-    setTab('exercises');
+    changeTab('exercises');
   }
 
   // A specific exercise is open — show its detail without the tab switcher.
@@ -646,12 +647,7 @@ export function ProgressPage() {
     return (
       <div>
         <PageHeader title="Progressie" />
-        <ExerciseDetail
-          exerciseId={selectedId}
-          exerciseName={selectedExercise.name}
-          goal={selectedExercise.goal}
-          onBack={() => setSelectedId(undefined)}
-        />
+        <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedId(undefined)} />
       </div>
     );
   }
@@ -660,55 +656,41 @@ export function ProgressPage() {
     <div>
       <PageHeader title="Progressie" />
 
-      {/* Tab switcher — fixed three-up, no horizontal scroll */}
-      <div className="px-4 py-3">
-        <div className="grid grid-cols-3 gap-1 rounded-xl border border-border p-1 bg-secondary/50">
-          {TAB_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setTab(opt.value)}
-              className={cn(
-                'py-2 rounded-lg text-sm font-medium transition-colors',
-                tab === opt.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <Tabs value={tab} onValueChange={changeTab}>
+        <div className="px-4 py-3">
+          <TabsList className="grid w-full grid-cols-3">
+            {TAB_OPTIONS.map(opt => (
+              <TabsTrigger key={opt.value} value={opt.value}>
+                {opt.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
-      </div>
 
-      {tab === 'exercises' && (
-        <>
+        <TabsContent value="exercises" className="mt-0">
           {/* List ↔ Compare toggle */}
-          <div className="px-4 flex gap-2">
-            <Button
-              variant={exerciseView === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setExerciseView('list')}
-            >
+          <div className="flex gap-2 px-4">
+            <Chip selected={exerciseView === 'list'} onClick={() => setExerciseView('list')}>
               Lijst
-            </Button>
-            <Button
-              variant={exerciseView === 'compare' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setExerciseView('compare')}
-            >
+            </Chip>
+            <Chip selected={exerciseView === 'compare'} onClick={() => setExerciseView('compare')}>
               Vergelijken
-            </Button>
+            </Chip>
           </div>
           {exerciseView === 'list' ? (
-            <ProgressionOverview onSelect={openExercise} />
+            <>
+              <ProgressionOverview onSelect={openExercise} />
+              <div className="px-4 pb-4">
+                <WeeklySetsCard />
+              </div>
+            </>
           ) : (
             <ComparisonView />
           )}
-        </>
-      )}
+        </TabsContent>
 
-      {tab === 'overview' && (
-        <>
+        <TabsContent value="overview" className="mt-0 pb-4">
+          <OverviewTiles />
           <SectionHeading>Consistentie</SectionHeading>
           <ConsistencyHeatmap />
           <TrainingCalendar />
@@ -716,10 +698,12 @@ export function ProgressPage() {
           <VolumeTrendChart />
           <SectionHeading>Records</SectionHeading>
           <RecordsBoard onSelect={openExercise} />
-        </>
-      )}
+        </TabsContent>
 
-      {tab === 'weight' && <BodyWeightSection />}
+        <TabsContent value="weight" className="mt-0">
+          <BodyWeightSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
