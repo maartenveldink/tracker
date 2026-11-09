@@ -1,49 +1,78 @@
+const token = name =>
+  `color-mix(in srgb, var(--color-${name}) calc(<alpha-value> * 100%), transparent)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Single source of truth: src/styles/tokens.css. Colours resolve through
+      // color-mix so opacity modifiers (bg-accent/50) keep working.
       colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
+        bg: token('bg'),
+        surface: token('surface'),
+        line: { DEFAULT: token('line'), strong: token('line-strong') },
+        text: token('text'),
+        muted: { DEFAULT: token('muted'), foreground: token('muted') },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: token('accent'),
+          foreground: token('on-accent'),
+          2: token('accent-2'),
         },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
+        'on-accent': token('on-accent'),
+        overlay: token('overlay'),
+        // Legacy shadcn names, mapped onto the tokens so existing screens are themed.
+        border: token('line'),
+        input: token('line-strong'),
+        ring: token('accent'),
+        background: token('bg'),
+        foreground: token('text'),
+        primary: { DEFAULT: token('accent'), foreground: token('on-accent') },
+        secondary: { DEFAULT: token('line'), foreground: token('text') },
+        destructive: { DEFAULT: '#c2410c', foreground: token('text') },
+        card: { DEFAULT: token('surface'), foreground: token('text') },
+        popover: { DEFAULT: token('surface'), foreground: token('text') },
+      },
+      borderColor: { DEFAULT: token('line') },
+      fontFamily: {
+        sans: ['var(--font-body)'],
+        display: ['var(--font-display)'],
+      },
+      fontSize: {
+        caption: 'var(--text-caption)',
+        nav: 'var(--text-nav)',
+        small: 'var(--text-small)',
+        body: 'var(--text-body)',
+        'body-lg': 'var(--text-body-lg)',
+        title: 'var(--text-title)',
+        stat: 'var(--text-stat)',
+        screen: 'var(--text-screen)',
+        hero: 'var(--text-hero)',
+        big: 'var(--text-big)',
+        stepper: 'var(--text-stepper)',
+      },
+      spacing: {
+        touch: 'var(--size-touch)',
+        button: 'var(--size-button)',
+        'button-train': 'var(--size-button-train)',
+        nav: 'var(--size-nav)',
+        'screen-x': 'var(--space-screen-x)',
+        'screen-top': 'var(--space-screen-top)',
+        gap: 'var(--space-gap)',
+        'gap-tight': 'var(--space-gap-tight)',
+        card: 'var(--space-card)',
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        chip: 'var(--radius-chip)',
+        row: 'var(--radius-row)',
+        button: 'var(--radius-button)',
+        tile: 'var(--radius-tile)',
+        card: 'var(--radius-card)',
+        sheet: 'var(--radius-sheet)',
+        pill: 'var(--radius-pill)',
       },
+      maxWidth: { column: '560px' },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },

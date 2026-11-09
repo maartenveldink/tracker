@@ -1,5 +1,18 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+/** Knows the design-token utilities (tailwind.config.js) so they merge with the right group. */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['caption', 'nav', 'small', 'body', 'body-lg', 'title', 'stat', 'screen', 'hero', 'big', 'stepper'] }],
+      rounded: [{ rounded: ['chip', 'row', 'button', 'tile', 'card', 'sheet', 'pill'] }],
+      h: [{ h: ['touch', 'button', 'button-train', 'nav'] }],
+      w: [{ w: ['touch', 'button', 'button-train', 'nav'] }],
+      'min-h': [{ 'min-h': ['touch', 'button', 'button-train', 'nav'] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

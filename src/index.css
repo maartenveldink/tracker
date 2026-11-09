@@ -1,47 +1,25 @@
+@import './styles/tokens.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens live in styles/tokens.css (colour scheme, focus ring, body
+   font and h1/h2 display font come from there). Only app-level extras here. */
 @layer base {
-  :root {
-    /* Dark-only theme — slate palette */
-    --background: 222 47% 7%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 160 84% 39%;       /* emerald-500 — primary actions */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 33% 17%;     /* slate-800 */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 55%;
-
-    --accent: 217 33% 22%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 20%;
-    --input: 217 33% 17%;
-    --ring: 160 84% 39%;
-
-    --radius: 0.75rem;
-  }
-
   html {
     -webkit-tap-highlight-color: transparent;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  /* DESIGN §4: focus-visible is a 2px accent outline, offset 2, everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   input[type='number']::-webkit-inner-spin-button,
@@ -52,5 +30,15 @@
 
   input[type='number'] {
     -moz-appearance: textfield;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

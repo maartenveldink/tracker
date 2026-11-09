@@ -490,7 +490,7 @@ export function WorkoutEditPage() {
                   <button
                     key={ex.id}
                     onClick={() => handleAddExercise(ex.id!)}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
                   >
                     {ex.name}
                   </button>

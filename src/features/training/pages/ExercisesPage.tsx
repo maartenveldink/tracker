@@ -227,7 +227,7 @@ export function ExercisesPage() {
                       'w-full text-left px-3 py-2 text-sm rounded-md transition-colors',
                       mergeTarget?.id === e.id
                         ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-accent',
+                        : 'hover:bg-line/60',
                     )}
                   >
                     {e.name}

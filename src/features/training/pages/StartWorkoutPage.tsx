@@ -208,7 +208,7 @@ export function StartWorkoutPage() {
       <div className="px-4 py-4 space-y-4">
         {/* Ad-hoc option (E3-01) */}
         <Card
-          className="shadow-none cursor-pointer hover:bg-accent/50 transition-colors"
+          className="shadow-none cursor-pointer hover:bg-line/40 transition-colors"
           onClick={handleStartAdHoc}
         >
           <CardContent className="p-4 flex items-center gap-3">
@@ -224,7 +224,7 @@ export function StartWorkoutPage() {
 
         {/* Suggested workout based on undertrained muscle groups */}
         <Card
-          className="shadow-none cursor-pointer hover:bg-accent/50 transition-colors"
+          className="shadow-none cursor-pointer hover:bg-line/40 transition-colors"
           onClick={() => navigate('/start/suggestion')}
         >
           <CardContent className="p-4 flex items-center gap-3">
@@ -261,7 +261,7 @@ export function StartWorkoutPage() {
                 return (
                   <div key={schema.id}>
                     <Card
-                      className="shadow-none cursor-pointer hover:bg-accent/50 transition-colors"
+                      className="shadow-none cursor-pointer hover:bg-line/40 transition-colors"
                       onClick={() => handleSchemaClick(schema)}
                     >
                       <CardContent className="p-4">
@@ -301,7 +301,7 @@ export function StartWorkoutPage() {
                               className={`shadow-none cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'border-primary bg-primary/5'
-                                  : 'hover:bg-accent/50'
+                                  : 'hover:bg-line/40'
                               }`}
                               onClick={() => setSelectedDayId(day.id)}
                             >
