@@ -10,7 +10,8 @@ export class StartWorkoutPage {
 
   /** Starts a single-day schema by name and waits for the live workout to open. */
   async start(schemaName: string): Promise<void> {
-    await this.page.getByText(schemaName, { exact: true }).click();
+    // Scoped to the schema list: the suggested card may show the same name.
+    await this.page.getByTestId('schema-list').getByText(schemaName, { exact: true }).click();
     await this.page.waitForURL(/\/workout\/[^\/]+$/);
     // Wait until the current exercise has rendered so callers can assert on the
     // set list immediately.
@@ -25,15 +26,15 @@ export class StartWorkoutPage {
 
   /** Opens the suggested-workout screen (`/start/suggestion`). */
   async openSuggestion(): Promise<void> {
-    await this.page.getByText('Voorgestelde training', { exact: true }).click();
+    await this.page.getByRole('button', { name: 'Voorgestelde training' }).click();
     await this.page.waitForURL(/\/start\/suggestion$/);
   }
 
   /** Starts a specific day of a multi-day schema. */
   async startDay(schemaName: string, dayName: string): Promise<void> {
-    await this.page.getByText(schemaName, { exact: true }).click(); // expands day selection
-    await this.page.getByText(dayName, { exact: true }).click();    // pick the day
-    await this.page.getByRole('button', { name: new RegExp(`^Start ${dayName}`) }).click();
+    // Days of a multi-day schema are listed directly; a tap starts the day.
+    const list = this.page.getByTestId('schema-list').locator(`section[aria-label="${schemaName}"]`);
+    await list.getByRole('button', { name: `Start ${dayName}` }).click();
     await this.page.waitForURL(/\/workout\/[^\/]+$/);
   }
 }
