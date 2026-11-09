@@ -1,6 +1,7 @@
 import type { Exercise, Workout } from '../../../db/index';
 import { getISOWeek } from './metrics';
 import { isCompletedSet } from './sets';
+import { toTargetId, type MuscleLevel } from '../db/muscles';
 
 // --- Plateau ---
 
@@ -53,12 +54,15 @@ export const WEEKLY_SETS_MAX = 20;
 
 /**
  * Completed sets per primary muscle in the ISO week (Mon-Sun) containing `ref`.
+ * Muscles are grouped per `level` (the muscle-detail setting): at 'global' a detailed
+ * muscle folds into its global group, and an exercise counts once per group.
  * Secondary muscles do not count. Bodyweight sets count (see `sets.ts`).
  */
 export function setsPerPrimaryMuscle(
   workouts: Workout[],
   exerciseMap: Map<string, Exercise>,
   ref: Date = new Date(),
+  level: MuscleLevel = 'global',
 ): Map<string, number> {
   const week = getISOWeek(ref);
   const result = new Map<string, number>();
@@ -69,7 +73,9 @@ export function setsPerPrimaryMuscle(
       if (!ex) continue;
       const done = we.sets.filter(isCompletedSet).length;
       if (done === 0) continue;
-      for (const m of ex.primaryMuscles) result.set(m, (result.get(m) ?? 0) + done);
+      for (const g of new Set(ex.primaryMuscles.map(m => toTargetId(m, level)))) {
+        result.set(g, (result.get(g) ?? 0) + done);
+      }
     }
   }
   return result;
