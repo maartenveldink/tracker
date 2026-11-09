@@ -260,7 +260,7 @@ export function SettingsPage() {
           className={`flex items-center gap-2 rounded-row px-4 py-3 text-small font-medium ${
             feedback.type === 'success'
               ? 'bg-primary/15 text-primary'
-              : 'bg-destructive/15 text-destructive'
+              : 'bg-destructive/15 text-danger'
           }`}
         >
           {feedback.type === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0" />}
@@ -444,7 +444,7 @@ export function SettingsPage() {
           />
         </Row>
         <Row
-          label={<span className="text-destructive">Alle data wissen</span>}
+          label={<span className="text-danger">Alle data wissen</span>}
           hint="Verwijdert alle trainingen, schema's, habits en zelfgemaakte oefeningen. Standaard oefeningen worden opnieuw ingeladen; instellingen worden gereset."
         >
           <Button variant="destructive" onClick={() => setConfirmClear(true)} disabled={loading}>

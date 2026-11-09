@@ -114,7 +114,7 @@ export function SchemaImportPage() {
 
         {result && !result.ok && (
           <div role="alert" className="rounded-row border border-destructive/50 bg-destructive/10 p-3 space-y-1">
-            <p className="flex items-center gap-2 text-small font-medium text-destructive">
+            <p className="flex items-center gap-2 text-small font-medium text-danger">
               <AlertCircle className="h-4 w-4" />
               {result.errors.length} {result.errors.length === 1 ? 'fout' : 'fouten'} gevonden
             </p>
@@ -179,7 +179,7 @@ export function SchemaImportPage() {
         )}
 
         {importError && (
-          <p role="alert" className="text-small text-destructive">{importError}</p>
+          <p role="alert" className="text-small text-danger">{importError}</p>
         )}
       </div>
 

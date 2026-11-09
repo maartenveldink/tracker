@@ -164,6 +164,8 @@ export function WorkoutPage() {
   const [draft, setDraft] = useState<StepperDraft | null>(null);
   const [inputError, setInputError] = useState<'weight' | 'reps' | null>(null);
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
+  // DESIGN §11: announce the end of the rest once (not every second).
+  const [restEnded, setRestEnded] = useState(false);
   // Per-exercise rest override for this session (exerciseId -> seconds)
   const [exerciseRest, setExerciseRest] = useState<Record<string, number>>({});
   const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
@@ -231,22 +233,30 @@ export function WorkoutPage() {
   const restAlertFiredRef = useRef<number | null>(null);
   useEffect(() => {
     if (!restTimer) return;
-    const interval = setInterval(() => {
+    // Timestamp-based: remaining = total - elapsed since startedAt, so a
+    // throttled background tab catches up on the next tick / when visible again.
+    const tick = () => {
       setRestTimer(prev => {
         if (!prev) return null;
-        const next = prev.remaining - 1;
+        const next = Math.ceil(prev.total - (Date.now() - prev.startedAt) / 1000);
         if (next <= 0) {
           // E3-12: fire the alert once per timer (guard against StrictMode re-runs)
           if (restAlertFiredRef.current !== prev.startedAt) {
             restAlertFiredRef.current = prev.startedAt;
             fireRestAlert();
+            setRestEnded(true);
           }
           return null;
         }
-        return { ...prev, remaining: next };
+        return next === prev.remaining ? prev : { ...prev, remaining: next };
       });
-    }, 1000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restTimer?.startedAt]);
 
@@ -393,6 +403,7 @@ export function WorkoutPage() {
 
   function startRest(exerciseId: string) {
     const rest = getRest(exerciseId);
+    setRestEnded(false);
     setRestTimer({ remaining: rest, total: rest, startedAt: Date.now() });
   }
 
@@ -606,7 +617,7 @@ export function WorkoutPage() {
             <span
               role="timer"
               aria-label="Duur van de training"
-              className="font-display text-[22px] font-bold"
+              className="font-display text-title font-bold"
             >
               {formatDurationClock(elapsed)}
             </span>
@@ -685,7 +696,7 @@ export function WorkoutPage() {
                 : `${weightText ? formatDecimal(parseDecimal(weightText)) : '–'} kg × ${repsText || '–'}`;
               const rowBase =
                 'grid min-h-12 w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-row px-3.5 text-left';
-              const badgeBase = 'flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold';
+              const badgeBase = 'flex h-7 w-7 items-center justify-center rounded-full text-small font-bold';
               if (set.completed) {
                 return (
                   <li key={set.setNumber}>
@@ -699,7 +710,7 @@ export function WorkoutPage() {
                     >
                       <span className={cn(badgeBase, 'bg-accent text-on-accent')}>{badge}</span>
                       <span className="text-body-lg font-medium">{valueLabel}</span>
-                      <span className="text-[13px] text-muted">Klaar</span>
+                      <span className="text-small text-muted">Klaar</span>
                     </button>
                   </li>
                 );
@@ -732,7 +743,7 @@ export function WorkoutPage() {
                       {badge}
                     </span>
                     <span className="text-body-lg font-medium">{valueLabel}</span>
-                    <span className={cn('text-[13px]', isNow && 'font-bold text-accent')}>{isNow ? 'Nu' : ''}</span>
+                    <span className={cn('text-small', isNow && 'font-bold text-accent')}>{isNow ? 'Nu' : ''}</span>
                   </div>
                 </li>
               );
@@ -790,6 +801,9 @@ export function WorkoutPage() {
           </div>
         )}
 
+        <p className="sr-only" aria-live="polite" data-testid="rest-ended-announcement">
+          {restEnded && !restTimer ? 'Rust voorbij, volgende set' : ''}
+        </p>
         {restTimer && (
           <LiveRestStrip
             timer={restTimer}
@@ -831,7 +845,7 @@ export function WorkoutPage() {
           </div>
         )}
         {inputError && (
-          <p role="alert" className="-mt-1.5 text-caption text-destructive">
+          <p role="alert" className="-mt-1.5 text-caption text-danger">
             {inputError === 'weight' ? WEIGHT_ERROR : REPS_ERROR}
           </p>
         )}
@@ -839,7 +853,7 @@ export function WorkoutPage() {
           <button
             type="button"
             onClick={() => void handleSameAsPrevious()}
-            className="-mt-1 inline-flex h-touch items-center justify-center gap-1.5 self-center rounded-pill border border-line-strong px-4 text-[13px] font-semibold text-muted hover:bg-line/60"
+            className="-mt-1 inline-flex h-touch items-center justify-center gap-1.5 self-center rounded-pill border border-line-strong px-4 text-small font-semibold text-muted hover:bg-line/60"
           >
             <History className="h-3.5 w-3.5" aria-hidden="true" />
             Zelfde als vorige: {formatDecimal(prevSetForActive.weight)} kg × {prevSetForActive.reps}
@@ -851,13 +865,13 @@ export function WorkoutPage() {
         </Button>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 text-[13px] text-muted">{nextLine}</span>
+          <span className="min-w-0 text-small text-muted">{nextLine}</span>
           {!finished ? (
-            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-[13px]" onClick={() => void skipExercise(cur)}>
+            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-small" onClick={() => void skipExercise(cur)}>
               Oefening overslaan
             </Button>
           ) : (
-            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-[13px]" onClick={openAdd}>
+            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-small" onClick={openAdd}>
               + Oefening toevoegen
             </Button>
           )}

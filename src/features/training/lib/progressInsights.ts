@@ -143,12 +143,15 @@ export function recentTrainingStats(
 ): RecentTrainingStats {
   const cutoff = now.getTime() - weeks * 7 * DAY_MS;
   const inWindow = workouts.filter(w => w.startedAt.getTime() >= cutoff);
+  // A new user (first workout < `weeks` ago) is averaged over the weeks they have actually been training.
+  const firstStart = workouts.reduce((min, w) => Math.min(min, w.startedAt.getTime()), now.getTime());
+  const activeWeeks = Math.min(weeks, Math.max(1, Math.ceil((now.getTime() - firstStart) / (7 * DAY_MS))));
   const durations = inWindow
     .filter(w => w.completedAt)
     .map(w => (w.completedAt!.getTime() - w.startedAt.getTime() - (w.totalPausedMs ?? 0)) / 60_000)
     .filter(m => m > 0);
   return {
-    sessionsPerWeek: Math.round((inWindow.length / weeks) * 10) / 10,
+    sessionsPerWeek: Math.round((inWindow.length / activeWeeks) * 10) / 10,
     avgMinutes: durations.length
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
       : null,

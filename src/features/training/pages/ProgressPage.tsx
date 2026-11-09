@@ -300,7 +300,7 @@ function ExerciseDetail({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-touch w-touch text-muted hover:text-destructive"
+                            className="h-touch w-touch text-muted hover:text-danger"
                             onClick={() => setDeleteTarget({ id: session.workoutId, date: session.date })}
                             aria-label="Verwijder training"
                           >

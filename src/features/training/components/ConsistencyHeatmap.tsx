@@ -80,7 +80,7 @@ export function ConsistencyHeatmap() {
             </div>
           </div>
           {/* Legend */}
-          <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center justify-end gap-1 mt-2 text-nav text-muted-foreground">
             <span>minder</span>
             <div className="h-3 w-3 rounded-sm bg-line" />
             <div className="h-3 w-3 rounded-sm bg-primary/40" />

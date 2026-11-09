@@ -21,6 +21,11 @@
   --color-accent-soft: #c8f13533; /* accent met 20% dekking */
   --color-overlay: rgba(0, 0, 0, 0.6);
 
+  /* Fouten (WP8): destructive = vulling van knoppen (tekst erop 4,7:1), danger = fouttekst en iconen op bg/surface (8,3:1 / 7,5:1).
+     Er is bewust geen apart warning/success-token: succes en positief verschil gebruiken accent, data/delta accent-2. */
+  --color-destructive: #c2410c;
+  --color-danger: #ff8a5c;
+
   /* Alleen voor confetti (naast accent, accent-2 en text) */
   --color-confetti-coral: #ff7a59;
   --color-confetti-amber: #ffb84d;

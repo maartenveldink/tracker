@@ -624,7 +624,7 @@ export function SchemaFormPage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn('h-7 w-7', isLinkedAbove ? 'text-primary' : 'text-muted')}
+                    className={cn('h-touch w-touch', isLinkedAbove ? 'text-primary' : 'text-muted')}
                     onClick={() => toggleSupersetLink(i)}
                     aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
                     title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
@@ -636,7 +636,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted"
+                  className="h-touch w-touch text-muted"
                   onClick={() => moveExercise(i, 'up')}
                   disabled={i === 0}
                   aria-label="Omhoog"
@@ -647,7 +647,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted"
+                  className="h-touch w-touch text-muted"
                   onClick={() => moveExercise(i, 'down')}
                   disabled={i === totalLength - 1}
                   aria-label="Omlaag"
@@ -658,7 +658,7 @@ export function SchemaFormPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted hover:text-destructive"
+                  className="h-touch w-touch text-muted hover:text-danger"
                   onClick={() => removeExercise(i)}
                   aria-label="Verwijderen"
                 >
@@ -817,7 +817,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted"
+                      className="h-touch w-touch text-muted"
                       onClick={() => startEditDayName(day.id)}
                       aria-label="Dag hernoemen"
                     >
@@ -827,7 +827,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted"
+                      className="h-touch w-touch text-muted"
                       onClick={() => moveDayOrder(day.id, 'up')}
                       disabled={dayIndex === 0}
                       aria-label="Dag omhoog"
@@ -838,7 +838,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted"
+                      className="h-touch w-touch text-muted"
                       onClick={() => moveDayOrder(day.id, 'down')}
                       disabled={dayIndex === days.length - 1}
                       aria-label="Dag omlaag"
@@ -849,7 +849,7 @@ export function SchemaFormPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted hover:text-destructive"
+                      className="h-touch w-touch text-muted hover:text-danger"
                       onClick={() => removeDay(day.id)}
                       aria-label="Dag verwijderen"
                     >
@@ -925,7 +925,7 @@ export function SchemaFormPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 text-muted hover:text-destructive"
+                        className="h-touch w-touch text-muted hover:text-danger"
                         onClick={() => removeRotationStep(i)}
                         aria-label="Stap verwijderen"
                       >

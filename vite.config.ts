@@ -18,6 +18,7 @@ export default defineConfig({
       manifest: {
         name: 'Tracker - Fitness Logger',
         short_name: 'Tracker',
+        lang: 'nl',
         description: 'Track your workouts offline',
         theme_color: '#0A0E1A',
         background_color: '#0A0E1A',

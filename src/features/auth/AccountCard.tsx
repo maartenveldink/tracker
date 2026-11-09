@@ -25,7 +25,7 @@ function StatusIcon({ state }: { state: SyncState }) {
   if (state === 'syncing') return <RefreshCw className="h-4 w-4 animate-spin" />;
   if (state === 'synced') return <Check className="h-4 w-4 text-primary" />;
   if (state === 'offline') return <CloudOff className="h-4 w-4 text-muted" />;
-  if (state === 'error') return <AlertTriangle className="h-4 w-4 text-destructive" />;
+  if (state === 'error') return <AlertTriangle className="h-4 w-4 text-danger" />;
   return <RefreshCw className="h-4 w-4 text-muted" />;
 }
 

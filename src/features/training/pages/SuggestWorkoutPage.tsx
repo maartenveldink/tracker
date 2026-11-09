@@ -282,7 +282,7 @@ export function SuggestWorkoutPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-touch w-touch"
                 onClick={() => changeTarget(-STEP_TARGET)}
                 disabled={targetMin <= MIN_TARGET}
                 aria-label="Korter"
@@ -293,7 +293,7 @@ export function SuggestWorkoutPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-touch w-touch"
                 onClick={() => changeTarget(STEP_TARGET)}
                 disabled={targetMin >= MAX_TARGET}
                 aria-label="Langer"
@@ -339,7 +339,7 @@ export function SuggestWorkoutPage() {
                     >
                       <div className="flex items-center gap-1.5">
                         {info?.inSuperset && (
-                          <span className="text-[10px] font-semibold text-primary bg-primary/10 rounded px-1">
+                          <span className="text-nav font-semibold text-primary bg-primary/10 rounded px-1">
                             {info.label}
                           </span>
                         )}
@@ -364,7 +364,7 @@ export function SuggestWorkoutPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-touch w-touch"
                       onClick={() => setSwapIndex(index)}
                       aria-label="Wissel oefening"
                     >
@@ -373,7 +373,7 @@ export function SuggestWorkoutPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="h-touch w-touch text-muted-foreground hover:text-danger"
                       onClick={() => removeAt(index)}
                       aria-label="Verwijder oefening"
                     >
@@ -400,7 +400,7 @@ export function SuggestWorkoutPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={cn('h-7 w-7', info?.inSuperset && !info.isFirst && 'text-primary')}
+                          className={cn('h-touch w-touch', info?.inSuperset && !info.isFirst && 'text-primary')}
                           onClick={() => toggleSuperset(index)}
                           aria-label="Superset koppelen"
                         >
@@ -410,7 +410,7 @@ export function SuggestWorkoutPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className="h-touch w-touch"
                         onClick={() => move(index, -1)}
                         disabled={index === 0}
                         aria-label="Omhoog"
@@ -420,7 +420,7 @@ export function SuggestWorkoutPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className="h-touch w-touch"
                         onClick={() => move(index, 1)}
                         disabled={index === items.length - 1}
                         aria-label="Omlaag"
@@ -521,11 +521,11 @@ function Stepper({
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-muted-foreground">{label}</span>
-      <Button variant="outline" size="icon" className="h-6 w-6" onClick={onDec} aria-label={`${label} minder`}>
+      <Button variant="outline" size="icon" className="h-touch w-touch" onClick={onDec} aria-label={`${label} minder`}>
         <Minus className="h-3 w-3" />
       </Button>
       <span className="tabular-nums w-10 text-center font-medium">{value}</span>
-      <Button variant="outline" size="icon" className="h-6 w-6" onClick={onInc} aria-label={`${label} meer`}>
+      <Button variant="outline" size="icon" className="h-touch w-touch" onClick={onInc} aria-label={`${label} meer`}>
         <Plus className="h-3 w-3" />
       </Button>
     </div>
