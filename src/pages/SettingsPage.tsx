@@ -268,7 +268,7 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Group "Training". New training toggles (e.g. Viering, Trillen) are added as <FieldRow> + <Switch> here. */}
+      {/* Group "Training". New training toggles are added as <FieldRow> + <Switch> here. */}
       <Section title="Training">
         <OptionBlock title="1RM-formule" hint="Waarmee je geschatte 1 rep max wordt berekend.">
           <RadioGroup
@@ -388,6 +388,22 @@ export function SettingsPage() {
             id="rest-sound"
             checked={settings.restTimerSound}
             onCheckedChange={(checked) => void updateSettings({ restTimerSound: checked })}
+          />
+        </FieldRow>
+
+        <FieldRow id="celebration" label="Viering bij verbetering" hint="Confetti en vuurwerk als een oefening beter was dan vorige keer">
+          <Switch
+            id="celebration"
+            checked={settings.celebrationEnabled}
+            onCheckedChange={(checked) => void updateSettings({ celebrationEnabled: checked })}
+          />
+        </FieldRow>
+        <FieldRow id="celebration-vibrate" label="Trillen bij viering" hint="Alleen op apparaten die dit ondersteunen">
+          <Switch
+            id="celebration-vibrate"
+            checked={settings.celebrationVibrate}
+            disabled={!settings.celebrationEnabled}
+            onCheckedChange={(checked) => void updateSettings({ celebrationVibrate: checked })}
           />
         </FieldRow>
 

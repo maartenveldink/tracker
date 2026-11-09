@@ -293,6 +293,10 @@ export interface AppSettings {
   restTimerVibrate: boolean;
   /** E3-12: play a sound when the rest timer ends. */
   restTimerSound: boolean;
+  /** WP5: confetti + fireworks when an exercise beats the previous session (default on). */
+  celebrationEnabled: boolean;
+  /** WP5: vibrate when that celebration shows (default on, only where supported). */
+  celebrationVibrate: boolean;
   /**
    * Time (seconds) reserved between exercises for tidy-up + setup of the next
    * one. Used by the schema time estimate.
@@ -379,6 +383,8 @@ class TrackerDB extends Dexie {
         },
         restTimerVibrate: true,
         restTimerSound: true,
+        celebrationEnabled: true,
+        celebrationVibrate: true,
         exerciseTransitionSeconds: 45,
       };
 

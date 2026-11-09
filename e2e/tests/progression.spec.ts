@@ -59,6 +59,11 @@ test.describe('Progression', () => {
     await workout.completeActiveSet(70, 10); // heavier -> a better session
 
     await expect(page.getByTestId('celebration')).toBeVisible();
+    await expect(page.getByTestId('moment-banner')).toContainText('Beter dan vorige keer');
+
+    // A reload must not replay the effects.
+    await page.reload();
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
   });
 
   test('the progression tab lists an exercise with its 1RM change', async ({
