@@ -290,3 +290,19 @@ export async function completeWorkout(workoutId: string): Promise<void> {
     });
   });
 }
+
+/** Replace all sets of one workout exercise (skip / restore an exercise). */
+export async function setExerciseSets(
+  workoutId: string,
+  exerciseIndex: number,
+  sets: WorkoutSet[],
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    const exercise = workout?.exercises[exerciseIndex];
+    if (!workout || !exercise) return;
+    const exercises = [...workout.exercises];
+    exercises[exerciseIndex] = { ...exercise, sets };
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
+  });
+}

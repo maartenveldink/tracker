@@ -3,105 +3,128 @@ import type { Locator, Page } from '@playwright/test';
 /**
  * Page object for the live workout screen (`/workout/:id`).
  *
- * Only the expanded exercise card renders its set grid, so "the expanded card"
- * is the one that contains the quick-reps bar — a stable, style-independent way
- * to follow the app's focus as it advances.
+ * The screen shows one exercise at a time ("current exercise"): its sets, the
+ * weight/reps steppers and the big "Set klaar" button. The full list of
+ * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
+ * it (`exerciseOrder`, `exerciseMeta`, …) open and close it themselves.
  */
 export class WorkoutPage {
   constructor(private readonly page: Page) {}
 
-  /** The exercise card that is currently expanded (shows the quick-reps bar). */
-  get expandedCard(): Locator {
-    return this.page
-      .getByTestId('exercise-card')
-      .filter({ has: this.page.getByTestId('quick-reps') });
-  }
-
   /**
-   * Title (exercise name) of the expanded card. Assert on it with web-first
-   * assertions (`toContainText`): right after the workout opens, the card can
+   * Title (exercise name) of the current exercise. Assert on it with web-first
+   * assertions (`toContainText`): right after the workout opens, the title can
    * render before the exercise list has loaded from IndexedDB.
    */
-  get expandedTitle(): Locator {
-    return this.expandedCard.locator('h3').first();
+  get currentTitle(): Locator {
+    return this.page.getByTestId('current-exercise');
   }
 
-  /**
-   * Name of the exercise in the expanded card — a one-shot read that does not
-   * retry; only use it inside `expect.poll`, otherwise prefer `expandedTitle`.
-   */
-  async expandedExerciseName(): Promise<string> {
-    return (await this.expandedCard.locator('h3').first().innerText()).trim();
+  /** Superset badge of the current exercise (only present inside a superset). */
+  get supersetBadge(): Locator {
+    return this.page.getByTestId('superset-badge');
   }
 
-  /** The rest-timer countdown bar (present only while resting). */
+  /** The rest-timer strip (present only while resting). */
   get restTimer(): Locator {
     return this.page.getByTestId('rest-timer');
   }
 
-  /** Exercise names of all cards, in on-screen order (use with `toHaveText([...])`). */
-  get cardTitles(): Locator {
-    return this.page.getByTestId('exercise-card').locator('h3');
+  /** The weight stepper input of the current exercise. */
+  get weightInput(): Locator {
+    return this.page.getByTestId('weight-input');
   }
 
-  /** The card of the named exercise. */
-  card(name: string): Locator {
-    return this.page
-      .getByTestId('exercise-card')
-      .filter({ has: this.page.locator('h3', { hasText: name }) });
+  /** The reps stepper input of the current exercise. */
+  get repsInput(): Locator {
+    return this.page.getByTestId('reps-input');
   }
 
-  /** The nth (0-based) pill of the exercise navigation bar, e.g. "Barbell Row 0/3". */
-  navPill(index: number): Locator {
-    return this.page.locator('nav button').nth(index);
+  /** The big primary button ("Set klaar" / "Volgende oefening" / …). */
+  get primaryButton(): Locator {
+    return this.page.getByRole('button', { name: /^(Set klaar|Volgende oefening|Laatste oefening afronden|Training afronden)$/ });
+  }
+
+  /** Opens the exercise overview sheet. */
+  async openOverview(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Oefeningen in deze training' }).click();
+  }
+
+  /** Closes whatever sheet is open. */
+  async closeSheet(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await this.page.getByRole('dialog').waitFor({ state: 'detached' });
+  }
+
+  /** Rows of the overview sheet (only while it is open). */
+  get overviewRows(): Locator {
+    return this.page.getByTestId('overview-row');
+  }
+
+  /** Exercise names in workout order, read from the overview sheet. */
+  async exerciseOrder(): Promise<string[]> {
+    await this.openOverview();
+    await this.overviewRows.first().waitFor({ state: 'visible' }).catch(() => undefined);
+    const names = (await this.page.getByTestId('overview-name').allInnerTexts()).map(n => n.trim());
+    await this.closeSheet();
+    return names;
+  }
+
+  /** Sub-line of the nth (0-based) exercise in the overview, e.g. "1/3 sets · nieuw". */
+  async exerciseMeta(index: number): Promise<string> {
+    await this.openOverview();
+    const meta = this.page.getByTestId('overview-meta').nth(index);
+    await meta.waitFor({ state: 'visible' });
+    const text = (await meta.innerText()).trim();
+    await this.closeSheet();
+    return text;
+  }
+
+  /** Superset label ("A", "B", …) of the nth exercise in the overview, or null. */
+  async exerciseSuperset(index: number): Promise<string | null> {
+    await this.openOverview();
+    const row = this.overviewRows.nth(index);
+    await row.waitFor({ state: 'visible' });
+    const label = await row.getAttribute('data-superset');
+    await this.closeSheet();
+    return label;
   }
 
   /**
-   * Logs every remaining set of the expanded (non-superset) exercise: weight +
-   * reps on the first, reps only on the rest (the weight carries over).
+   * Logs the active set: enters weight and reps in the steppers and taps
+   * "Set klaar". Waits a moment so the write to IndexedDB settles before the
+   * next action.
    */
+  async completeActiveSet(weight: number, reps: number): Promise<void> {
+    await this.weightInput.fill(String(weight));
+    await this.logActiveReps(reps);
+  }
+
+  /**
+   * Logs the active set with the current weight (it stays filled in after
+   * "Set klaar") and the given reps.
+   */
+  async logActiveReps(reps: number): Promise<void> {
+    await this.repsInput.fill(String(reps));
+    await this.page.getByRole('button', { name: 'Set klaar', exact: true }).click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /** Logs every remaining set of the current (non-superset) exercise. */
   async completeExercise(weight: number, reps: number, sets = 3): Promise<void> {
     await this.completeActiveSet(weight, reps);
     for (let i = 1; i < sets; i++) await this.logActiveReps(reps);
   }
 
-  get supersetGroups(): Locator {
-    return this.page.getByTestId('superset-group');
+  /** Taps "Volgende oefening" (only offered once all sets of the exercise are logged). */
+  async nextExercise(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Volgende oefening', exact: true }).click();
   }
 
-  /**
-   * Logs the active set of the expanded card: enters a weight, then taps a rep
-   * count (which completes the set). Waits for the live query to settle so the
-   * weight is registered before completion.
-   */
-  async completeActiveSet(weight: number, reps: number): Promise<void> {
-    const card = this.expandedCard;
-    await card.getByTestId('set-weight').first().fill(String(weight));
-    // The weight round-trips through IndexedDB (useLiveQuery) before it counts.
-    await this.page.waitForTimeout(400);
-    await card.getByTestId('quick-reps').getByRole('button', { name: String(reps), exact: true }).click();
-  }
-
-  /** The weight input of the nth set (0-based) in the expanded card. */
-  setWeightInput(index: number): Locator {
-    return this.expandedCard.getByTestId('set-weight').nth(index);
-  }
-
-  /**
-   * Logs the active set by only tapping a rep count — used for the 2nd set
-   * onward, where the weight is already carried over from the previous set.
-   */
-  async logActiveReps(reps: number): Promise<void> {
-    await this.expandedCard
-      .getByTestId('quick-reps')
-      .getByRole('button', { name: String(reps), exact: true })
-      .click();
-    await this.page.waitForTimeout(300);
-  }
-
-  /** Adds an ad-hoc exercise mid-workout via the picker sheet. */
+  /** Adds an exercise mid-workout via the overview sheet + picker. */
   async addExercise(name: string): Promise<void> {
-    await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();
+    await this.openOverview();
+    await this.page.getByRole('dialog').getByRole('button', { name: /Oefening toevoegen/ }).click();
     await this.page.getByRole('button', { name, exact: true }).click();
   }
 
@@ -111,7 +134,8 @@ export class WorkoutPage {
    * (prefilled with that name), then submits. `description` is optional.
    */
   async createAndAddExercise(name: string, description?: string): Promise<void> {
-    await this.page.getByRole('button', { name: 'Oefening toevoegen' }).click();
+    await this.openOverview();
+    await this.page.getByRole('dialog').getByRole('button', { name: /Oefening toevoegen/ }).click();
     await this.page.getByPlaceholder('Zoek oefening...').fill(name);
     await this.page.getByRole('button', { name: `Nieuwe oefening "${name}" aanmaken` }).click();
     // The form is prefilled with the searched name.
@@ -131,34 +155,29 @@ export class WorkoutPage {
     return this.page.getByText('Training gepauzeerd');
   }
 
-  /** Number of set rows in the expanded card (one weight input per set). */
+  /** Number of set rows of the current exercise. */
   setCount(): Promise<number> {
-    return this.expandedCard.getByTestId('set-weight').count();
+    return this.page.getByTestId('set-row').count();
   }
 
   async addSet(): Promise<void> {
     await this.page.getByRole('button', { name: 'Set toevoegen' }).click();
   }
 
-  /** Removes the last set of the expanded card. */
+  /** "Laatste set weghalen" (a unilateral exercise loses a left+right pair). */
   async removeLastSet(): Promise<void> {
-    await this.expandedCard.getByRole('button', { name: 'Set verwijderen' }).last().click();
+    await this.page.getByRole('button', { name: 'Laatste set weghalen' }).click();
   }
 
-  /** Removes the set at `index` (0-based) of the expanded card. */
-  async removeSet(index: number): Promise<void> {
-    await this.expandedCard.getByRole('button', { name: 'Set verwijderen' }).nth(index).click();
-  }
-
-  /** Skips the running rest timer (the X button inside the timer bar). */
+  /** Skips the running rest timer. */
   async skipRest(): Promise<void> {
-    await this.restTimer.getByRole('button').last().click();
+    await this.restTimer.getByRole('button', { name: 'Sla over' }).click();
   }
 
-  /** Finishes the workout (confirms the dialog) and waits for the summary. */
+  /** Finishes the workout (confirms the sheet) and waits for the summary. */
   async finish(): Promise<void> {
     await this.page.getByRole('button', { name: 'Afronden', exact: true }).first().click();
-    await this.page.getByRole('dialog').getByRole('button', { name: 'Afronden' }).click();
+    await this.page.getByRole('dialog').getByRole('button', { name: 'Afronden', exact: true }).click();
     await this.page.waitForURL(/\/workout\/[^\/]+\/summary$/);
   }
 }

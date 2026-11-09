@@ -51,18 +51,19 @@ test.describe('Supersets — live workout', () => {
     await startWorkout.goto();
     await startWorkout.start('Superset workout');
 
-    // The superset is rendered as one group; A starts expanded.
-    await expect(workout.supersetGroups).toHaveCount(1);
-    await expect(workout.expandedTitle).toContainText(A);
+    // A starts as the current exercise, flagged as a superset member.
+    await expect(workout.supersetBadge).toContainText('A');
+    await expect(workout.currentTitle).toContainText(A);
 
     // Completing A's set hands off to B with no rest (mid-round).
     await workout.completeActiveSet(60, 10);
-    await expect(workout.expandedTitle).toContainText(B);
+    await expect(workout.currentTitle).toContainText(B);
+    await expect(workout.supersetBadge).toContainText('B');
     await expect(workout.restTimer).toHaveCount(0);
 
     // Completing B's set ends the round: rest starts, focus returns to A.
     await workout.completeActiveSet(50, 10);
     await expect(workout.restTimer).toBeVisible();
-    await expect(workout.expandedTitle).toContainText(A);
+    await expect(workout.currentTitle).toContainText(A);
   });
 });

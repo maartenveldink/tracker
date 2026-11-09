@@ -20,8 +20,8 @@ test.describe('Unilateral sets', () => {
     await workout.removeLastSet();
     await expect.poll(() => workout.setCount()).toBe(4);
 
-    // Removing a "left" set in the middle takes its "right" partner with it.
-    await workout.removeSet(2);
+    // Removing again drops the next left+right pair.
+    await workout.removeLastSet();
     await expect.poll(() => workout.setCount()).toBe(2);
   });
 
