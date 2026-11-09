@@ -287,7 +287,7 @@ export function WorkoutEditPage() {
       <header className="sticky top-0 z-40 bg-card border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-touch w-touch">
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -311,7 +311,7 @@ export function WorkoutEditPage() {
 
       {/* Global error */}
       {globalError && (
-        <div className="mx-4 mt-3 rounded-lg bg-destructive/15 text-destructive px-4 py-2 text-small">
+        <div className="mx-4 mt-3 rounded-lg bg-destructive/15 text-danger px-4 py-2 text-small">
           {globalError}
         </div>
       )}
@@ -336,7 +336,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted"
+                    className="h-touch w-touch text-muted"
                     onClick={() => setExpandedNotes(expandedNotes === exIdx ? null : exIdx)}
                     aria-label="Notities"
                   >
@@ -345,7 +345,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted"
+                    className="h-touch w-touch text-muted"
                     onClick={() => handleAddSet(exIdx)}
                     aria-label="Set toevoegen"
                   >
@@ -354,7 +354,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted hover:text-destructive"
+                    className="h-touch w-touch text-muted hover:text-danger"
                     onClick={() => {
                       if (exercises.length === 1) {
                         setShowDeleteExercise(exIdx);
@@ -388,7 +388,7 @@ export function WorkoutEditPage() {
               {/* Sets table */}
               <div className="divide-y divide-border/50">
                 {/* Table header */}
-                <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-1 px-3 py-1.5 text-caption text-muted">
+                <div className="grid grid-cols-[2rem_1fr_1fr_2.75rem] gap-1 px-3 py-1.5 text-caption text-muted">
                   <span className="text-center">#</span>
                   <span className="text-center">kg</span>
                   <span className="text-center">reps</span>
@@ -403,7 +403,7 @@ export function WorkoutEditPage() {
                     <div key={set.setNumber}>
                       <div
                         className={cn(
-                          'grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-1 px-3 py-1.5 items-center',
+                          'grid grid-cols-[2rem_1fr_1fr_2.75rem] gap-1 px-3 py-1.5 items-center',
                           set.completed && 'bg-primary/10',
                           set.skipped && 'bg-secondary/50 opacity-50',
                         )}
@@ -436,7 +436,7 @@ export function WorkoutEditPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted hover:text-destructive"
+                          className="h-touch w-touch text-muted hover:text-danger"
                           onClick={() => handleRemoveSet(exIdx, setIdx)}
                           aria-label="Set verwijderen"
                         >
@@ -447,10 +447,10 @@ export function WorkoutEditPage() {
                       {(weightError || repsError) && (
                         <div className="px-3 pb-1">
                           {weightError && (
-                            <p className="text-caption text-destructive">{weightError}</p>
+                            <p className="text-caption text-danger">{weightError}</p>
                           )}
                           {repsError && (
-                            <p className="text-caption text-destructive">{repsError}</p>
+                            <p className="text-caption text-danger">{repsError}</p>
                           )}
                         </div>
                       )}

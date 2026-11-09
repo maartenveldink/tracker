@@ -87,7 +87,7 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
         {copied ? 'Gekopieerd' : 'Kopieer voor AI'}
       </Button>
       {failed && (
-        <p role="alert" className="mt-2 text-caption text-destructive">
+        <p role="alert" className="mt-2 text-caption text-danger">
           Kopiëren is niet gelukt. Open het voorbeeld hieronder en kopieer de tekst handmatig.
         </p>
       )}

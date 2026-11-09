@@ -158,14 +158,14 @@ export function ExercisesPage() {
                 {last && (
                   <span className="flex flex-col items-end">
                     <span className="text-small font-semibold tabular-nums">{formatLastPerformed(last)}</span>
-                    <span className="text-[11px] text-muted">{relativeDay(last.date)}</span>
+                    <span className="text-nav text-muted">{relativeDay(last.date)}</span>
                   </span>
                 )}
               </button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-touch w-10 shrink-0 text-muted hover:text-text"
+                className="h-touch w-touch shrink-0 text-muted hover:text-text"
                 onClick={() => startMerge(exercise)}
                 aria-label={`Samenvoegen ${exercise.name}`}
               >
@@ -174,7 +174,7 @@ export function ExercisesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-touch w-10 shrink-0 text-muted hover:text-destructive"
+                className="h-touch w-touch shrink-0 text-muted hover:text-danger"
                 onClick={() => handleDeleteClick(exercise.id, exercise.name)}
                 aria-label={`Verwijder ${exercise.name}`}
               >

@@ -78,7 +78,7 @@ export function WorkoutHistory() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-muted hover:text-destructive"
+                className="h-touch w-touch shrink-0 text-muted hover:text-danger"
                 onClick={() => setDeleteTarget({ id: w.id!, date: w.startedAt })}
                 aria-label="Verwijder training"
               >

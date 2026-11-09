@@ -13,7 +13,7 @@ Tracker is a personal fitness PWA for planning and logging strength training ses
 - **Database:** IndexedDB via Dexie.js 4
 - **PWA:** vite-plugin-pwa (service worker, installable)
 - **Routing:** React Router v7
-- **Node.js:** 22 (see `.nvmrc`)
+- **Node.js:** 22 (see `.nvmrc`; `engines` is `>=22.12`, Vitest 5 requires it)
 
 ## Commands
 
@@ -36,7 +36,8 @@ Two layers, deliberately small:
   component or UI tests, no tests for trivial helpers. Test files sit next to the
   lib (`sets.ts` -> `sets.test.ts`).
 - **Playwright e2e** (`e2e/`, Page Object Model + fixtures, mobile Chromium) drives
-  the real app + IndexedDB and covers the UI. See `docs/e2e-testing.md`.
+  the real app + IndexedDB and covers the UI; CI runs it on every PR. See `docs/e2e-testing.md`
+  (live-workout test ids: `current-exercise`, `weight-input`, `reps-input`, `set-row`, `overview-row`, `rest-timer`).
 
 Run `npm test` and `npx tsc --noEmit` while working; `npm run build` and
 `npm run e2e` (plus `npm run e2e:typecheck` for test changes) before pushing. The
@@ -51,7 +52,10 @@ src/
     muscles.ts    # Standardised muscle group definitions (global + detailed)
   hooks/
     useSettings.ts # App settings (singleton row), defaults
-  components/     # App-wide shared UI (Layout bottom nav, PageHeader, ConfirmDialog, ...)
+  styles/
+    tokens.css    # Design tokens (colours, type scale, radii, sizes, motion); Tailwind maps to these in tailwind.config.js
+  components/     # App-wide shared UI (Layout bottom nav + "Meer" sheet, PageHeader, ConfirmDialog, ...)
+    ui/           # Design-system primitives on the tokens: button, card, chip, list-row, stat-tile, tabs, switch, sheet, dialog, input, progress, ...
   pages/          # Top-level (non-feature) pages
     DashboardPage.tsx # Home landing: streak, week stats, recent PRs, quick weigh-in, resume
     SettingsPage.tsx  # Settings (1RM formula, muscle detail, workout density, weight steps, rest timer + defaults, data tools)
@@ -60,9 +64,9 @@ src/
     training/     # Exercises, schemas, live workout, progress & metrics — the whole app
       db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
       hooks/      # useExercises (+ useExerciseLookup), useSchemas, useWorkout, useProgress, useBodyWeight, useCoachSummary
-      lib/        # home (Home derived values: week dots, volume delta, last trained per muscle group, next training, empty state), schemaDays (pure schema/day helpers, re-exported by useSchemas), restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
+      lib/        # liveTraining (live-workout state machine: current exercise, set/step actions, primary button label), celebration ("better than last time" trigger), progressInsights (plateau, new PR, recent training stats), lastPerformed (last session per exercise), workoutBuild, estimateSchemaTime, suggestWorkout, progression, home (Home derived values: week dots, volume delta, last trained per muscle group, next training, empty state), schemaDays (pure schema/day helpers, re-exported by useSchemas), restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
       pages/      # Exercise*, Schema*, SchemaImport, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
-      components/ # MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
+      components/ # Live*: LiveStepper, LiveRestStrip, LiveOverviewSheet, LiveAddExerciseSheet; ExerciseMoment, CelebrationEffects/CelebrationBurst, WeeklySetsCard, PeriodChips, chartTheme (chart colours from tokens), MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
     habits/       # Habit tracker (/habits): pages/ (list, detail, form), components/ (HabitControl, HabitHeatmap, HabitsTodayCard), hooks/useHabits, lib/schedule (pure schedule + streak logic)
   App.tsx         # Routes (Dashboard is "/"), lazy-loads the Progress page
   main.tsx        # Entry point (seeds DB, inits settings, renders app)
@@ -99,6 +103,8 @@ src/
 
 ## Redesign (design handoff)
 
+Status: WP0-WP8 are done (see `docs/plan.redesign.md`; a11y/PWA review and open points in `docs/redesign-wp8-review.md`).
+
 A visual makeover is planned in `docs/plan.redesign.md` (work packages WP0-WP8). Source of
 truth for looks: `docs/design-handoff/` (`DESIGN.md`, `tokens/`, `screens/*.dc.html`, which
 are readable specs and do not run). Rule: the repo wins for behaviour and data, the design
@@ -109,6 +115,8 @@ wins for looks. Conventions for redesigned screens:
 - Never drop an existing feature (calendar, heatmap, goals, deload) without the owner deciding.
 - No data model, sync or API changes unless a work package says so.
 - Respect `prefers-reduced-motion`; fonts are self-hosted (`@fontsource-*`) for offline use.
+- Colours: `danger` (light, for error text/icons, 8:1) vs `destructive` (solid fill of destructive buttons). There is no warning/success token: positive = `accent`, data/delta = `accent-2`.
+- Accessibility (DESIGN §11): tap targets >= 44px (`h-touch`/`w-touch`), icon buttons need an `aria-label`, informational colour always comes with text, the rest end is announced once via an `aria-live` region, content max 560px (`max-w-column`) also for the bottom nav on wide screens, reduced motion via tokens + `index.css`.
 - Pure logic from the design (training state machine, "better than last time" trigger = average estimated 1RM over weighted sets, derived stats) goes in `features/training/lib/` with Vitest tests.
 
 ## Rest-time resolution

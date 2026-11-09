@@ -59,7 +59,7 @@ export function TrainingCalendar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 aria-disabled:opacity-40"
+              className="aria-disabled:opacity-40"
               aria-label="Vorige maand"
               onClick={() => go(shiftMonth(view, -1))}
             >
@@ -73,7 +73,7 @@ export function TrainingCalendar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-caption aria-disabled:opacity-40"
+                className="h-touch px-3 text-caption aria-disabled:opacity-40"
                 aria-disabled={isCurrentMonth}
                 onClick={() => {
                   if (!isCurrentMonth) go(now);
@@ -85,7 +85,7 @@ export function TrainingCalendar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 aria-disabled:opacity-40"
+              className="aria-disabled:opacity-40"
               aria-label="Volgende maand"
               aria-disabled={isFutureBlocked}
               onClick={() => {
@@ -98,7 +98,7 @@ export function TrainingCalendar() {
 
           <div className="grid grid-cols-7 gap-1 text-center">
             {WEEKDAY_LABELS.map(l => (
-              <span key={l} aria-hidden="true" className="text-[10px] text-muted-foreground pb-1">
+              <span key={l} aria-hidden="true" className="text-nav text-muted-foreground pb-1">
                 {l}
               </span>
             ))}
@@ -165,7 +165,7 @@ export function TrainingCalendar() {
                       {w.schemaName ?? 'Vrije training'}
                       {w.schemaDayName ? ` — ${w.schemaDayName}` : ''}
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-nav text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {startTime(w.startedAt)}

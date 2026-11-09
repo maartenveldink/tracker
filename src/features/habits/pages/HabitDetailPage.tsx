@@ -105,7 +105,7 @@ export function HabitDetailPage() {
           </Button>
           <Button
             variant="outline"
-            className="flex-1 text-destructive hover:text-destructive"
+            className="flex-1 text-danger hover:text-danger"
             onClick={() => setConfirmDelete(true)}
           >
             <Trash2 className="h-4 w-4" /> Verwijderen

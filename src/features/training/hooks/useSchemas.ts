@@ -1,10 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, newId, freshSyncMeta, touchSyncMeta, tombstonePatch, type TrainingSchema, type SchemaExercise, type SchemaDay } from '../../../db/index';
 
-export function useSchemas() {
+/** Live schema list; `undefined` while the first query is still loading. */
+export function useSchemasQuery() {
   return useLiveQuery(
     () => db.schemas.orderBy('name').filter(s => !s.deleted).toArray(),
-  ) ?? [];
+  );
+}
+
+export function useSchemas() {
+  return useSchemasQuery() ?? [];
 }
 
 export function useSchema(id: string | undefined) {

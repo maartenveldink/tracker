@@ -132,6 +132,10 @@ describe('recentTrainingStats', () => {
     expect(r.sessionsPerWeek).toBe(0.4); // 3 sessions / 8 weeks = 0.375
     expect(r.avgMinutes).toBe(57); // (60 + 40 + 70) / 3
   });
+  it('divides by the weeks since the first workout for a new user, not by the full window', () => {
+    const r = recentTrainingStats([w(1, 60), w(4, 60), w(9, 60), w(11, 60)], 8, now);
+    expect(r.sessionsPerWeek).toBe(2); // 4 sessions over 2 active weeks
+  });
   it('handles no workouts', () => {
     expect(recentTrainingStats([], 8, now)).toEqual({ sessionsPerWeek: 0, avgMinutes: null });
   });

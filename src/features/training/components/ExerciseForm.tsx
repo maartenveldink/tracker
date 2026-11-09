@@ -494,7 +494,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
           </div>
         </div>
         {goalError && (
-          <p id="goal-error" role="alert" className="text-xs text-destructive">
+          <p id="goal-error" role="alert" className="text-xs text-danger">
             {goalError}
           </p>
         )}

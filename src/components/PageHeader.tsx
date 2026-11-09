@@ -17,7 +17,7 @@ export function PageHeader({ title, backTo, actions }: PageHeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="-ml-1 h-8 w-8 text-muted-foreground"
+          className="-ml-1 h-touch w-touch text-muted-foreground"
           onClick={() => navigate(backTo)}
           aria-label="Terug"
         >

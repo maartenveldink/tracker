@@ -366,7 +366,7 @@ export function WorkoutSummaryPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted hover:text-destructive"
+              className="text-muted hover:text-danger"
               onClick={() => setShowDelete(true)}
               aria-label="Training verwijderen"
             >
@@ -405,7 +405,7 @@ export function WorkoutSummaryPage() {
         {volumeDiff !== null && (
           <p className="text-small text-muted mt-1">
             Volume: {Math.round(volumeComparison.current)} kg{' '}
-            <span className={volumeDiff >= 0 ? 'text-accent-2' : 'text-destructive'}>
+            <span className={volumeDiff >= 0 ? 'text-accent-2' : 'text-danger'}>
               ({volumeDiff >= 0 ? '+' : ''}{volumeDiff} kg t.o.v. vorige sessie)
             </span>
           </p>

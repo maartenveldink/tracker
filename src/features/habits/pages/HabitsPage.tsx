@@ -195,7 +195,7 @@ function HabitRow({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-8 text-muted"
+            className="h-[22px] w-touch text-muted"
             onClick={() => onMove(-1)}
             disabled={!canMoveUp}
             aria-label="Omhoog"
@@ -205,7 +205,7 @@ function HabitRow({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-8 text-muted"
+            className="h-[22px] w-touch text-muted"
             onClick={() => onMove(1)}
             disabled={!canMoveDown}
             aria-label="Omlaag"

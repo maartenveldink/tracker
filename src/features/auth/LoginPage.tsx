@@ -78,7 +78,7 @@ export function LoginPage() {
               />
             </div>
             {error && (
-              <p role="alert" className="text-small text-destructive">{error}</p>
+              <p role="alert" className="text-small text-danger">{error}</p>
             )}
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {mode === 'login' ? 'Inloggen' : 'Account aanmaken'}

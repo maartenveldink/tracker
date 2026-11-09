@@ -58,7 +58,12 @@ export function Layout() {
       <main className="mx-auto w-full max-w-column flex-1 pb-[calc(var(--size-nav)+env(safe-area-inset-bottom))]">
         <Outlet />
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 box-content flex h-nav justify-around border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+      <nav
+        aria-label="Hoofdnavigatie"
+        className="fixed bottom-0 left-0 right-0 z-50 box-content h-nav border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+      >
+        {/* DESIGN §10: on wide screens the bar content stays in the 560px column. */}
+        <div className="mx-auto flex h-full w-full max-w-column justify-around">
         {navItems.map(item => (
           <NavLink
             key={item.to}
@@ -79,6 +84,7 @@ export function Layout() {
           <MoreHorizontal className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           Meer
         </button>
+        </div>
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>

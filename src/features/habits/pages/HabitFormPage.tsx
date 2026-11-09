@@ -31,7 +31,9 @@ export function HabitFormPage() {
   const [target, setTarget] = useState('8');
   const [unit, setUnit] = useState('');
   const [kind, setKind] = useState<ScheduleKind>('daily');
-  const [everyDays, setEveryDays] = useState(2);
+  // Raw text so the field can be cleared while typing; parsed to a number >= 1.
+  const [everyDaysText, setEveryDaysText] = useState('2');
+  const everyDays = Math.max(1, Math.floor(Number(everyDaysText)) || 1);
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [monthdays, setMonthdays] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -45,7 +47,7 @@ export function HabitFormPage() {
     setTarget(existing.target != null ? String(existing.target) : '');
     setUnit(existing.unit ?? '');
     setKind(existing.schedule.kind);
-    if (existing.schedule.kind === 'interval') setEveryDays(existing.schedule.everyDays);
+    if (existing.schedule.kind === 'interval') setEveryDaysText(String(existing.schedule.everyDays));
     if (existing.schedule.kind === 'weekdays') setWeekdays(existing.schedule.days);
     if (existing.schedule.kind === 'monthdays') setMonthdays(existing.schedule.days);
     setLoaded(true);
@@ -188,8 +190,9 @@ export function HabitFormPage() {
               <Input
                 type="number"
                 min={1}
-                value={everyDays}
-                onChange={e => setEveryDays(Math.max(1, Number(e.target.value) || 1))}
+                value={everyDaysText}
+                onChange={e => setEveryDaysText(e.target.value)}
+                onBlur={() => setEveryDaysText(String(everyDays))}
                 aria-label="Aantal dagen"
                 className="w-20"
               />

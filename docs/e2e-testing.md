@@ -45,6 +45,8 @@ e2e/
     schema-import.spec.ts          coach-summary.spec.ts
     import-data.spec.ts            deleted-exercise.spec.ts
     deload.spec.ts                 calendar.spec.ts        exercise-goal.spec.ts
+    habits.spec.ts                 suggest-workout.spec.ts error-boundary.spec.ts
+    a11y.spec.ts  # touch targets + wide-screen column (DESIGN §11)
   tsconfig.json       # type-checking config for the e2e sources
 ```
 
@@ -72,6 +74,7 @@ The suite exercises the main user flows across the app:
 - **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, an added exercise lands after the last finished one.
 - **Data** — export → wipe → import (replace and merge), dates revived, `schemaId` remapped; deleted exercises keep their name in history.
 - **Progress extras** — month calendar, exercise goal progress bar, deload suggestion.
+- **Accessibility** — `a11y.spec.ts`: touch targets >= 44px (tabs, calendar buttons) and the 560px nav column on a wide viewport. No automated contrast check; contrast is measured against the tokens (see `docs/redesign-wp8-review.md`).
 - **Settings** — 1RM formula, weight-step and muscle-detail persistence,
   clear-all, and a data export → wipe → import round-trip.
 
@@ -121,15 +124,18 @@ are semantic and style-independent.
 |-------------------|--------------------------------------|----------|
 | `superset-group`  | superset wrapper (editor & workout)  | asserting a group exists / is dissolved |
 | `schema-exercise` | an exercise row in the schema editor | scoping actions to one row |
-| `exercise-card`   | an exercise card in the live workout | following the app's focus |
-| `quick-reps`      | the quick-rep bar of the active set  | detecting the expanded card, logging reps |
-| `set-weight`      | the weight input of a set            | entering weight |
-| `rest-timer`      | the rest countdown bar               | asserting rest starts (only) after a round |
+| `current-exercise`| the current exercise on the live screen | following the app's focus (name, set list) |
+| `weight-input`    | weight stepper input (live workout)  | entering weight |
+| `reps-input`      | reps stepper input (live workout)    | entering reps |
+| `set-row`         | a logged set in the current exercise | counting/asserting logged sets |
+| `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
+| `rest-timer`      | the rest countdown strip             | asserting rest starts (only) after a round |
+| `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |
 | `celebration`     | the progress-celebration overlay     | asserting the burst plays on a better session |
 
-> "The expanded card" is derived, not tagged: only the expanded exercise renders
-> its set grid, so the expanded card is *the `exercise-card` that contains a
-> `quick-reps` bar*. This tracks the app's focus without extra state.
+> The live workout shows one exercise at a time (`current-exercise`); the
+> overview sheet (`overview-row`) is the list of all of them. The older
+> `exercise-card` / `quick-reps` / `set-weight` hooks no longer exist.
 
 ### 5. Mobile-first viewport
 The app is mobile-first, so the single project uses `devices['Pixel 5']`

@@ -59,7 +59,7 @@ export function RecordsBoard({ onSelect }: { onSelect: (exerciseId: string) => v
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-small font-semibold tabular-nums">~{Math.round(pr.best1RM)} kg</p>
-                  <p className="text-[11px] text-muted-foreground">geschat 1RM</p>
+                  <p className="text-nav text-muted-foreground">geschat 1RM</p>
                 </div>
               </CardContent>
             </button>

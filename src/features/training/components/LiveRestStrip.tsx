@@ -19,7 +19,7 @@ export function LiveRestStrip({ timer, onExtend, onReset, onSkip }: LiveRestStri
   const minutes = Math.floor(timer.remaining / 60);
   const seconds = timer.remaining % 60;
   const textBtn =
-    'flex h-9 items-center justify-center rounded-chip px-3 text-[13px] font-semibold text-text hover:bg-line/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'flex h-touch items-center justify-center rounded-chip px-3 text-small font-semibold text-text hover:bg-line/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
   return (
     <div
@@ -31,7 +31,7 @@ export function LiveRestStrip({ timer, onExtend, onReset, onSkip }: LiveRestStri
         <span
           role="timer"
           aria-label={`Rust nog ${minutes} minuten ${seconds} seconden`}
-          className="font-display text-[20px] font-bold text-accent-2"
+          className="font-display text-title font-bold text-accent-2"
         >
           {minutes}:{String(seconds).padStart(2, '0')}
         </span>

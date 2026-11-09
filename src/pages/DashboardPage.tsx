@@ -4,7 +4,7 @@ import { Flame, Play, Trophy } from 'lucide-react';
 import { useCompletedWorkoutsQuery } from '../features/training/hooks/useProgress';
 import { useActiveWorkout, startWorkout } from '../features/training/hooks/useWorkout';
 import { useExerciseLookup } from '../features/training/hooks/useExercises';
-import { useSchemas, getAllSchemaExercises } from '../features/training/hooks/useSchemas';
+import { useSchemasQuery, getAllSchemaExercises } from '../features/training/hooks/useSchemas';
 import { useBodyWeights, addBodyWeight } from '../features/training/hooks/useBodyWeight';
 import { calculateStreak, statsForWeek, recentPRs } from '../features/training/lib/metrics';
 import {
@@ -54,7 +54,8 @@ export function DashboardPage() {
   const activeState = useActiveWorkout();
   const active = activeState?.workout;
   const { byId, nameOf } = useExerciseLookup();
-  const schemas = useSchemas();
+  const schemasLoaded = useSchemasQuery();
+  const schemas = useMemo(() => schemasLoaded ?? [], [schemasLoaded]);
   const settings = useSettings();
   const bodyWeights = useBodyWeights();
   const [weight, setWeight] = useState('');
@@ -167,7 +168,8 @@ export function DashboardPage() {
           </>
         ) : (
           <>
-            <div className="flex flex-col gap-1.5">
+            {/* Hidden until schemas are loaded, so the fallback ("Voorgestelde training") does not flash. */}
+            <div className={cn('flex flex-col gap-1.5', schemasLoaded === undefined && 'invisible')} aria-busy={schemasLoaded === undefined}>
               <span className="text-caption font-semibold uppercase tracking-[0.08em] text-accent">Aan de beurt</span>
               <h2 className="font-display text-hero font-bold leading-tight tracking-tight">
                 {hero ? hero.title : 'Voorgestelde training'}
@@ -178,14 +180,14 @@ export function DashboardPage() {
                   : 'Op maat, gericht op spiergroepen die je lang niet trainde'}
               </p>
             </div>
-            {hero && (
+            {hero && schemasLoaded !== undefined && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
                 <span>{hero.count} {hero.count === 1 ? 'oefening' : 'oefeningen'}</span>
                 <span>ca. {formatEstimatedTime(hero.seconds).replace('~', '')}</span>
                 {hero.lastDate && <span>Laatst {agoLabel(daysAgo(hero.lastDate, now))}</span>}
               </div>
             )}
-            <Button size="lg" onClick={() => navigate(hero ? '/start' : '/start/suggestion')}>
+            <Button size="lg" disabled={schemasLoaded === undefined} onClick={() => navigate(hero ? '/start' : '/start/suggestion')}>
               <Play className="h-5 w-5 fill-current" />
               Start training
             </Button>

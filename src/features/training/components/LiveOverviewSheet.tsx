@@ -45,7 +45,7 @@ export function LiveOverviewSheet({
   const [musclesOpen, setMusclesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const pill =
-    'h-touch shrink-0 rounded-pill border px-3 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'h-touch shrink-0 rounded-pill border px-3 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -77,7 +77,7 @@ export function LiveOverviewSheet({
               >
                 <span
                   className={cn(
-                    'flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold',
+                    'flex h-7 w-7 items-center justify-center rounded-full text-small font-bold',
                     r.status === 'done'
                       ? 'bg-accent text-on-accent'
                       : r.isCurrent
@@ -124,7 +124,7 @@ export function LiveOverviewSheet({
                   Terugzetten
                 </button>
               )}
-              {r.status === 'done' && <span className="text-[13px] text-muted">Klaar</span>}
+              {r.status === 'done' && <span className="text-small text-muted">Klaar</span>}
             </li>
           ))}
         </ul>
@@ -132,7 +132,7 @@ export function LiveOverviewSheet({
         <button
           type="button"
           onClick={onAdd}
-          className="h-[52px] rounded-row border border-dashed border-accent text-[15px] font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-[52px] rounded-row border border-dashed border-accent text-body font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           + Oefening toevoegen
         </button>

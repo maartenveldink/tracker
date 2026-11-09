@@ -78,7 +78,7 @@ export function SchemasPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-muted hover:text-destructive"
+                className="text-muted hover:text-danger"
                 onClick={() => setDeleteTarget({ id: schema.id, name: schema.name })}
                 aria-label={`Verwijder ${schema.name}`}
               >

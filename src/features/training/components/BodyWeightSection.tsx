@@ -195,7 +195,7 @@ export function BodyWeightSection() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-touch w-touch text-muted hover:text-destructive"
+                    className="h-touch w-touch text-muted hover:text-danger"
                     onClick={() => entry.id && deleteBodyWeight(entry.id)}
                     aria-label="Verwijder weeg-in"
                   >
