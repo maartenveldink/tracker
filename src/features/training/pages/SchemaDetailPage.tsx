@@ -406,14 +406,6 @@ export function SchemaDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button
-              variant={schema.active ? 'default' : 'secondary'}
-              size="sm"
-              onClick={() => setSchemaActive(schema.id, !schema.active)}
-            >
-              <Check className="h-4 w-4" />
-              {schema.active ? 'Actief' : 'Activeren'}
-            </Button>
-            <Button
               variant="secondary"
               size="sm"
               onClick={openShare}
@@ -436,6 +428,15 @@ export function SchemaDetailPage() {
 
       {/* Exercise list — single-day or multi-day with tabs */}
       <div className="px-screen-x py-3">
+        <Button
+          variant={schema.active ? 'default' : 'outline'}
+          size="sm"
+          className="mb-3"
+          onClick={() => setSchemaActive(schema.id, !schema.active)}
+        >
+          <Check className="h-4 w-4" />
+          {schema.active ? 'Actief (tik om te deactiveren)' : 'Activeren'}
+        </Button>
         {multiDay ? (
           <>
             <h2 className="text-small font-medium text-muted mb-2">
