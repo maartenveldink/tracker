@@ -2,14 +2,17 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Combine } from 'lucide-react';
 import { useExercises, deleteExercise, isExerciseInUse, mergeExercises } from '../hooks/useExercises';
-import { getMuscleGroups } from '../db/muscles';
+import { getMuscleGroups, getMuscleGroupById } from '../db/muscles';
+import { useCompletedWorkouts } from '../hooks/useProgress';
+import { formatLastPerformed, lastPerformedByExercise } from '../lib/lastPerformed';
+import { daysAgo } from '../lib/home';
 import { useSettings } from '../../../hooks/useSettings';
-import { MuscleChip } from '../components/MuscleChip';
 import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { listRowClass } from '@/components/ui/list-row';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -19,6 +22,11 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import type { Exercise } from '../../../db/index';
+
+function relativeDay(d: Date): string {
+  const n = daysAgo(d);
+  return n <= 0 ? 'Vandaag' : n === 1 ? 'Gisteren' : `${n} dagen geleden`;
+}
 
 export function ExercisesPage() {
   const exercises = useExercises();
@@ -35,6 +43,8 @@ export function ExercisesPage() {
   const [merging, setMerging] = useState(false);
 
   const muscleGroups = getMuscleGroups(settings.muscleDetailLevel);
+  const workouts = useCompletedWorkouts();
+  const lastById = useMemo(() => lastPerformedByExercise(workouts), [workouts]);
 
   const filtered = useMemo(() => {
     return exercises.filter(e => {
@@ -92,7 +102,7 @@ export function ExercisesPage() {
       <PageHeader
         title="Oefeningen"
         actions={
-          <Button asChild size="sm">
+          <Button asChild size="sm" variant="outline" className="rounded-pill">
             <Link to="/exercises/new">
               <Plus className="h-4 w-4" />
               Nieuw
@@ -102,58 +112,60 @@ export function ExercisesPage() {
       />
 
       {/* Search and filter (E1-05) */}
-      <div className="px-4 py-3 space-y-2">
+      <div className="space-y-3 px-5 py-3">
         <Input
           type="text"
           placeholder="Zoek oefening..."
+          aria-label="Zoek een oefening"
           value={search}
           onChange={e => setSearch(e.target.value)}
+          className="h-12 rounded-pill px-4 text-base"
         />
-        <select
-          value={filterMuscle}
-          onChange={e => setFilterMuscle(e.target.value)}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <option value="">Alle spiergroepen</option>
+        <div role="group" aria-label="Filter op spiergroep" className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-0.5">
+          <Chip selected={filterMuscle === ''} onClick={() => setFilterMuscle('')}>
+            Alle
+          </Chip>
           {muscleGroups.map(m => (
-            <option key={m.id} value={m.id}>
+            <Chip key={m.id} selected={filterMuscle === m.id} onClick={() => setFilterMuscle(m.id)}>
               {m.name}
-            </option>
+            </Chip>
           ))}
-        </select>
+        </div>
       </div>
 
       {/* Exercise list (E1-01) */}
-      <div className="px-4 space-y-2 pb-4">
+      <div className="space-y-1.5 px-5 pb-4">
         {filtered.length === 0 && (
-          <p className="text-muted-foreground text-sm text-center py-8">Geen oefeningen gevonden.</p>
+          <p className="py-8 text-center text-small text-muted">Geen oefeningen gevonden.</p>
         )}
-        {filtered.map(exercise => (
-          <Card key={exercise.id} className="shadow-none">
-            <CardContent className="p-3 flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <button
-                  onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
-                  className="text-left w-full"
-                >
-                  <h3 className="font-medium text-sm truncate">{exercise.name}</h3>
-                  {exercise.description && (
-                    <p className="text-muted-foreground text-xs mt-0.5 line-clamp-1">{exercise.description}</p>
-                  )}
-                </button>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {exercise.primaryMuscles.map(m => (
-                    <MuscleChip key={m} muscleId={m} type="primary" />
-                  ))}
-                  {exercise.secondaryMuscles.map(m => (
-                    <MuscleChip key={m} muscleId={m} type="secondary" />
-                  ))}
-                </div>
-              </div>
+        {filtered.map(exercise => {
+          const last = lastById.get(exercise.id);
+          const muscles = exercise.primaryMuscles
+            .map(m => getMuscleGroupById(m)?.name)
+            .filter((n): n is string => Boolean(n))
+            .join(', ');
+          return (
+            <div key={exercise.id} className={cn(listRowClass, 'gap-1 py-0 pr-1')}>
+              <button
+                type="button"
+                onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
+                className="grid min-h-14 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <h3 className="truncate text-body-lg font-semibold leading-snug">{exercise.name}</h3>
+                  {muscles && <span className="truncate text-caption text-muted">{muscles}</span>}
+                </span>
+                {last && (
+                  <span className="flex flex-col items-end">
+                    <span className="text-small font-semibold tabular-nums">{formatLastPerformed(last)}</span>
+                    <span className="text-[11px] text-muted">{relativeDay(last.date)}</span>
+                  </span>
+                )}
+              </button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                className="h-touch w-10 shrink-0 text-muted hover:text-text"
                 onClick={() => startMerge(exercise)}
                 aria-label={`Samenvoegen ${exercise.name}`}
               >
@@ -162,15 +174,15 @@ export function ExercisesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                className="h-touch w-10 shrink-0 text-muted hover:text-destructive"
                 onClick={() => handleDeleteClick(exercise.id, exercise.name)}
                 aria-label={`Verwijder ${exercise.name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       {/* Delete confirmation (E1-04) */}
