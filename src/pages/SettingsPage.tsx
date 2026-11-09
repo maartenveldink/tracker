@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, CheckCircle2, Calculator, Eye, Download, Upload, Timer, Rows3, Dumbbell, Hourglass } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -46,6 +46,122 @@ const WEIGHT_STEP_OPTIONS = WEIGHT_STEP_PRESETS.map((step) => ({
 function findPresetByKey(key: string): WeightStepSetting | undefined {
   return WEIGHT_STEP_OPTIONS.find((o) => o.key === key)?.step;
 }
+
+/** Settings group: uppercase label above one card whose rows are separated by hairlines (DESIGN Instellingen). */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-1.5">
+      <h2 className="px-0.5 text-caption font-semibold uppercase tracking-[0.08em] text-muted">{title}</h2>
+      <Card className="divide-y divide-line px-4">{children}</Card>
+    </section>
+  );
+}
+
+/** One row: label (+ optional hint) on the left, control on the right. */
+function Row({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex min-h-14 items-center justify-between gap-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="text-body">{label}</div>
+        {hint && <div className="text-caption text-muted">{hint}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Row whose label is bound to a control through `htmlFor`. */
+function FieldRow({ id, label, hint, children }: { id: string; label: ReactNode; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <Row
+      label={
+        <Label htmlFor={id} className="cursor-pointer text-body font-normal">
+          {label}
+        </Label>
+      }
+      hint={hint}
+    >
+      {children}
+    </Row>
+  );
+}
+
+/** Row group containing a radio group (a block of options under one title). */
+function OptionBlock({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="py-3 space-y-3">
+      <div>
+        <p className="text-body">{title}</p>
+        {hint && <p className="text-caption text-muted">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function RadioOption({ value, id, label, hint }: { value: string; id: string; label: string; hint: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <RadioGroupItem value={value} id={id} />
+      <Label htmlFor={id} className="flex-1 cursor-pointer">
+        <span className="font-medium">{label}</span>
+        <span className="block text-caption font-normal text-muted">{hint}</span>
+      </Label>
+    </div>
+  );
+}
+
+function formatSeconds(total: number): string {
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** − / value / + control for a duration in seconds, in 15s steps. */
+function DurationStepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (seconds: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2" role="group" aria-label={label}>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-11 w-11 shrink-0"
+        aria-label={`${label} verlagen`}
+        disabled={value <= min}
+        onClick={() => onChange(Math.max(min, value - 15))}
+      >
+        -
+      </Button>
+      <span className="w-12 text-center font-medium tabular-nums">{formatSeconds(value)}</span>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-11 w-11 shrink-0"
+        aria-label={`${label} verhogen`}
+        disabled={value >= max}
+        onClick={() => onChange(Math.min(max, value + 15))}
+      >
+        +
+      </Button>
+    </div>
+  );
+}
+
+const REST_DEFAULT_ROWS = [
+  { key: 'bilateralCompound', label: 'Bilateraal · compound' },
+  { key: 'unilateralCompound', label: 'Unilateraal · compound' },
+  { key: 'bilateralIsolation', label: 'Bilateraal · isolatie' },
+  { key: 'unilateralIsolation', label: 'Unilateraal · isolatie' },
+] as const;
 
 export function SettingsPage() {
   const settings = useSettings();
@@ -135,12 +251,13 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-      <h1 className="text-xl font-semibold">Instellingen</h1>
+    <div className="px-screen-x pt-6 pb-4 space-y-gap">
+      <h1 className="px-0.5 font-display text-screen font-bold tracking-tight">Instellingen</h1>
 
       {feedback && (
         <div
-          className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${
+          role="status"
+          className={`flex items-center gap-2 rounded-row px-4 py-3 text-small font-medium ${
             feedback.type === 'success'
               ? 'bg-primary/15 text-primary'
               : 'bg-destructive/15 text-destructive'
@@ -151,159 +268,63 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Account + sync status */}
-      <AccountCard />
-
-      {/* E8-01: 1RM formula */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calculator className="h-4 w-4 text-primary" />
-            1RM-formule
-          </CardTitle>
-          <CardDescription>
-            Kies de formule waarmee je geschatte 1 rep max wordt berekend.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Group "Training". New training toggles (e.g. Viering, Trillen) are added as <FieldRow> + <Switch> here. */}
+      <Section title="Training">
+        <OptionBlock title="1RM-formule" hint="Waarmee je geschatte 1 rep max wordt berekend.">
           <RadioGroup
             value={settings.oneRMFormula}
             onValueChange={(value: 'epley' | 'brzycki' | 'lombardi') =>
               void updateSettings({ oneRMFormula: value })
             }
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="epley" id="formula-epley" />
-              <Label htmlFor="formula-epley" className="flex-1 cursor-pointer">
-                <span className="font-medium">Epley</span>
-                <span className="block text-xs text-muted-foreground">
-                  gewicht x (1 + reps / 30) — standaard
-                </span>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="brzycki" id="formula-brzycki" />
-              <Label htmlFor="formula-brzycki" className="flex-1 cursor-pointer">
-                <span className="font-medium">Brzycki</span>
-                <span className="block text-xs text-muted-foreground">
-                  gewicht x 36 / (37 - reps)
-                </span>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="lombardi" id="formula-lombardi" />
-              <Label htmlFor="formula-lombardi" className="flex-1 cursor-pointer">
-                <span className="font-medium">Lombardi</span>
-                <span className="block text-xs text-muted-foreground">
-                  gewicht x reps^0.1
-                </span>
-              </Label>
-            </div>
+            <RadioOption value="epley" id="formula-epley" label="Epley" hint="gewicht x (1 + reps / 30) — standaard" />
+            <RadioOption value="brzycki" id="formula-brzycki" label="Brzycki" hint="gewicht x 36 / (37 - reps)" />
+            <RadioOption value="lombardi" id="formula-lombardi" label="Lombardi" hint="gewicht x reps^0.1" />
           </RadioGroup>
-        </CardContent>
-      </Card>
+        </OptionBlock>
 
-      {/* E8-02: Muscle detail level */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Eye className="h-4 w-4 text-primary" />
-            Spiergroepniveau
-          </CardTitle>
-          <CardDescription>
-            Kies of je globale spiergroepen (10) of gedetailleerde spieren (20+) wilt zien.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="muscle-detail" className="cursor-pointer">
-              {settings.muscleDetailLevel === 'detailed'
-                ? 'Gedetailleerd (20+ spieren)'
-                : 'Globaal (10 spiergroepen)'}
-            </Label>
-            <Switch
-              id="muscle-detail"
-              checked={settings.muscleDetailLevel === 'detailed'}
-              onCheckedChange={(checked) =>
-                void updateSettings({ muscleDetailLevel: checked ? 'detailed' : 'global' })
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <FieldRow
+          id="muscle-detail"
+          label="Spiergroepniveau"
+          hint={
+            settings.muscleDetailLevel === 'detailed'
+              ? 'Gedetailleerd (20+ spieren)'
+              : 'Globaal (10 spiergroepen)'
+          }
+        >
+          <Switch
+            id="muscle-detail"
+            checked={settings.muscleDetailLevel === 'detailed'}
+            onCheckedChange={(checked) =>
+              void updateSettings({ muscleDetailLevel: checked ? 'detailed' : 'global' })
+            }
+          />
+        </FieldRow>
 
-      {/* Workout density — size/spacing of the live-workout set controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Rows3 className="h-4 w-4 text-primary" />
-            Weergave training
-          </CardTitle>
-          <CardDescription>
-            Kies hoe groot de knoppen en velden tijdens een training zijn.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <OptionBlock title="Weergave training" hint="Hoe groot de knoppen en velden tijdens een training zijn.">
           <RadioGroup
             value={settings.workoutDensity}
             onValueChange={(value: 'compact' | 'comfortable' | 'spacious') =>
               void updateSettings({ workoutDensity: value })
             }
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="compact" id="density-compact" />
-              <Label htmlFor="density-compact" className="flex-1 cursor-pointer">
-                <span className="font-medium">Compact</span>
-                <span className="block text-xs text-muted-foreground">
-                  Kleine knoppen, meer sets in beeld
-                </span>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="comfortable" id="density-comfortable" />
-              <Label htmlFor="density-comfortable" className="flex-1 cursor-pointer">
-                <span className="font-medium">Comfortabel</span>
-                <span className="block text-xs text-muted-foreground">
-                  Ruimere knoppen en velden — standaard
-                </span>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="spacious" id="density-spacious" />
-              <Label htmlFor="density-spacious" className="flex-1 cursor-pointer">
-                <span className="font-medium">Ruim</span>
-                <span className="block text-xs text-muted-foreground">
-                  Grote knoppen, makkelijk te raken
-                </span>
-              </Label>
-            </div>
+            <RadioOption value="compact" id="density-compact" label="Compact" hint="Kleine knoppen, meer sets in beeld" />
+            <RadioOption value="comfortable" id="density-comfortable" label="Comfortabel" hint="Ruimere knoppen en velden — standaard" />
+            <RadioOption value="spacious" id="density-spacious" label="Ruim" hint="Grote knoppen, makkelijk te raken" />
           </RadioGroup>
-        </CardContent>
-      </Card>
+        </OptionBlock>
 
-      {/* Weight increments — step size of the +/- weight buttons per equipment */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Dumbbell className="h-4 w-4 text-primary" />
-            Gewichtsstappen
-          </CardTitle>
-          <CardDescription>
-            Kies per materiaal hoeveel het gewicht op- en afgaat met de +/- knoppen.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {WEIGHT_STEP_EQUIPMENT.map(({ value, label }) => {
-            const current = settings.weightSteps[value];
-            return (
+        <OptionBlock title="Gewichtsstappen" hint="Hoeveel het gewicht per materiaal op- en afgaat met de +/- knoppen.">
+          <div className="space-y-2">
+            {WEIGHT_STEP_EQUIPMENT.map(({ value, label }) => (
               <div key={value} className="flex items-center justify-between gap-3">
                 <Label htmlFor={`weightstep-${value}`} className="font-medium">
                   {label}
                 </Label>
                 <select
                   id={`weightstep-${value}`}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  value={weightStepKey(current)}
+                  className="h-11 rounded-row border border-line-strong bg-bg px-3 text-small"
+                  value={weightStepKey(settings.weightSteps[value])}
                   onChange={(e) => {
                     const preset = findPresetByKey(e.target.value);
                     if (!preset) return;
@@ -319,217 +340,83 @@ export function SettingsPage() {
                   ))}
                 </select>
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {/* RT-05: Rest timer duration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Timer className="h-4 w-4 text-primary" />
-            Rusttimer
-          </CardTitle>
-          <CardDescription>
-            Standaard rustduur na een voltooide set (15s - 10 min, stappen van 15s).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              disabled={settings.restTimerSeconds <= 15}
-              onClick={() =>
-                void updateSettings({
-                  restTimerSeconds: Math.max(15, settings.restTimerSeconds - 15),
-                })
-              }
-            >
-              -
-            </Button>
-            <div className="flex-1 text-center font-medium">
-              {Math.floor(settings.restTimerSeconds / 60)}:{String(settings.restTimerSeconds % 60).padStart(2, '0')}
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              disabled={settings.restTimerSeconds >= 600}
-              onClick={() =>
-                void updateSettings({
-                  restTimerSeconds: Math.min(600, settings.restTimerSeconds + 15),
-                })
-              }
-            >
-              +
-            </Button>
+            ))}
           </div>
+        </OptionBlock>
 
-          {/* Rest defaults per laterality × movement type */}
-          <div className="mt-4 space-y-3 border-t pt-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Standaard rust per type oefening</p>
-              <p className="text-xs text-muted-foreground">
-                Voorgestelde rust op basis van belasting en type, wanneer een oefening geen eigen rusttijd heeft (15s - 10 min, stappen van 15s).
-              </p>
-            </div>
-            {([
-              { key: 'bilateralCompound', label: 'Bilateraal · compound' },
-              { key: 'unilateralCompound', label: 'Unilateraal · compound' },
-              { key: 'bilateralIsolation', label: 'Bilateraal · isolatie' },
-              { key: 'unilateralIsolation', label: 'Unilateraal · isolatie' },
-            ] as const).map(({ key, label }) => {
-              const value = settings.restDefaults[key];
-              return (
-                <div key={key} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm">{label}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    disabled={value <= 15}
-                    onClick={() =>
-                      void updateSettings({
-                        restDefaults: { ...settings.restDefaults, [key]: Math.max(15, value - 15) },
-                      })
-                    }
-                  >
-                    -
-                  </Button>
-                  <span className="w-12 text-center font-medium tabular-nums">
-                    {Math.floor(value / 60)}:{String(value % 60).padStart(2, '0')}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    disabled={value >= 600}
-                    onClick={() =>
-                      void updateSettings({
-                        restDefaults: { ...settings.restDefaults, [key]: Math.min(600, value + 15) },
-                      })
-                    }
-                  >
-                    +
-                  </Button>
-                </div>
-              );
-            })}
+        <Row label="Rusttimer" hint="Standaard rustduur na een voltooide set (15s - 10 min)">
+          <DurationStepper
+            label="Rusttimer"
+            value={settings.restTimerSeconds}
+            min={15}
+            max={600}
+            onChange={(restTimerSeconds) => void updateSettings({ restTimerSeconds })}
+          />
+        </Row>
+
+        <OptionBlock
+          title="Standaard rust per type oefening"
+          hint="Voorgestelde rust op basis van belasting en type, wanneer een oefening geen eigen rusttijd heeft (15s - 10 min)."
+        >
+          <div className="space-y-2">
+            {REST_DEFAULT_ROWS.map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between gap-2">
+                <span className="text-small">{label}</span>
+                <DurationStepper
+                  label={label}
+                  value={settings.restDefaults[key]}
+                  min={15}
+                  max={600}
+                  onChange={(seconds) =>
+                    void updateSettings({ restDefaults: { ...settings.restDefaults, [key]: seconds } })
+                  }
+                />
+              </div>
+            ))}
           </div>
+        </OptionBlock>
 
-          {/* E3-12: rest timer end alerts */}
-          <div className="mt-4 space-y-3 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="rest-vibrate" className="cursor-pointer">
-                Trillen bij einde rust
-              </Label>
-              <Switch
-                id="rest-vibrate"
-                checked={settings.restTimerVibrate}
-                onCheckedChange={(checked) => void updateSettings({ restTimerVibrate: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="rest-sound" className="cursor-pointer">
-                Geluid bij einde rust
-              </Label>
-              <Switch
-                id="rest-sound"
-                checked={settings.restTimerSound}
-                onCheckedChange={(checked) => void updateSettings({ restTimerSound: checked })}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <FieldRow id="rest-vibrate" label="Trillen bij einde rust" hint="Alleen op apparaten die dit ondersteunen">
+          <Switch
+            id="rest-vibrate"
+            checked={settings.restTimerVibrate}
+            onCheckedChange={(checked) => void updateSettings({ restTimerVibrate: checked })}
+          />
+        </FieldRow>
+        <FieldRow id="rest-sound" label="Geluid bij einde rust">
+          <Switch
+            id="rest-sound"
+            checked={settings.restTimerSound}
+            onCheckedChange={(checked) => void updateSettings({ restTimerSound: checked })}
+          />
+        </FieldRow>
 
-      {/* Transition time between exercises — used in the schema time estimate */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Hourglass className="h-4 w-4 text-primary" />
-            Wisseltijd tussen oefeningen
-          </CardTitle>
-          <CardDescription>
-            Tijd voor opruimen en het klaarzetten van de volgende oefening. Telt mee in de
-            geschatte duur van een schema (0 - 5 min, stappen van 15s).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              disabled={settings.exerciseTransitionSeconds <= 0}
-              onClick={() =>
-                void updateSettings({
-                  exerciseTransitionSeconds: Math.max(0, settings.exerciseTransitionSeconds - 15),
-                })
-              }
-            >
-              -
-            </Button>
-            <div className="flex-1 text-center font-medium">
-              {Math.floor(settings.exerciseTransitionSeconds / 60)}:{String(settings.exerciseTransitionSeconds % 60).padStart(2, '0')}
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              disabled={settings.exerciseTransitionSeconds >= 300}
-              onClick={() =>
-                void updateSettings({
-                  exerciseTransitionSeconds: Math.min(300, settings.exerciseTransitionSeconds + 15),
-                })
-              }
-            >
-              +
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <Row
+          label="Wisseltijd tussen oefeningen"
+          hint="Opruimen en klaarzetten; telt mee in de geschatte duur van een schema (0 - 5 min)"
+        >
+          <DurationStepper
+            label="Wisseltijd"
+            value={settings.exerciseTransitionSeconds}
+            min={0}
+            max={300}
+            onChange={(exerciseTransitionSeconds) => void updateSettings({ exerciseTransitionSeconds })}
+          />
+        </Row>
+      </Section>
 
-
-      {/* E8-07: Export */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Download className="h-4 w-4 text-primary" />
-            Data exporteren
-          </CardTitle>
-          <CardDescription>
-            Download al je data als JSON-bestand.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!hasData && (
-            <p className="text-sm text-muted-foreground mb-3">
-              Er is geen data om te exporteren.
-            </p>
-          )}
-          <Button onClick={() => void handleExport()} disabled={loading || !hasData} className="w-full">
+      {/* Group "Gegevens" */}
+      <Section title="Gegevens">
+        <Row
+          label="Data exporteren"
+          hint={hasData ? 'Download al je data als JSON-bestand' : 'Er is geen data om te exporteren.'}
+        >
+          <Button variant="secondary" onClick={() => void handleExport()} disabled={loading || !hasData}>
             Exporteer data
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* E8-08: Import */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Upload className="h-4 w-4 text-primary" />
-            Data importeren
-          </CardTitle>
-          <CardDescription>
-            Importeer een eerder geëxporteerd JSON-bestand.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => fileInputRef.current?.click()} disabled={loading} className="w-full">
+        </Row>
+        <Row label="Data importeren" hint="Importeer een eerder geëxporteerd JSON-bestand">
+          <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={loading}>
             Importeer data
           </Button>
           <input
@@ -539,32 +426,19 @@ export function SettingsPage() {
             className="hidden"
             onChange={handleFileSelect}
           />
-        </CardContent>
-      </Card>
-
-      {/* Danger zone */}
-      <Card className="border-destructive/40">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-destructive">
-            <Trash2 className="h-4 w-4" />
-            Gevarenzone
-          </CardTitle>
-          <CardDescription>
-            Verwijdert alle trainingen, schema's, voeding en zelfgemaakte oefeningen. De standaard
-            oefeningen worden daarna opnieuw ingeladen. Instellingen worden gereset.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="destructive"
-            onClick={() => setConfirmClear(true)}
-            disabled={loading}
-            className="w-full"
-          >
+        </Row>
+        <Row
+          label={<span className="text-destructive">Alle data wissen</span>}
+          hint="Verwijdert alle trainingen, schema's, habits en zelfgemaakte oefeningen. Standaard oefeningen worden opnieuw ingeladen; instellingen worden gereset."
+        >
+          <Button variant="destructive" onClick={() => setConfirmClear(true)} disabled={loading}>
             Alles wissen
           </Button>
-        </CardContent>
-      </Card>
+        </Row>
+      </Section>
+
+      {/* Account + sync status */}
+      <AccountCard />
 
       {/* Confirm: clear */}
       <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
@@ -597,7 +471,7 @@ export function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
           {importPreview && (
-            <ul className="text-sm space-y-1 px-1">
+            <ul className="text-small space-y-1 px-1">
               {importPreview.workouts.length > 0 && <li>{importPreview.workouts.length} trainingen</li>}
               {importPreview.schemas.length > 0 && <li>{importPreview.schemas.length} schema&apos;s</li>}
               {importPreview.exercises.length > 0 && <li>{importPreview.exercises.length} oefeningen</li>}
@@ -605,7 +479,7 @@ export function SettingsPage() {
               {(importPreview.habits?.length ?? 0) > 0 && <li>{importPreview.habits!.length} habits</li>}
             </ul>
           )}
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted">
             Kies een importmodus:
           </p>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
@@ -639,7 +513,7 @@ export function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
           {importResult && (
-            <ul className="text-sm space-y-1 px-1">
+            <ul className="text-small space-y-1 px-1">
               {importResult.workouts > 0 && <li>{importResult.workouts} trainingen</li>}
               {importResult.schemas > 0 && <li>{importResult.schemas} schema&apos;s</li>}
               {importResult.exercises > 0 && <li>{importResult.exercises} oefeningen</li>}
