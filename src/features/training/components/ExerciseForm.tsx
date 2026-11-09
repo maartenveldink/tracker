@@ -101,7 +101,7 @@ function CycleField({
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-center"
+        className="h-12 w-full justify-center rounded-row"
         onClick={() => onChange(options[(Math.max(0, idx) + 1) % options.length]!.value)}
       >
         {current.label}
@@ -282,7 +282,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={5}
-          className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+          className="flex w-full resize-none rounded-row border border-line-strong bg-bg px-3.5 py-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           placeholder="Optionele beschrijving..."
         />
       </div>
@@ -341,7 +341,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
         <Label htmlFor="weight-step">Gewichtsstap</Label>
         <select
           id="weight-step"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-12 w-full rounded-row border border-line-strong bg-bg px-3.5 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           value={weightStep ? weightStepKey(weightStep) : ''}
           onChange={e => {
             const found = WEIGHT_STEP_OPTIONS.find(o => o.key === e.target.value);
