@@ -47,11 +47,11 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
   }
 
   return (
-    <section className="px-4 py-3" aria-labelledby="coach-copy-heading" data-testid="coach-copy">
-      <h2 id="coach-copy-heading" className="text-sm font-medium text-muted-foreground">
+    <section className="px-screen-x py-3" aria-labelledby="coach-copy-heading" data-testid="coach-copy">
+      <h2 id="coach-copy-heading" className="text-small font-medium text-muted">
         Analyse door AI
       </h2>
-      <p className="text-xs text-muted-foreground/80 mb-3">
+      <p className="text-caption text-muted/80 mb-3">
         Kopieer een samenvatting van je training (geen ruwe sets of datums; je notities gaan wel letterlijk mee) en plak die in je AI-assistent (ChatGPT, Claude, Gemini, ...).
         Plak het voorgestelde schema daarna terug via{' '}
         <Link to="/schemas/import" className="underline">Importeer schema</Link>.
@@ -79,7 +79,7 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
         maxLength={500}
         rows={2}
         placeholder="Doel of vraag, bijv. “meer rug” of “knie-vriendelijk” (optioneel)"
-        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="w-full rounded-row border border-input bg-transparent px-3 py-2 text-small  placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
 
       <Button type="button" className="mt-3 w-full" onClick={copy} disabled={!loaded}>
@@ -87,13 +87,13 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
         {copied ? 'Gekopieerd' : 'Kopieer voor AI'}
       </Button>
       {failed && (
-        <p role="alert" className="mt-2 text-xs text-amber-400">
+        <p role="alert" className="mt-2 text-caption text-destructive">
           Kopiëren is niet gelukt. Open het voorbeeld hieronder en kopieer de tekst handmatig.
         </p>
       )}
 
       <details className="mt-3 group" data-testid="coach-preview">
-        <summary className="cursor-pointer text-xs text-muted-foreground">
+        <summary className="cursor-pointer text-caption text-muted">
           Voorbeeld van wat gekopieerd wordt ({loaded ? `≈ ${Math.round(prompt.length / 4).toLocaleString('nl-NL')} tokens` : 'laden…'})
         </summary>
         <textarea
@@ -102,7 +102,7 @@ export function CoachCopySection({ schema }: { schema: TrainingSchema }) {
           value={prompt}
           onFocus={e => e.currentTarget.select()}
           spellCheck={false}
-          className="mt-2 w-full h-64 rounded-md border border-input bg-transparent px-3 py-2 font-mono text-[11px] shadow-sm"
+          className="mt-2 w-full h-64 rounded-row border border-input bg-transparent px-3 py-2 font-mono text-caption "
         />
       </details>
     </section>

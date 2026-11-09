@@ -120,9 +120,9 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
     <>
       {/* Muscle group overview (E2-04) */}
       {analysis.stats.length > 0 && (
-        <div className="px-4 py-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Spiergroepverdeling</h2>
-          <p className="text-xs text-muted-foreground/80 mb-2">
+        <div className="px-screen-x py-3">
+          <h2 className="text-small font-medium text-muted">Spiergroepverdeling</h2>
+          <p className="text-caption text-muted/80 mb-2">
             Aantal sets per spiergroep (primair + secundair) — tik voor de oefeningen.
           </p>
           <div className="space-y-2">
@@ -136,11 +136,11 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
                   type="button"
                   data-testid="muscle-bar"
                   onClick={() => setSelected(stat)}
-                  className="w-full text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-line/40 transition-colors"
+                  className="w-full text-left rounded-row -mx-1 px-1 py-0.5 hover:bg-line/40 transition-colors"
                 >
-                  <div className="flex items-center justify-between text-xs mb-0.5">
+                  <div className="flex items-center justify-between text-caption mb-0.5">
                     <span className="text-card-foreground">{stat.name}</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted">
                       {stat.primarySets} primair{stat.secondarySets > 0 ? ` + ${stat.secondarySets} sec.` : ''}
                     </span>
                   </div>
@@ -175,12 +175,12 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
           <div className="space-y-3">
             {selectedExercises.primary.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Primair</p>
+                <p className="text-caption font-medium text-muted mb-1">Primair</p>
                 <ul className="space-y-1">
                   {selectedExercises.primary.map((e, i) => (
-                    <li key={`p-${i}`} className="flex justify-between text-sm">
+                    <li key={`p-${i}`} className="flex justify-between text-small">
                       <span>{e.name}</span>
-                      <span className="text-muted-foreground">{e.sets} sets</span>
+                      <span className="text-muted">{e.sets} sets</span>
                     </li>
                   ))}
                 </ul>
@@ -188,12 +188,12 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
             )}
             {selectedExercises.secondary.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Secundair</p>
+                <p className="text-caption font-medium text-muted mb-1">Secundair</p>
                 <ul className="space-y-1">
                   {selectedExercises.secondary.map((e, i) => (
-                    <li key={`s-${i}`} className="flex justify-between text-sm">
+                    <li key={`s-${i}`} className="flex justify-between text-small">
                       <span>{e.name}</span>
-                      <span className="text-muted-foreground">{e.sets} sets</span>
+                      <span className="text-muted">{e.sets} sets</span>
                     </li>
                   ))}
                 </ul>
@@ -207,8 +207,8 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
       {analysis.missing.length > 0 && (
         <>
           <Separator />
-          <div className="px-4 py-3">
-            <h2 className="text-sm font-medium text-amber-400 mb-2 flex items-center gap-1.5">
+          <div className="px-screen-x py-3">
+            <h2 className="text-small font-medium text-accent-2 mb-2 flex items-center gap-1.5">
               <AlertTriangle className="h-4 w-4" />
               Ontbrekende spiergroepen
             </h2>
@@ -217,7 +217,7 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
                 <Badge
                   key={m.id}
                   variant="outline"
-                  className="rounded-full bg-amber-900/40 text-amber-300 border-amber-800"
+                  className="rounded-pill bg-accent-2/15 text-accent-2 border-accent-2/40"
                 >
                   {m.name}
                 </Badge>
@@ -231,19 +231,19 @@ function MuscleStatsSection({ analysis, allExercises, exercises, exerciseMap }: 
       {suggestions.length > 0 && (
         <>
           <Separator />
-          <div className="px-4 py-3 pb-6">
-            <h2 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+          <div className="px-screen-x py-3 pb-6">
+            <h2 className="text-small font-medium text-muted mb-2 flex items-center gap-1.5">
               <Lightbulb className="h-4 w-4" />
               Suggesties
             </h2>
-            <p className="text-xs text-muted-foreground mb-2">
+            <p className="text-caption text-muted mb-2">
               Deze oefeningen dekken ontbrekende spiergroepen:
             </p>
             <div className="space-y-1">
               {suggestions.map(ex => (
                 <Card key={ex.id} className="shadow-none">
                   <CardContent className="p-2 flex items-center gap-2">
-                    <span className="text-sm flex-1">{ex.name}</span>
+                    <span className="text-small flex-1">{ex.name}</span>
                     <div className="flex gap-1">
                       {ex.primaryMuscles.map(m => (
                         <MuscleChip key={m} muscleId={m} type="primary" />
@@ -342,7 +342,7 @@ export function SchemaDetailPage() {
 
   function renderExerciseList(exercises: SchemaExercise[]) {
     if (exercises.length === 0) {
-      return <p className="text-muted-foreground text-sm py-4 text-center">Geen oefeningen.</p>;
+      return <p className="text-muted text-small py-4 text-center">Geen oefeningen.</p>;
     }
     const infos = groupSupersets(exercises);
 
@@ -354,22 +354,22 @@ export function SchemaDetailPage() {
         <Card key={`${se.exerciseId}-${i}`} className="shadow-none">
           <CardContent className="p-3 flex items-center gap-3">
             {info.inSuperset ? (
-              <span className="w-5 text-center text-xs font-semibold text-primary">{info.label}</span>
+              <span className="w-5 text-center text-caption font-semibold text-primary">{info.label}</span>
             ) : (
-              <span className="text-muted-foreground text-xs w-5 text-center">{i + 1}</span>
+              <span className="text-muted text-caption w-5 text-center">{i + 1}</span>
             )}
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium">{nameOf(se.exerciseId)}</span>
+              <span className="text-small font-medium">{nameOf(se.exerciseId)}</span>
               <div className="flex gap-1 mt-1">
                 {exercise?.primaryMuscles.map(m => (
                   <MuscleChip key={m} muscleId={m} type="primary" />
                 ))}
               </div>
             </div>
-            <span className="text-muted-foreground text-xs whitespace-nowrap text-right">
+            <span className="text-muted text-caption whitespace-nowrap text-right">
               {se.sets}x{formatReps(se.repsPerSet, se.repsMax)}
               {se.startWeight != null && (
-                <span className="block text-[10px]">{se.startWeight} kg</span>
+                <span className="block text-caption">{se.startWeight} kg</span>
               )}
             </span>
           </CardContent>
@@ -387,7 +387,7 @@ export function SchemaDetailPage() {
               data-testid="superset-group"
               className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-2"
             >
-              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-caption font-medium text-primary">
                 <Link2 className="h-3 w-3" /> Superset
               </div>
               {block.map(renderCard)}
@@ -427,14 +427,14 @@ export function SchemaDetailPage() {
       />
 
       {/* Exercise list — single-day or multi-day with tabs */}
-      <div className="px-4 py-3">
+      <div className="px-screen-x py-3">
         {multiDay ? (
           <>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
+            <h2 className="text-small font-medium text-muted mb-2">
               {sortedDays.length} dagen | {getAllSchemaExercises(schema).length} oefeningen totaal | {formatEstimatedTime(totalEstimate)}
             </h2>
             {schema.rotation && schema.rotation.length > 0 && (
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-caption text-muted mb-2">
                 Ritme:{' '}
                 <span className="font-medium text-foreground">
                   {getRotation(schema)
@@ -453,7 +453,7 @@ export function SchemaDetailPage() {
               </TabsList>
               {sortedDays.map(day => (
                 <TabsContent key={day.id} value={day.id} className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-2">
+                  <p className="text-caption text-muted mb-2">
                     {day.exercises.length} oefening{day.exercises.length !== 1 ? 'en' : ''} |{' '}
                     {day.exercises.reduce((sum, e) => sum + e.sets, 0)} sets |{' '}
                     {formatEstimatedTime(estimateExercisesSeconds(day.exercises, exerciseMap, settings))}
@@ -465,11 +465,11 @@ export function SchemaDetailPage() {
           </>
         ) : (
           <>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
+            <h2 className="text-small font-medium text-muted mb-2">
               Oefeningen ({schema.exercises.length}){schema.exercises.length > 0 ? ` | ${formatEstimatedTime(totalEstimate)}` : ''}
             </h2>
             {schema.exercises.length === 0 && (
-              <p className="text-muted-foreground text-sm py-4 text-center">Geen oefeningen in dit schema.</p>
+              <p className="text-muted text-small py-4 text-center">Geen oefeningen in dit schema.</p>
             )}
             {renderExerciseList(schema.exercises)}
           </>
@@ -480,7 +480,7 @@ export function SchemaDetailPage() {
       <Separator />
       {multiDay ? (
         <Tabs value={analysisTab} onValueChange={setAnalysisTab}>
-          <div className="px-4 pt-3">
+          <div className="px-screen-x pt-3">
             <TabsList className="w-full flex overflow-x-auto">
               <TabsTrigger value="totaal" className="flex-1">
                 Totaal
@@ -538,10 +538,10 @@ export function SchemaDetailPage() {
                 readOnly
                 value={shareUrl ?? ''}
                 onFocus={e => e.currentTarget.select()}
-                className="text-xs"
+                className="text-caption"
               />
               <Button variant="secondary" size="icon" onClick={copyShareUrl} aria-label="Link kopiëren">
-                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </div>

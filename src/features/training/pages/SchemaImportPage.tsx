@@ -59,17 +59,17 @@ export function SchemaImportPage() {
 
   function exerciseRow(e: SchemaJsonExercise, key: string) {
     return (
-      <li key={key} className="flex items-baseline justify-between gap-2 text-sm">
+      <li key={key} className="flex items-baseline justify-between gap-2 text-small">
         <span className="min-w-0 truncate">
           {e.exercise}
           {unknown.has(e.exercise.trim().toLowerCase()) && (
             <Badge variant="outline" className="ml-2 align-middle">nieuw</Badge>
           )}
           {e.supersetGroup && (
-            <span className="text-muted-foreground text-xs ml-2">superset {e.supersetGroup}</span>
+            <span className="text-muted text-caption ml-2">superset {e.supersetGroup}</span>
           )}
         </span>
-        <span className="text-muted-foreground text-xs whitespace-nowrap">{formatPrescription(e)}</span>
+        <span className="text-muted text-caption whitespace-nowrap">{formatPrescription(e)}</span>
       </li>
     );
   }
@@ -78,8 +78,8 @@ export function SchemaImportPage() {
     <div>
       <PageHeader title="Importeer schema" backTo="/schemas" />
 
-      <div className="px-4 py-3 space-y-3">
-        <p className="text-muted-foreground text-sm">
+      <div className="px-screen-x py-3 space-y-3">
+        <p className="text-muted text-small">
           Plak een schema als JSON (bijvoorbeeld door een AI gemaakt) of kies een bestand.
         </p>
 
@@ -89,7 +89,7 @@ export function SchemaImportPage() {
           onChange={e => setText(e.target.value)}
           placeholder={'{\n  "name": "Mijn schema",\n  "exercises": [\n    { "exercise": "Barbell Bench Press", "sets": 3, "reps": 8 }\n  ]\n}'}
           spellCheck={false}
-          className="w-full h-48 rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="w-full h-48 rounded-row border border-input bg-transparent px-3 py-2 font-mono text-caption placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
 
         <div className="flex gap-2">
@@ -113,12 +113,12 @@ export function SchemaImportPage() {
         </div>
 
         {result && !result.ok && (
-          <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-3 space-y-1">
-            <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+          <div role="alert" className="rounded-row border border-destructive/50 bg-destructive/10 p-3 space-y-1">
+            <p className="flex items-center gap-2 text-small font-medium text-destructive">
               <AlertCircle className="h-4 w-4" />
               {result.errors.length} {result.errors.length === 1 ? 'fout' : 'fouten'} gevonden
             </p>
-            <ul data-testid="import-errors" className="list-disc pl-5 text-sm space-y-0.5">
+            <ul data-testid="import-errors" className="list-disc pl-5 text-small space-y-0.5">
               {result.errors.map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
@@ -129,12 +129,12 @@ export function SchemaImportPage() {
         {result?.ok && (
           <>
             {result.warnings.length > 0 && (
-              <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 space-y-1">
-                <p className="flex items-center gap-2 text-sm font-medium">
+              <div className="rounded-row border border-accent-2/50 bg-accent-2/10 p-3 space-y-1">
+                <p className="flex items-center gap-2 text-small font-medium">
                   <TriangleAlert className="h-4 w-4" />
                   Let op
                 </p>
-                <ul data-testid="import-warnings" className="list-disc pl-5 text-sm space-y-0.5">
+                <ul data-testid="import-warnings" className="list-disc pl-5 text-small space-y-0.5">
                   {result.warnings.map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
@@ -145,13 +145,13 @@ export function SchemaImportPage() {
             <Card className="shadow-none" data-testid="import-summary">
               <CardContent className="p-3 space-y-3">
                 <div>
-                  <h2 className="font-medium text-sm">{result.schema.name}</h2>
-                  <p className="text-muted-foreground text-xs">{summarizeSharedSchema(result.shared)}</p>
+                  <h2 className="font-medium text-small">{result.schema.name}</h2>
+                  <p className="text-muted text-caption">{summarizeSharedSchema(result.shared)}</p>
                 </div>
                 {result.schema.days
                   ? result.schema.days.map((d, di) => (
                       <div key={di}>
-                        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{d.name}</h3>
+                        <h3 className="text-caption font-semibold uppercase text-muted mb-1">{d.name}</h3>
                         <ul className="space-y-1">{d.exercises.map((e, ei) => exerciseRow(e, `${di}-${ei}`))}</ul>
                       </div>
                     ))
@@ -161,10 +161,10 @@ export function SchemaImportPage() {
                       </ul>
                     )}
                 {result.schema.rotation && (
-                  <p className="text-xs text-muted-foreground">Ritme: {result.schema.rotation.join(' → ')}</p>
+                  <p className="text-caption text-muted">Ritme: {result.schema.rotation.join(' → ')}</p>
                 )}
                 {unknown.size > 0 && (
-                  <p data-testid="import-unknown" className="text-xs text-muted-foreground">
+                  <p data-testid="import-unknown" className="text-caption text-muted">
                     {unknown.size === 1 ? '1 oefening bestaat nog niet' : `${unknown.size} oefeningen bestaan nog niet`}{' '}
                     en {unknown.size === 1 ? 'wordt' : 'worden'} aangemaakt (zonder spiergroepen).
                   </p>
@@ -179,7 +179,7 @@ export function SchemaImportPage() {
         )}
 
         {importError && (
-          <p role="alert" className="text-sm text-destructive">{importError}</p>
+          <p role="alert" className="text-small text-destructive">{importError}</p>
         )}
       </div>
 
