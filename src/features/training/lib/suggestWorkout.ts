@@ -1,5 +1,5 @@
 import type { AppSettings, Exercise, SchemaExercise, Workout } from '../../../db/index';
-import { getMuscleGroupById, MUSCLE_GROUPS } from '../db/muscles';
+import { toTargetId, type MuscleLevel } from '../db/muscles';
 import { estimateExercisesSeconds } from './estimateSchemaTime';
 import { isCompletedSet } from './sets';
 
@@ -21,22 +21,7 @@ const DEFAULT_REPS_MAX = 12;
 /** Never suggest more than this many exercises regardless of target duration. */
 const MAX_EXERCISES = 8;
 
-type MuscleLevel = 'global' | 'detailed';
 type EstimateSettings = Pick<AppSettings, 'restTimerSeconds' | 'restDefaults' | 'exerciseTransitionSeconds'>;
-
-// Category name → global muscle id, to collapse detailed ids to their global group.
-const CATEGORY_TO_GLOBAL = new Map<string, string>(
-  MUSCLE_GROUPS.filter(m => m.level === 'global').map(m => [m.category, m.id]),
-);
-
-/** Maps a tagged muscle id onto the target grouping for the given detail level. */
-function toTargetId(muscleId: string, level: MuscleLevel): string {
-  const g = getMuscleGroupById(muscleId);
-  if (!g) return muscleId;
-  if (level === 'detailed') return muscleId;
-  if (g.level === 'global') return g.id;
-  return CATEGORY_TO_GLOBAL.get(g.category) ?? muscleId;
-}
 
 // Small seeded PRNG (mulberry32) so "regenerate" produces stable variety.
 function makeRng(seed: number): () => number {

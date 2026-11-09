@@ -73,6 +73,31 @@ describe('setsPerPrimaryMuscle', () => {
     ]);
     expect(setsPerPrimaryMuscle([w], map, ref).get('chest')).toBe(1);
   });
+  it('folds detailed muscles into their global group, counting an exercise once', () => {
+    const m = new Map([
+      ['a', ex('a', ['upper_chest', 'lower_chest'])],
+      ['b', ex('b', ['lats', 'chest'])],
+      ['c', ex('c', ['mystery'])],
+    ]);
+    const w = workout(new Date(2026, 10, 10), [
+      { ex: 'a', done: true, reps: 8 },
+      { ex: 'b', done: true, reps: 8 },
+      { ex: 'c', done: true, reps: 8 },
+    ]);
+    const r = setsPerPrimaryMuscle([w], m, ref, 'global');
+    expect(r.get('chest')).toBe(2);
+    expect(r.get('back')).toBe(1);
+    expect(r.get('mystery')).toBe(1); // muscle without group stays as is
+    expect(r.has('upper_chest')).toBe(false);
+  });
+  it('keeps detailed muscles apart at the detailed level', () => {
+    const m = new Map([['a', ex('a', ['upper_chest', 'lower_chest'])]]);
+    const w = workout(new Date(2026, 10, 10), [{ ex: 'a', done: true, reps: 8 }]);
+    const r = setsPerPrimaryMuscle([w], m, ref, 'detailed');
+    expect(r.get('upper_chest')).toBe(1);
+    expect(r.get('lower_chest')).toBe(1);
+    expect(r.has('chest')).toBe(false);
+  });
   it('exposes the 10-set target', () => {
     expect(WEEKLY_SETS_TARGET).toBe(10);
   });

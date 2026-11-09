@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useCompletedWorkouts } from '../hooks/useProgress';
 import { useExercises } from '../hooks/useExercises';
+import { useSettings } from '@/hooks/useSettings';
 import { getMuscleGroupById } from '../db/muscles';
 import {
   setsPerPrimaryMuscle,
@@ -18,13 +19,14 @@ import { cn } from '@/lib/utils';
 export function WeeklySetsCard() {
   const workouts = useCompletedWorkouts();
   const exercises = useExercises();
+  const settings = useSettings();
 
   const rows = useMemo(() => {
     const byId = new Map(exercises.map(e => [e.id, e]));
-    return Array.from(setsPerPrimaryMuscle(workouts, byId).entries())
+    return Array.from(setsPerPrimaryMuscle(workouts, byId, new Date(), settings.muscleDetailLevel).entries())
       .map(([id, sets]) => ({ id, name: getMuscleGroupById(id)?.name ?? id, sets }))
       .sort((a, b) => b.sets - a.sets);
-  }, [workouts, exercises]);
+  }, [workouts, exercises, settings.muscleDetailLevel]);
 
   return (
     <Card data-testid="weekly-sets-card">
