@@ -272,7 +272,7 @@ export function WorkoutEditPage() {
   if (!workout || !workoutId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Training laden...</p>
+        <p className="text-muted">Training laden...</p>
       </div>
     );
   }
@@ -291,15 +291,15 @@ export function WorkoutEditPage() {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-sm font-semibold">Training bewerken</h1>
-              <span className="text-xs text-muted-foreground">
+              <h1 className="text-small font-semibold">Training bewerken</h1>
+              <span className="text-caption text-muted">
                 {formatDate(workout.startedAt)} om {formatTime(workout.startedAt)}
               </span>
             </div>
           </div>
           <Button
             size="sm"
-            className="text-xs"
+            className="text-caption"
             onClick={handleSave}
             disabled={!canSave || saving}
           >
@@ -311,7 +311,7 @@ export function WorkoutEditPage() {
 
       {/* Global error */}
       {globalError && (
-        <div className="mx-4 mt-3 rounded-lg bg-destructive/15 text-destructive px-4 py-2 text-sm">
+        <div className="mx-4 mt-3 rounded-lg bg-destructive/15 text-destructive px-4 py-2 text-small">
           {globalError}
         </div>
       )}
@@ -325,10 +325,10 @@ export function WorkoutEditPage() {
               {/* Exercise header */}
               <div className="px-3 py-2 flex items-center justify-between border-b border-border">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium truncate">
+                  <h3 className="text-small font-medium truncate">
                     {nameOf(workoutExercise.exerciseId)}
                   </h3>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-caption text-muted">
                     {workoutExercise.sets.length} sets
                   </span>
                 </div>
@@ -336,7 +336,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 text-muted"
                     onClick={() => setExpandedNotes(expandedNotes === exIdx ? null : exIdx)}
                     aria-label="Notities"
                   >
@@ -345,7 +345,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 text-muted"
                     onClick={() => handleAddSet(exIdx)}
                     aria-label="Set toevoegen"
                   >
@@ -354,7 +354,7 @@ export function WorkoutEditPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    className="h-7 w-7 text-muted hover:text-destructive"
                     onClick={() => {
                       if (exercises.length === 1) {
                         setShowDeleteExercise(exIdx);
@@ -380,7 +380,7 @@ export function WorkoutEditPage() {
                     onBlur={e => flushExerciseNotes(exIdx, e.currentTarget.value)}
                     placeholder="Notities voor deze oefening..."
                     rows={2}
-                    className="flex w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                    className="flex w-full rounded-md border border-input bg-transparent px-2 py-1 text-caption shadow-sm transition-colors placeholder:text-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                   />
                 </div>
               )}
@@ -388,7 +388,7 @@ export function WorkoutEditPage() {
               {/* Sets table */}
               <div className="divide-y divide-border/50">
                 {/* Table header */}
-                <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-1 px-3 py-1.5 text-caption text-muted">
                   <span className="text-center">#</span>
                   <span className="text-center">kg</span>
                   <span className="text-center">reps</span>
@@ -408,9 +408,9 @@ export function WorkoutEditPage() {
                           set.skipped && 'bg-secondary/50 opacity-50',
                         )}
                       >
-                        <span className="text-xs text-muted-foreground text-center">
+                        <span className="text-caption text-muted text-center">
                           {set.setNumber}
-                          {set.side && <span className="block text-[10px] leading-none">{set.side === 'left' ? 'L' : 'R'}</span>}
+                          {set.side && <span className="block text-caption leading-none">{set.side === 'left' ? 'L' : 'R'}</span>}
                         </span>
                         <Input
                           type="number"
@@ -419,7 +419,7 @@ export function WorkoutEditPage() {
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
                           placeholder={set.plannedWeight != null ? String(set.plannedWeight) : '-'}
                           className={cn(
-                            'h-7 text-center text-sm px-1.5',
+                            'h-7 text-center text-small px-1.5',
                             weightError && 'border-destructive',
                           )}
                         />
@@ -429,14 +429,14 @@ export function WorkoutEditPage() {
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
                           placeholder={set.plannedReps != null ? formatReps(set.plannedReps, set.plannedRepsMax) : '-'}
                           className={cn(
-                            'h-7 text-center text-sm px-1.5',
+                            'h-7 text-center text-small px-1.5',
                             repsError && 'border-destructive',
                           )}
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          className="h-7 w-7 text-muted hover:text-destructive"
                           onClick={() => handleRemoveSet(exIdx, setIdx)}
                           aria-label="Set verwijderen"
                         >
@@ -447,10 +447,10 @@ export function WorkoutEditPage() {
                       {(weightError || repsError) && (
                         <div className="px-3 pb-1">
                           {weightError && (
-                            <p className="text-[10px] text-destructive">{weightError}</p>
+                            <p className="text-caption text-destructive">{weightError}</p>
                           )}
                           {repsError && (
-                            <p className="text-[10px] text-destructive">{repsError}</p>
+                            <p className="text-caption text-destructive">{repsError}</p>
                           )}
                         </div>
                       )}
@@ -466,7 +466,7 @@ export function WorkoutEditPage() {
         <Sheet open={showAddExercise} onOpenChange={(open) => { setShowAddExercise(open); if (!open) setExerciseSearch(''); }}>
           <Button
             variant="outline"
-            className="w-full border-dashed text-muted-foreground"
+            className="w-full border-dashed text-muted"
             onClick={() => setShowAddExercise(true)}
           >
             <Plus className="h-4 w-4" />
@@ -490,7 +490,7 @@ export function WorkoutEditPage() {
                   <button
                     key={ex.id}
                     onClick={() => handleAddExercise(ex.id!)}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
+                    className="w-full text-left px-3 py-2 text-small rounded-md hover:bg-line/60 transition-colors"
                   >
                     {ex.name}
                   </button>
@@ -505,7 +505,7 @@ export function WorkoutEditPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-muted-foreground"
+            className="text-caption text-muted"
             onClick={() => setWorkoutNotesOpen(!workoutNotesOpen)}
           >
             <StickyNote className="h-3 w-3" />
@@ -517,7 +517,7 @@ export function WorkoutEditPage() {
               onChange={e => { setNotesDraft(e.target.value); markDirty(); }}
               placeholder="Notities voor deze training..."
               rows={3}
-              className="mt-2 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+              className="mt-2 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-small shadow-sm transition-colors placeholder:text-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
           )}
         </div>

@@ -33,7 +33,7 @@ export function WorkoutHistory() {
 
   if (items.length === 0) {
     return (
-      <div className="px-4 py-16 text-center text-muted-foreground text-sm">
+      <div className="px-4 py-16 text-center text-muted text-small">
         Nog geen gelogde trainingen.
       </div>
     );
@@ -49,18 +49,18 @@ export function WorkoutHistory() {
         const sets = w.exercises.reduce((s, e) => s + e.sets.filter(x => x.completed).length, 0);
 
         return (
-          <Card key={w.id} className="shadow-none">
+          <Card key={w.id}>
             <CardContent className="p-3 flex items-center gap-3">
               <button
                 onClick={() => navigate(`/workout/${w.id}/summary`, { state: { from: '/start/history' } })}
                 className="min-w-0 flex-1 text-left"
               >
-                <p className="text-sm font-medium truncate">
+                <p className="text-small font-medium truncate">
                   {w.schemaName ?? 'Vrije training'}
                   {w.schemaDayName ? ` — ${w.schemaDayName}` : ''}
                 </p>
-                <p className="text-xs text-muted-foreground">{formatDate(w.startedAt)}</p>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                <p className="text-caption text-muted">{formatDate(w.startedAt)}</p>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-caption text-muted">
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDurationLong(duration)}
@@ -78,7 +78,7 @@ export function WorkoutHistory() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                className="h-8 w-8 shrink-0 text-muted hover:text-destructive"
                 onClick={() => setDeleteTarget({ id: w.id!, date: w.startedAt })}
                 aria-label="Verwijder training"
               >

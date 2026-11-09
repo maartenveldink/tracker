@@ -22,8 +22,9 @@ import { PageHeader } from '../../../components/PageHeader';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { StatTile } from '@/components/ui/stat-tile';
 import { Separator } from '@/components/ui/separator';
-import { X, Clock, Layers, Weight, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp } from 'lucide-react';
+import { X, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
 import type { Workout } from '../../../db/index';
 
@@ -365,7 +366,7 @@ export function WorkoutSummaryPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-destructive"
+              className="text-muted hover:text-destructive"
               onClick={() => setShowDelete(true)}
               aria-label="Training verwijderen"
             >
@@ -385,56 +386,38 @@ export function WorkoutSummaryPage() {
 
       {/* Quick stats */}
       <div className="px-4 py-4">
-        <h2 className="text-lg font-semibold mb-1">
+        <h2 className="font-display text-title font-bold mb-1">
           {workout.schemaName ?? 'Vrije training'}
           {workout.schemaDayName && (
-            <span className="text-muted-foreground font-normal"> - {workout.schemaDayName}</span>
+            <span className="text-muted font-normal"> - {workout.schemaDayName}</span>
           )}
         </h2>
-        <p className="text-muted-foreground text-sm">{formatDate(workout.startedAt)}</p>
+        <p className="text-muted text-small">{formatDate(workout.startedAt)}</p>
 
         {/* MF-05: streak */}
         {streak >= 2 && (
-          <p className="text-sm font-medium text-amber-400 mt-1">
+          <p className="text-small font-medium text-accent mt-1">
             {'\uD83D\uDD25'} {streak} weken op rij getraind
           </p>
         )}
 
         {/* MF-04: volume comparison */}
         {volumeDiff !== null && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-small text-muted mt-1">
             Volume: {Math.round(volumeComparison.current)} kg{' '}
-            <span className={volumeDiff >= 0 ? 'text-green-400' : 'text-red-400'}>
+            <span className={volumeDiff >= 0 ? 'text-accent-2' : 'text-destructive'}>
               ({volumeDiff >= 0 ? '+' : ''}{volumeDiff} kg t.o.v. vorige sessie)
             </span>
           </p>
         )}
 
         <div className="grid grid-cols-3 gap-3 mt-4">
-          <Card className="shadow-none">
-            <CardContent className="p-3 text-center">
-              <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <div className="text-lg font-bold">{formatDurationLong(duration)}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Duur</div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardContent className="p-3 text-center">
-              <Layers className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <div className="text-lg font-bold">{totalSetsCompleted}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Sets</div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardContent className="p-3 text-center">
-              <Weight className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <div className="text-lg font-bold">{totalVolume > 0 ? `${Math.round(totalVolume)}` : '-'}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Volume (kg)</div>
-            </CardContent>
-          </Card>
+          <StatTile label="Duur" value={formatDurationLong(duration)} />
+          <StatTile label="Sets" value={totalSetsCompleted} />
+          <StatTile label="Volume (kg)" value={totalVolume > 0 ? `${Math.round(totalVolume)}` : '-'} />
         </div>
 
-        <div className="text-xs text-muted-foreground mt-2 text-center">
+        <div className="text-caption text-muted mt-2 text-center">
           {formatTime(workout.startedAt)} - {workout.completedAt ? formatTime(workout.completedAt) : '?'}
         </div>
       </div>
@@ -442,7 +425,7 @@ export function WorkoutSummaryPage() {
       {/* Exercises detail */}
       <Separator />
       <div className="px-4 py-3">
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">Oefeningen</h3>
+        <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-2">Oefeningen</h3>
         <div className="space-y-3">
           {workout.exercises.map((we, idx) => {
             const completedSets = we.sets.filter(s => s.completed);
@@ -452,17 +435,17 @@ export function WorkoutSummaryPage() {
             return (
               <Card key={`${we.exerciseId}-${idx}`} className="shadow-none">
                 <CardContent className="p-3">
-                  <h4 className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                  <h4 className="text-small font-medium mb-1 flex items-center gap-1.5">
                     {nameOf(we.exerciseId)}
                     {/* MF-03: PR badge */}
                     {isPR && (
-                      <span className="text-xs text-amber-400 font-medium">
+                      <span className="text-caption text-accent font-medium">
                         {'\uD83C\uDFC6'} Persoonlijk record!
                       </span>
                     )}
                     {/* Feature 4: progression vs previous session */}
                     {isImproved && (
-                      <span className="text-xs text-emerald-400 font-medium inline-flex items-center gap-0.5">
+                      <span className="text-caption text-accent-2 font-medium inline-flex items-center gap-0.5">
                         <TrendingUp className="h-3.5 w-3.5" /> Vooruitgang
                       </span>
                     )}
@@ -470,17 +453,17 @@ export function WorkoutSummaryPage() {
                   {completedSets.length > 0 ? (
                     <div className="space-y-0.5">
                       {completedSets.map((set) => (
-                        <div key={set.setNumber} className="text-xs text-muted-foreground flex gap-2">
-                          <span className="text-muted-foreground/60 w-8">Set {set.setNumber}</span>
+                        <div key={set.setNumber} className="text-caption text-muted flex gap-2">
+                          <span className="text-muted w-8">Set {set.setNumber}</span>
                           <span>{set.weight ?? 0} kg x {set.actualReps ?? 0}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Geen sets voltooid</p>
+                    <p className="text-caption text-muted">Geen sets voltooid</p>
                   )}
                   {we.notes && (
-                    <p className="text-xs text-muted-foreground mt-1 italic">{we.notes}</p>
+                    <p className="text-caption text-muted mt-1 italic">{we.notes}</p>
                   )}
                 </CardContent>
               </Card>
@@ -494,7 +477,7 @@ export function WorkoutSummaryPage() {
         <>
           <Separator />
           <div className="px-4 py-3">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Volume per spiergroep</h3>
+            <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-2">Volume per spiergroep</h3>
             <MuscleVolumeBars volume={muscleVolume} />
           </div>
         </>
@@ -505,8 +488,8 @@ export function WorkoutSummaryPage() {
         <>
           <Separator />
           <div className="px-4 py-3">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">Trainingsnotities</h3>
-            <p className="text-sm text-card-foreground">{workout.notes}</p>
+            <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-1">Trainingsnotities</h3>
+            <p className="text-small text-text">{workout.notes}</p>
           </div>
         </>
       )}
