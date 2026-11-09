@@ -167,6 +167,12 @@ export interface TrainingSchema extends SyncMeta {
    * than once. When undefined/empty, days rotate in plain `order` sequence.
    */
   rotation?: string[];
+  /**
+   * Marked as active: only active schemas show on Train/Home. undefined/false =
+   * not active; when no schema is active, all are shown. Not indexed, not part
+   * of the shareable format; copies and shared/JSON-imported schemas start inactive (a full backup import keeps the flag).
+   */
+  active?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

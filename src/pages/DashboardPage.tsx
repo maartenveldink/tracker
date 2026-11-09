@@ -1,3 +1,4 @@
+import { visibleSchemas } from '../features/training/lib/activeSchemas';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flame, Play, Trophy } from 'lucide-react';
@@ -72,7 +73,7 @@ export function DashboardPage() {
     () => recentPRs(workouts, settings.oneRMFormula, 30).slice(0, 3),
     [workouts, settings.oneRMFormula],
   );
-  const next = useMemo(() => nextTraining(schemas, workouts), [schemas, workouts]);
+  const next = useMemo(() => nextTraining(visibleSchemas(schemas), workouts), [schemas, workouts]);
 
   const latestWeight = bodyWeights.length > 0 ? bodyWeights[bodyWeights.length - 1]! : null;
 

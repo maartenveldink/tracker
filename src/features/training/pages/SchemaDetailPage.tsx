@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSchema, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
+import { useSchema, setSchemaActive, isMultiDay, getAllSchemaExercises, getSortedDays, getRotation } from '../hooks/useSchemas';
 import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { getMuscleGroups, getAllGlobalMuscleIds, getMuscleGroupById } from '../db/muscles';
 import { useSettings } from '../../../hooks/useSettings';
@@ -428,6 +428,15 @@ export function SchemaDetailPage() {
 
       {/* Exercise list — single-day or multi-day with tabs */}
       <div className="px-screen-x py-3">
+        <Button
+          variant={schema.active ? 'default' : 'outline'}
+          size="sm"
+          className="mb-3"
+          onClick={() => setSchemaActive(schema.id, !schema.active)}
+        >
+          <Check className="h-4 w-4" />
+          {schema.active ? 'Actief (tik om te deactiveren)' : 'Activeren'}
+        </Button>
         {multiDay ? (
           <>
             <h2 className="text-small font-medium text-muted mb-2">

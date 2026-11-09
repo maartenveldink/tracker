@@ -5,6 +5,7 @@ import { useActiveWorkout, startWorkout } from '../hooks/useWorkout';
 import { useCompletedWorkouts } from '../hooks/useProgress';
 import { useExercises } from '../hooks/useExercises';
 import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
+import { visibleSchemas, hasHiddenSchemas } from '../lib/activeSchemas';
 import { daysAgo, nextDayId, nextTraining, primaryMuscleNames } from '../lib/home';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { useSettings } from '../../../hooks/useSettings';
@@ -31,7 +32,8 @@ function lastSessionLabel(date: Date | undefined, now: Date): string {
 const countLabel = (n: number) => `${n} ${n === 1 ? 'oefening' : 'oefeningen'}`;
 
 export function StartWorkoutPage() {
-  const schemas = useSchemas();
+  const allSchemas = useSchemas();
+  const schemas = useMemo(() => visibleSchemas(allSchemas), [allSchemas]);
   const activeWorkoutState = useActiveWorkout();
   const activeWorkout = activeWorkoutState?.workout;
   const completedWorkouts = useCompletedWorkouts();
@@ -241,6 +243,15 @@ export function StartWorkoutPage() {
             );
           })}
         </div>
+
+        {hasHiddenSchemas(allSchemas) && (
+          <ListRow
+            title="Alle schema's"
+            subtitle={`${allSchemas.length - schemas.length} niet actief`}
+            chevron
+            onClick={() => navigate('/schemas')}
+          />
+        )}
 
         {schemas.length === 0 && (
           <p className="text-muted text-small text-center py-2">
