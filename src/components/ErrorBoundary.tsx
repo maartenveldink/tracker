@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import { buildErrorReport, canSeeDiagnostics, copyToClipboard } from '@/lib/diagnostics';
 
 /**
@@ -40,36 +41,31 @@ export class ErrorBoundary extends Component<Props, State> {
 
     const showDetails = canSeeDiagnostics();
     return (
-      <div className="min-h-screen bg-slate-950 p-4 text-slate-100">
-        <div className="mx-auto max-w-xl space-y-4">
-          <h1 className="text-xl font-semibold text-red-400">Er ging iets mis</h1>
-          <p className="text-sm text-slate-300">
+      <div className="min-h-screen bg-bg p-4 text-text">
+        <div className="mx-auto max-w-xl space-y-4 pt-8">
+          <div className="space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-[0.08em] text-muted">Tracker</div>
+            <h1 className="font-display text-screen font-bold tracking-tight">Er ging iets mis</h1>
+          </div>
+          <p className="text-body text-muted">
             De app kon dit scherm niet tonen. Je data is niet verloren; probeer opnieuw te laden.
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-md bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900"
-              onClick={() => window.location.reload()}
-            >
+            <Button type="button" size="lg" onClick={() => window.location.reload()}>
               Opnieuw laden
-            </button>
+            </Button>
             {showDetails && (
-              <button
-                type="button"
-                className="rounded-md border border-slate-600 px-3 py-2 text-sm font-medium"
-                onClick={() => void this.handleCopy()}
-              >
+              <Button type="button" size="lg" variant="outline" onClick={() => void this.handleCopy()}>
                 {copied === 'ok' ? 'Gekopieerd ✓' : copied === 'failed' ? 'Kopiëren mislukt' : 'Kopieer foutrapport'}
-              </button>
+              </Button>
             )}
           </div>
 
           {showDetails && (
             <pre
               aria-label="Foutrapport"
-              className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300"
+              className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-card border border-line bg-surface p-3 text-caption text-muted"
             >
               {buildErrorReport(error, componentStack)}
             </pre>
