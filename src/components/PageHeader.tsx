@@ -24,7 +24,7 @@ export function PageHeader({ title, backTo, actions }: PageHeaderProps) {
           <ChevronLeft className="h-5 w-5" />
         </Button>
       )}
-      <h1 className="text-lg font-semibold flex-1 truncate">{title}</h1>
+      <h1 className="text-body-lg font-semibold flex-1 truncate">{title}</h1>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </header>
   );

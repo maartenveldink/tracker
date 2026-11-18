@@ -133,10 +133,10 @@ export function DashboardPage() {
         <Card emphasis>
           <CardContent className="p-3 pt-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium truncate">
+              <p className="text-small font-medium truncate">
                 {active.status === 'paused' ? 'Gepauzeerde training' : 'Actieve training'}
               </p>
-              <p className="text-xs text-muted truncate">
+              <p className="text-caption text-muted truncate">
                 {active.schemaName ?? 'Vrije training'}
                 {active.schemaDayName ? ` — ${active.schemaDayName}` : ''}
               </p>

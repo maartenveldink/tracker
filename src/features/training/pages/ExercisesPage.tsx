@@ -228,7 +228,7 @@ export function ExercisesPage() {
             />
             <div className="h-64 overflow-y-auto space-y-1">
               {mergeCandidates.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-1 py-4">Geen andere oefening gevonden.</p>
+                <p className="text-small text-muted-foreground px-1 py-4">Geen andere oefening gevonden.</p>
               ) : (
                 mergeCandidates.map((e) => (
                   <button
@@ -236,7 +236,7 @@ export function ExercisesPage() {
                     type="button"
                     onClick={() => setMergeTarget(e)}
                     className={cn(
-                      'w-full text-left px-3 py-2 text-sm rounded-md transition-colors',
+                      'w-full text-left px-3 py-2 text-small rounded-md transition-colors',
                       mergeTarget?.id === e.id
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-line/60',
@@ -248,7 +248,7 @@ export function ExercisesPage() {
               )}
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-              <span className="text-xs text-muted-foreground truncate">
+              <span className="text-caption text-muted-foreground truncate">
                 {mergeTarget ? `Behouden: ${mergeTarget.name}` : 'Kies een oefening'}
               </span>
               <Button onClick={confirmMerge} disabled={!mergeTarget || merging}>

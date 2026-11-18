@@ -24,7 +24,7 @@ export function MuscleVolumeBars({ volume }: { volume: Map<string, number> }) {
         const percentage = maxVolume > 0 ? (vol / maxVolume) * 100 : 0;
         return (
           <div key={id}>
-            <div className="flex items-center justify-between text-xs mb-0.5">
+            <div className="flex items-center justify-between text-caption mb-0.5">
               <span className="text-card-foreground">{name}</span>
               <span className="text-muted-foreground">{Math.round(vol)} kg</span>
             </div>

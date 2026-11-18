@@ -17,7 +17,7 @@ export function ReloadPrompt() {
   return (
     <div className="fixed bottom-20 left-0 right-0 z-[60] flex justify-center px-4 pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
-        <span className="text-sm">Er is een nieuwe versie beschikbaar.</span>
+        <span className="text-small">Er is een nieuwe versie beschikbaar.</span>
         <Button size="sm" onClick={() => updateServiceWorker(true)}>
           <RefreshCw className="h-4 w-4" />
           Vernieuwen

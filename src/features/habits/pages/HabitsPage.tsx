@@ -181,7 +181,7 @@ function HabitRow({
       {isBoolean && <HabitControl habit={habit} value={value} dateKey={dateKey} />}
       <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left rounded-row focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <span className="flex items-center gap-2">
-          {habit.emoji && <span className="text-lg">{habit.emoji}</span>}
+          {habit.emoji && <span className="text-body-lg">{habit.emoji}</span>}
           <span className="text-body-lg font-semibold truncate">{habit.name}</span>
         </span>
         <span className="block text-caption text-muted truncate">

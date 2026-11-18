@@ -395,13 +395,13 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
               type="button"
               variant="ghost"
               size="sm"
-              className="ml-1 h-8 px-2 text-xs text-muted-foreground"
+              className="ml-1 h-8 px-2 text-caption text-muted-foreground"
               onClick={() => setRestSeconds(null)}
             >
               Reset
             </Button>
           ) : (
-            <span className="ml-1 text-xs text-muted-foreground">standaard</span>
+            <span className="ml-1 text-caption text-muted-foreground">standaard</span>
           )}
         </div>
       </div>
@@ -409,7 +409,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
       {/* Optional strength goal (weight × reps); progress shows on the Progress page */}
       <div role="group" aria-labelledby="goal-label" className="space-y-2">
         <div className="flex items-center justify-between">
-          <span id="goal-label" className="text-sm font-medium leading-none">
+          <span id="goal-label" className="text-small font-medium leading-none">
             Doel (optioneel)
           </span>
           {(goalWeight !== '' || goalReps !== '') && (
@@ -417,7 +417,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground"
+              className="h-7 px-2 text-caption text-muted-foreground"
               onClick={() => {
                 setGoalWeight('');
                 setGoalReps('');
@@ -430,7 +430,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
         </div>
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-1">
-            <Label htmlFor="goal-weight" className="text-xs text-muted-foreground">
+            <Label htmlFor="goal-weight" className="text-caption text-muted-foreground">
               Gewicht (kg)
             </Label>
             <div className="flex items-center gap-1">
@@ -473,7 +473,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
           </div>
           <span className="pb-2 text-muted-foreground">×</span>
           <div className="w-20 space-y-1">
-            <Label htmlFor="goal-reps" className="text-xs text-muted-foreground">
+            <Label htmlFor="goal-reps" className="text-caption text-muted-foreground">
               Herhalingen
             </Label>
             <Input
@@ -494,7 +494,7 @@ export function ExerciseForm({ existing, initialName, onSaved, submitLabel }: Ex
           </div>
         </div>
         {goalError && (
-          <p id="goal-error" role="alert" className="text-xs text-danger">
+          <p id="goal-error" role="alert" className="text-caption text-danger">
             {goalError}
           </p>
         )}
