@@ -111,7 +111,7 @@ export interface AfterSetLogged {
 
 /**
  * What happens after a set was logged. For supersets the members alternate
- * without rest, and rest starts only after the last member of a round. Pass the
+ * without rest, and rest starts only after the last member of a round that leaves open sets. No rest after the last open set of an exercise (or group). Pass the
  * workout as it was *before* the set was completed: the just-finished
  * (exIdx, setIdx) is treated as done here.
  */
@@ -121,18 +121,20 @@ export function afterSetLogged(
   setIdx: number,
 ): AfterSetLogged {
   const info = groupSupersets(exercises)[exIdx];
-  if (!info || !info.inSuperset) return { focusIdx: exIdx, rest: true };
-
   const hasOpenSet = (i: number) =>
     (exercises[i]?.sets ?? []).some(
       (s, sIdx) => !s.completed && !s.skipped && !(i === exIdx && sIdx === setIdx),
     );
 
+  // Solo: rest only while this exercise still has an open set.
+  if (!info || !info.inSuperset) return { focusIdx: exIdx, rest: hasOpenSet(exIdx) };
+
   const nextMember = info.members.find(m => m > exIdx && hasOpenSet(m));
   if (nextMember != null) return { focusIdx: nextMember, rest: false };
 
   const firstOpen = info.members.find(hasOpenSet);
-  return { focusIdx: firstOpen ?? exIdx, rest: true };
+  // No open set left in the whole group: the exercise is done, no rest.
+  return { focusIdx: firstOpen ?? exIdx, rest: firstOpen != null };
 }
 
 /**

@@ -160,6 +160,14 @@ describe('afterSetLogged (supersets + rest)', () => {
     const exs = [ex(['todo', 'todo']), ex(['todo'])];
     expect(afterSetLogged(exs, 0, 0)).toEqual({ focusIdx: 0, rest: true });
   });
+  it('a solo exercise rests only while open sets remain', () => {
+    expect(afterSetLogged([ex(['todo', 'skip'])], 0, 0)).toEqual({ focusIdx: 0, rest: false });
+    expect(afterSetLogged([ex(['done', 'todo', 'todo'])], 0, 1)).toEqual({ focusIdx: 0, rest: true });
+  });
+  it('no rest after the last open set of a solo exercise', () => {
+    expect(afterSetLogged([ex(['done', 'todo']), ex(['todo'])], 0, 1)).toEqual({ focusIdx: 0, rest: false });
+    expect(afterSetLogged([ex(['todo'])], 0, 0)).toEqual({ focusIdx: 0, rest: false });
+  });
   it('mid-round hands off to the next member without rest', () => {
     const exs = [ex(['todo', 'todo'], 'g'), ex(['todo', 'todo'], 'g')];
     expect(afterSetLogged(exs, 0, 0)).toEqual({ focusIdx: 1, rest: false });
@@ -177,7 +185,11 @@ describe('afterSetLogged (supersets + rest)', () => {
   });
   it('stays on the last open member when the group is otherwise finished', () => {
     const exs = [ex(['done'], 'g'), ex(['todo'], 'g')];
-    expect(afterSetLogged(exs, 1, 0)).toEqual({ focusIdx: 1, rest: true });
+    expect(afterSetLogged(exs, 1, 0)).toEqual({ focusIdx: 1, rest: false });
+  });
+  it('no rest after the very last set of the last member', () => {
+    const exs = [ex(['done', 'done'], 'g'), ex(['done', 'todo'], 'g')];
+    expect(afterSetLogged(exs, 1, 1)).toEqual({ focusIdx: 1, rest: false });
   });
 });
 

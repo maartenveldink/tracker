@@ -79,4 +79,23 @@ test.describe('Live workout', () => {
     await workout.completeActiveSet(60, 10);
     await expect(workout.restTimer).toBeVisible();
   });
+
+  test('does not start a rest timer after the last set of an exercise', async ({
+    schemaEditor,
+    startWorkout,
+    workout,
+  }) => {
+    await createSimpleSchema(schemaEditor, 'E2E No Rest Last');
+    await startWorkout.goto();
+    await startWorkout.start('E2E No Rest Last');
+
+    await workout.completeActiveSet(60, 10);
+    await expect(workout.restTimer).toBeVisible();
+    await workout.logActiveReps(10);
+    await expect(workout.restTimer).toBeVisible();
+    // Third (last) set: the running timer is dropped, no new one starts.
+    await workout.logActiveReps(10);
+    await expect(workout.primaryButton).toHaveText('Laatste oefening afronden');
+    await expect(workout.restTimer).toHaveCount(0);
+  });
 });
