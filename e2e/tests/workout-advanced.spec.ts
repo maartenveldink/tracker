@@ -33,6 +33,7 @@ test.describe('Live workout — advanced', () => {
 
     await workout.completeActiveSet(60, 10);
     await expect(workout.restTimer).toBeVisible();
+    await expect(workout.restTimer).toBeInViewport();
 
     await workout.skipRest();
     await expect(workout.restTimer).toHaveCount(0);
