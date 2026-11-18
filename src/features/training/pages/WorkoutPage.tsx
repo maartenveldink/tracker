@@ -804,6 +804,13 @@ export function WorkoutPage() {
         <p className="sr-only" aria-live="polite" data-testid="rest-ended-announcement">
           {restEnded && !restTimer ? 'Rust voorbij, volgende set' : ''}
         </p>
+      </div>
+
+      <div className="flex-1" />
+
+      {/* Fixed bottom panel in thumb reach (DESIGN §5) */}
+      <div className="sticky bottom-0 z-30 mt-4 flex flex-col gap-3.5 rounded-t-sheet border-t border-line bg-surface px-screen-x pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[18px]">
+        {/* Inside the sticky panel so the timer is always in view, no scrolling needed. */}
         {restTimer && (
           <LiveRestStrip
             timer={restTimer}
@@ -812,12 +819,6 @@ export function WorkoutPage() {
             onSkip={() => setRestTimer(null)}
           />
         )}
-      </div>
-
-      <div className="flex-1" />
-
-      {/* Fixed bottom panel in thumb reach (DESIGN §5) */}
-      <div className="sticky bottom-0 z-30 mt-4 flex flex-col gap-3.5 rounded-t-sheet border-t border-line bg-surface px-screen-x pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[18px]">
         {current && !exerciseComplete && (
           <div className="grid grid-cols-2 gap-3">
             <LiveStepper
