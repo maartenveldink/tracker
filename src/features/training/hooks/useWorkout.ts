@@ -60,28 +60,35 @@ export async function startWorkout(
 }
 
 /** Update a single set within a workout exercise (E3-02, E3-04). */
+/** The sets of one exercise as stored before and after a write. */
+export interface SetsChange {
+  before: WorkoutSet[];
+  after: WorkoutSet[];
+}
+
 export async function updateWorkoutSet(
   workoutId: string,
   exerciseIndex: number,
   setIndex: number,
   update: Partial<WorkoutSet>,
-): Promise<void> {
-  await db.transaction('rw', db.workouts, async () => {
+): Promise<SetsChange | null> {
+  return db.transaction('rw', db.workouts, async () => {
     const workout = await db.workouts.get(workoutId);
-    if (!workout) return;
+    if (!workout) return null;
 
     const exercises = [...workout.exercises];
     const exercise = exercises[exerciseIndex];
-    if (!exercise) return;
+    if (!exercise) return null;
 
     const sets = [...exercise.sets];
     const existing = sets[setIndex];
-    if (!existing) return;
+    if (!existing) return null;
 
     sets[setIndex] = { ...existing, ...update };
     exercises[exerciseIndex] = { ...exercise, sets };
 
     await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
+    return { before: exercise.sets, after: sets };
   });
 }
 
@@ -133,19 +140,20 @@ export async function removeWorkoutSet(
   workoutId: string,
   exerciseIndex: number,
   setIndex: number,
-): Promise<void> {
-  await db.transaction('rw', db.workouts, async () => {
+): Promise<SetsChange | null> {
+  return db.transaction('rw', db.workouts, async () => {
     const workout = await db.workouts.get(workoutId);
-    if (!workout) return;
+    if (!workout) return null;
 
     const exercises = [...workout.exercises];
     const exercise = exercises[exerciseIndex];
-    if (!exercise) return;
+    if (!exercise) return null;
 
     const sets = removeSetAt(exercise.sets, setIndex);
 
     exercises[exerciseIndex] = { ...exercise, sets };
     await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
+    return { before: exercise.sets, after: sets };
   });
 }
 

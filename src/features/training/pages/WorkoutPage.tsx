@@ -13,6 +13,7 @@ import {
   resumeWorkout,
   completeWorkout,
   setExerciseSets,
+  type SetsChange,
 } from '../hooks/useWorkout';
 import { useExercises, useExerciseLookup, updateExercise } from '../hooks/useExercises';
 import { useWakeLock } from '../hooks/useWakeLock';
@@ -38,7 +39,7 @@ import {
 } from '../lib/liveTraining';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
-import { compareSessions } from '../lib/celebration';
+import { compareSessions, finishedBetterThanLastTime, weightedLines } from '../lib/celebration';
 import { CelebrationEffects, prefersReducedMotion } from '../components/CelebrationEffects';
 import { ExerciseMoment } from '../components/ExerciseMoment';
 import { LiveStepper } from '../components/LiveStepper';
@@ -53,10 +54,6 @@ import { isWeightedSet } from '../lib/sets';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, ListChecks, Minus, Plus, Link2, History } from 'lucide-react';
 import type { Workout } from '../../../db/index';
-
-function completedLines(sets: Workout['exercises'][number]['sets']): { weight: number; reps: number }[] {
-  return sets.filter(isWeightedSet).map(set => ({ weight: set.weight!, reps: set.actualReps! }));
-}
 
 // --- Previous session reference (E3-10) ---
 
@@ -273,42 +270,14 @@ export function WorkoutPage() {
   }, [workout?.status, workoutId, navigate]);
 
   // "Oefening klaar" celebration (DESIGN §8). The banner + comparison table are
-  // derived from the stored sets (`moment` below). The one-off effects (confetti,
-  // fireworks, vibration) fire only when the current exercise *becomes* complete
-  // during this mount: an exercise first seen already complete (reload, jumping
-  // back to a finished one) never replays them. Reopening it re-arms it.
-  const armedRef = useRef<Set<string>>(new Set());
-  const firedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    armedRef.current = new Set();
-    firedRef.current = new Set();
-  }, [workoutId]);
+  // derived from the stored sets (`moment` below). The one-off effects (fireworks,
+  // vibration, banner animation) fire from the action that finishes an exercise,
+  // so a reload or jumping back to a finished exercise never replays them.
   const [celebrateNonce, setCelebrateNonce] = useState(0);
+  const [animateMoment, setAnimateMoment] = useState(false);
   useEffect(() => {
-    if (!workout || !workoutId || workout.status === 'completed' || curState === undefined) return;
-    const we = workout.exercises[curState];
-    if (!we) return;
-    const key = we.exerciseId;
-    const complete = we.sets.length > 0 && activeSetIndex(we.sets) < 0;
-    if (!complete) {
-      armedRef.current.add(key);
-      firedRef.current.delete(key);
-      return;
-    }
-    if (!armedRef.current.has(key) || firedRef.current.has(key)) return;
-    const comparison = compareSessions(
-      completedLines(we.sets),
-      previousSessions.get(key)?.sets ?? null,
-      settings.oneRMFormula,
-    );
-    if (!comparison?.improved) return;
-    firedRef.current.add(key);
-    if (!settings.celebrationEnabled) return;
-    setCelebrateNonce(n => n + 1);
-    if (settings.celebrationVibrate && !prefersReducedMotion() && typeof navigator.vibrate === 'function') {
-      navigator.vibrate([20, 40, 20]);
-    }
-  }, [workout, workoutId, curState, previousSessions, settings.oneRMFormula, settings.celebrationEnabled, settings.celebrationVibrate]);
+    setAnimateMoment(false);
+  }, [workoutId]);
 
   // Pin the current-exercise pointer once the workout has loaded, so finishing
   // the last set of an exercise leaves it current ("Volgende oefening") instead
@@ -322,6 +291,7 @@ export function WorkoutPage() {
 
   const setCur = useCallback((idx: number) => {
     setCurState(idx);
+    setAnimateMoment(false);
     setDraft(null);
     setInputError(null);
     setNotesOpen(false);
@@ -356,7 +326,7 @@ export function WorkoutPage() {
   const ssInfo = current ? groupSupersets(exercises)[cur] : undefined;
   const moment =
     exerciseComplete && current
-      ? compareSessions(completedLines(sets), prevSession?.sets ?? null, settings.oneRMFormula)
+      ? compareSessions(weightedLines(sets), prevSession?.sets ?? null, settings.oneRMFormula)
       : null;
   const action = primaryAction({ finished, exerciseComplete, hasNext: nextIdx >= 0 });
   const isPaused = workout.status === 'paused';
@@ -421,6 +391,21 @@ export function WorkoutPage() {
     editDraft({ reps: String(next) });
   }
 
+  /**
+   * Fire the one-off effects when this write finished the current exercise better
+   * than last time. Uses the stored sets, so a double tap on a stale render can't fire twice.
+   */
+  function celebrateIfFinished(change: SetsChange | null, staysInView: boolean) {
+    if (!change || !settings.celebrationEnabled) return;
+    const { before, after } = change;
+    if (!finishedBetterThanLastTime(before, after, prevSession?.sets ?? null, settings.oneRMFormula)) return;
+    setCelebrateNonce(n => n + 1);
+    setAnimateMoment(staysInView);
+    if (settings.celebrationVibrate && !prefersReducedMotion() && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([20, 40, 20]);
+    }
+  }
+
   /** Log the active set (weight + reps) — persisted immediately — and move on. */
   async function logSet(weight: number, reps: number) {
     if (!current || activeIdx < 0 || busyRef.current) return;
@@ -428,7 +413,7 @@ export function WorkoutPage() {
     try {
       requestNotifyPermission();
       const outcome = afterSetLogged(exercises, cur, activeIdx);
-      await updateWorkoutSet(wid, cur, activeIdx, {
+      const change = await updateWorkoutSet(wid, cur, activeIdx, {
         weight,
         actualReps: reps,
         completed: true,
@@ -448,6 +433,7 @@ export function WorkoutPage() {
         setRestEnded(false);
       }
       if (outcome.focusIdx !== cur) setCur(outcome.focusIdx);
+      celebrateIfFinished(change, outcome.focusIdx === cur);
     } finally {
       busyRef.current = false;
     }
@@ -478,7 +464,9 @@ export function WorkoutPage() {
   }
 
   async function handleRemoveLastSet() {
-    if (current && canRemoveLastSet(sets)) await removeWorkoutSet(wid, cur, sets.length - 1);
+    if (!current || !canRemoveLastSet(sets)) return;
+    // Removing the only open set finishes the exercise too.
+    celebrateIfFinished(await removeWorkoutSet(wid, cur, sets.length - 1), true);
   }
 
   // Undo completion of a logged set
@@ -687,7 +675,7 @@ export function WorkoutPage() {
         </div>
 
         {moment?.improved && (
-          <ExerciseMoment comparison={moment} animate={settings.celebrationEnabled && celebrateNonce > 0} />
+          <ExerciseMoment comparison={moment} animate={animateMoment} />
         )}
 
         {/* Set list: klaar / nu / komt nog (DESIGN §4 "Set-rij") */}

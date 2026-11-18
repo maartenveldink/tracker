@@ -1,4 +1,7 @@
+import type { WorkoutSet } from '../../../db/index';
 import { calculate1RM, type OneRMFormula } from '../hooks/useProgress';
+import { activeSetIndex } from './liveTraining';
+import { isWeightedSet } from './sets';
 
 /**
  * Pure logic behind the "Oefening klaar" celebration (DESIGN §8, plan
@@ -72,6 +75,29 @@ export function compareSessions(
     volumeDelta: Math.round((totalVolume(t) - totalVolume(p)) * 100) / 100,
     rows,
   };
+}
+
+/** The weighted sets of an exercise, as input for the comparison. */
+export function weightedLines(sets: WorkoutSet[]): SetLine[] {
+  return sets.filter(isWeightedSet).map(s => ({ weight: s.weight!, reps: s.actualReps! }));
+}
+
+/**
+ * Trigger for the one-off effects (fireworks, vibration): this change settled
+ * the last open set of the exercise, and the result beats the previous session.
+ * It looks at the change itself, not at which exercise is on screen: a superset
+ * member is finished while the focus moves on to its partner, and returning to
+ * a finished exercise or reloading changes nothing, so neither replays.
+ */
+export function finishedBetterThanLastTime(
+  before: WorkoutSet[],
+  after: WorkoutSet[],
+  previous: SetLine[] | null,
+  formula: OneRMFormula,
+): boolean {
+  const justFinished = activeSetIndex(before) >= 0 && after.length > 0 && activeSetIndex(after) < 0;
+  if (!justFinished) return false;
+  return compareSessions(weightedLines(after), previous, formula)?.improved ?? false;
 }
 
 export type ConfettiShape = 'rect' | 'circle' | 'triangle';
