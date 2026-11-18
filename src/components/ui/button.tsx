@@ -29,7 +29,7 @@ const buttonVariants = cva(
         default: "h-touch rounded-row px-4 text-small",
         sm: "h-9 rounded-chip px-3 text-caption",
         lg: "h-button rounded-button px-6 text-body-lg",
-        xl: "h-button-train rounded-[18px] px-6 text-[19px] font-bold",
+        xl: "h-button-train rounded-[18px] px-6 text-[18px] font-bold",
         icon: "h-touch w-touch rounded-row",
       },
     },

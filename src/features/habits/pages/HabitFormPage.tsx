@@ -116,7 +116,7 @@ export function HabitFormPage() {
               placeholder="🙂"
               maxLength={2}
               aria-label="Emoji"
-              className="w-16 px-0 text-center text-lg"
+              className="w-16 px-0 text-center text-body-lg"
             />
             <Input
               value={name}

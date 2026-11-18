@@ -34,17 +34,17 @@
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
 
-  --text-caption: 12px;     /* hints, labels in tabellen, tile-labels */
-  --text-nav: 11px;         /* labels in de navigatiebalk */
-  --text-small: 13px;       /* secundaire regels */
-  --text-body: 15px;        /* standaard lijstregel */
-  --text-body-lg: 17px;     /* sets, belangrijke lijstregel, knoptekst */
-  --text-title: 22px;       /* kaarttitel, sheet-titel, timer */
-  --text-stat: 24px;        /* getal in stat-tile */
-  --text-screen: 28px;      /* schermtitel (h1) */
-  --text-hero: 32px;        /* oefeningnaam, hero-titel, banner-getal */
-  --text-big: 34px;         /* grote waarde in grafiekkaart */
-  --text-stepper: 28px;     /* waarde in stappers */
+  --text-caption: 11px;     /* hints, labels in tabellen, tile-labels */
+  --text-nav: 10.5px;         /* labels in de navigatiebalk */
+  --text-small: 12px;       /* secundaire regels */
+  --text-body: 14px;        /* standaard lijstregel */
+  --text-body-lg: 16px;     /* sets, belangrijke lijstregel, knoptekst */
+  --text-title: 20px;       /* kaarttitel, sheet-titel, timer */
+  --text-stat: 22px;        /* getal in stat-tile */
+  --text-screen: 26px;      /* schermtitel (h1) */
+  --text-hero: 30px;        /* oefeningnaam, hero-titel, banner-getal */
+  --text-big: 32px;         /* grote waarde in grafiekkaart */
+  --text-stepper: 26px;     /* waarde in stappers */
 
   /* Afrondingen */
   --radius-chip: 12px;

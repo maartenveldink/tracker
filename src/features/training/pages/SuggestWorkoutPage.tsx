@@ -274,7 +274,7 @@ export function SuggestWorkoutPage() {
       <div className="px-4 py-3">
         <Card>
           <CardContent className="p-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-small text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>Doelduur</span>
             </div>
@@ -303,7 +303,7 @@ export function SuggestWorkoutPage() {
             </div>
           </CardContent>
         </Card>
-        <p className={cn('text-xs mt-2 text-center', overTarget ? 'text-muted-foreground' : 'text-amber-400')}>
+        <p className={cn('text-caption mt-2 text-center', overTarget ? 'text-muted-foreground' : 'text-amber-400')}>
           Geschat: {formatEstimatedTime(estSeconds)} · {items.length} oefeningen
         </p>
       </div>
@@ -311,7 +311,7 @@ export function SuggestWorkoutPage() {
       {/* Exercise list */}
       <div className="px-4 space-y-2">
         {items.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground text-sm">
+          <div className="py-16 text-center text-muted-foreground text-small">
             Geen suggestie beschikbaar. Voeg eerst wat oefeningen toe of log een training.
           </div>
         ) : (
@@ -343,12 +343,12 @@ export function SuggestWorkoutPage() {
                             {info.label}
                           </span>
                         )}
-                        <span className="font-medium text-sm truncate">{ex?.name ?? 'Onbekend'}</span>
+                        <span className="font-medium text-small truncate">{ex?.name ?? 'Onbekend'}</span>
                       </div>
                       {reason ? (
                         <div
                           className={cn(
-                            'text-xs mt-0.5 flex items-center gap-1',
+                            'text-caption mt-0.5 flex items-center gap-1',
                             reason.urgent ? 'text-amber-400' : 'text-muted-foreground',
                           )}
                         >
@@ -356,7 +356,7 @@ export function SuggestWorkoutPage() {
                           <span className="truncate">{reason.text}</span>
                         </div>
                       ) : (
-                        <div className="text-xs text-muted-foreground mt-0.5">
+                        <div className="text-caption text-muted-foreground mt-0.5">
                           Swipe of wissel voor een vergelijkbare oefening
                         </div>
                       )}
@@ -382,7 +382,7 @@ export function SuggestWorkoutPage() {
                   </div>
 
                   {/* Controls */}
-                  <div className="mt-2 flex items-center gap-4 text-xs">
+                  <div className="mt-2 flex items-center gap-4 text-caption">
                     <Stepper
                       label="Sets"
                       value={String(it.sets)}
@@ -456,14 +456,14 @@ export function SuggestWorkoutPage() {
           </SheetHeader>
           <div className="mt-4 h-64 overflow-y-auto space-y-1">
             {swapCandidates.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-1 py-4">Geen vergelijkbare oefening gevonden.</p>
+              <p className="text-small text-muted-foreground px-1 py-4">Geen vergelijkbare oefening gevonden.</p>
             ) : (
               swapCandidates.map(e => (
                 <button
                   key={e.id}
                   type="button"
                   onClick={() => swapAt(swapIndex!, e.id)}
-                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
+                  className="w-full text-left px-3 py-2 text-small rounded-md hover:bg-line/60 transition-colors"
                 >
                   {e.name}
                 </button>
@@ -494,7 +494,7 @@ export function SuggestWorkoutPage() {
                   key={e.id}
                   type="button"
                   onClick={() => addExercise(e.id)}
-                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-line/60 transition-colors"
+                  className="w-full text-left px-3 py-2 text-small rounded-md hover:bg-line/60 transition-colors"
                 >
                   {e.name}
                 </button>
