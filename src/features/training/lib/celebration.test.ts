@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { averageOneRM, compareSessions, confettiPieces, type SetLine } from './celebration';
+import type { WorkoutExercise, WorkoutSet } from '../../../db/index';
+import { afterSetLogged } from './liveTraining';
+import {
+  averageOneRM,
+  compareSessions,
+  confettiPieces,
+  finishedBetterThanLastTime,
+  type SetLine,
+} from './celebration';
 
 const epley = 'epley' as const;
 const s = (weight: number, reps: number): SetLine => ({ weight, reps });
@@ -48,6 +56,66 @@ describe('compareSessions', () => {
     expect(r?.rows).toHaveLength(3);
     expect(r?.rows[2]?.previous).toBeNull();
     expect(r?.rows[2]?.repsDiff).toBeNull();
+  });
+});
+
+describe('finishedBetterThanLastTime', () => {
+  const open = (setNumber = 1): WorkoutSet => ({
+    exerciseId: 'a',
+    setNumber,
+    plannedReps: 10,
+    actualReps: null,
+    weight: null,
+    completed: false,
+    skipped: false,
+  });
+  const done = (weight: number, reps: number, setNumber = 1): WorkoutSet => ({
+    ...open(setNumber),
+    weight,
+    actualReps: reps,
+    completed: true,
+  });
+  const previous = [s(60, 10), s(60, 10)];
+  const check = (before: WorkoutSet[], after: WorkoutSet[], prev: SetLine[] | null = previous) =>
+    finishedBetterThanLastTime(before, after, prev, epley);
+
+  it('fires when the last open set is logged and the average 1RM is higher', () => {
+    expect(check([done(60, 10), open(2)], [done(60, 10), done(70, 10, 2)])).toBe(true);
+  });
+  it('does not fire while a set is still open', () => {
+    expect(check([open(), open(2)], [done(70, 10), open(2)])).toBe(false);
+  });
+  it('does not fire when the average 1RM is equal or lower', () => {
+    expect(check([done(60, 10), open(2)], [done(60, 10), done(60, 10, 2)])).toBe(false);
+    expect(check([done(60, 10), open(2)], [done(60, 10), done(50, 10, 2)])).toBe(false);
+  });
+  it('does not fire without a previous session', () => {
+    expect(check([open()], [done(70, 10)], null)).toBe(false);
+  });
+  it('does not fire again for an exercise that was already finished', () => {
+    const finished = [done(70, 10), done(70, 10, 2)];
+    expect(check(finished, finished)).toBe(false);
+  });
+  it('fires again when a reopened exercise is finished again', () => {
+    const reopened = [done(70, 10), open(2)];
+    expect(check(reopened, [done(70, 10), done(70, 10, 2)])).toBe(true);
+  });
+  it('fires when removing the only open set finishes the exercise', () => {
+    expect(check([done(70, 10), open(2)], [done(70, 10)])).toBe(true);
+  });
+  it('fires for a superset member even though the focus moves to its partner', () => {
+    const member = (exerciseId: string, sets: WorkoutSet[], order: number): WorkoutExercise => ({
+      exerciseId,
+      order,
+      sets,
+      notes: '',
+      supersetGroup: 'g',
+    });
+    const before = [done(70, 10), open(2)];
+    const workout = [member('a', before, 0), member('b', [done(20, 10), open(2)], 1)];
+
+    expect(afterSetLogged(workout, 0, 1).focusIdx).toBe(1);
+    expect(check(before, [done(70, 10), done(70, 10, 2)])).toBe(true);
   });
 });
 

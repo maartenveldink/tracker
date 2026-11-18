@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/app';
 
 const A = 'Barbell Bench Press';
+const B = 'Barbell Row';
 
 /** Runs a one-set free workout for exercise A at the given weight, to summary. */
 async function freeWorkout(
@@ -63,6 +64,48 @@ test.describe('Progression', () => {
 
     // A reload must not replay the effects.
     await page.reload();
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
+  });
+
+  test('celebrates a superset member although the focus moves to its partner, without replay', async ({
+    schemaEditor,
+    startWorkout,
+    workout,
+    page,
+  }) => {
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('Superset viering');
+    await schemaEditor.addExercise(A);
+    await schemaEditor.addExercise(B);
+    await schemaEditor.linkWithPrevious(B);
+    await schemaEditor.save();
+
+    // Baseline: one round of the superset.
+    await startWorkout.goto();
+    await startWorkout.start('Superset viering');
+    await workout.completeActiveSet(60, 10);
+    await workout.completeActiveSet(50, 10);
+    await workout.finish();
+
+    // Trim A to a single set, so logging it finishes A while B is still open.
+    await startWorkout.goto();
+    await startWorkout.start('Superset viering');
+    await workout.removeLastSet();
+    await expect.poll(() => workout.setCount()).toBe(2);
+    await workout.removeLastSet();
+    await expect.poll(() => workout.setCount()).toBe(1);
+    await workout.completeActiveSet(70, 10);
+
+    await expect(workout.currentTitle).toContainText(B);
+    await expect(page.getByTestId('celebration')).toBeVisible();
+    await expect(page.getByTestId('celebration')).toHaveCount(0, { timeout: 10_000 });
+
+    // Going back to the finished exercise shows the result without replaying anything.
+    await workout.openOverview();
+    await workout.overviewRows.nth(0).getByRole('button').first().click();
+    await expect(workout.currentTitle).toContainText(A);
+    await expect(page.getByTestId('moment-banner')).toBeVisible();
+    await expect(page.getByTestId('moment-banner')).not.toHaveClass(/animate-banner-pop/);
     await expect(page.getByTestId('celebration')).toHaveCount(0);
   });
 
