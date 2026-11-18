@@ -442,6 +442,11 @@ export function WorkoutPage() {
       setDraft(null);
       setInputError(null);
       if (outcome.rest) startRest(current.exerciseId);
+      // Same exercise stays focused without rest = it just got finished: drop a running timer
+      else if (outcome.focusIdx === cur) {
+        setRestTimer(null);
+        setRestEnded(false);
+      }
       if (outcome.focusIdx !== cur) setCur(outcome.focusIdx);
     } finally {
       busyRef.current = false;
