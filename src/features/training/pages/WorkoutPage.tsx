@@ -52,7 +52,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { isWeightedSet } from '../lib/sets';
 import { cn, formatDurationClock } from '@/lib/utils';
-import { Pause, Play, ListChecks, Minus, Plus, Link2, History } from 'lucide-react';
+import { Pause, Play, ListChecks, Minus, Plus, Link2 } from 'lucide-react';
 import type { Workout } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
@@ -343,11 +343,6 @@ export function WorkoutPage() {
   const weightStep = weightStepForExercise(currentExercise, settings.weightSteps);
   const stepLabel = formatDecimal(Math.round(resolveStep(weightStep).stepKg * 100) / 100);
 
-  const prevSetForActive = activeIdx >= 0 ? prevSession?.sets[activeIdx] : undefined;
-  const showSameAsPrevious =
-    !!prevSetForActive &&
-    (parseDecimal(weightText) !== prevSetForActive.weight || parseInt(repsText) !== prevSetForActive.reps);
-
   // Effective rest time (E3-15): session override -> schema exercise -> per-exercise
   // default -> laterality default -> global.
   function getRest(exerciseId: string): number {
@@ -446,10 +441,6 @@ export function WorkoutPage() {
     if (weight === null) return setInputError('weight');
     if (!Number.isFinite(reps) || reps <= 0) return setInputError('reps');
     await logSet(weight, reps);
-  }
-
-  async function handleSameAsPrevious() {
-    if (prevSetForActive) await logSet(prevSetForActive.weight, prevSetForActive.reps);
   }
 
   function handlePrimary() {
@@ -843,17 +834,6 @@ export function WorkoutPage() {
             {inputError === 'weight' ? WEIGHT_ERROR : REPS_ERROR}
           </p>
         )}
-        {current && !exerciseComplete && showSameAsPrevious && prevSetForActive && (
-          <button
-            type="button"
-            onClick={() => void handleSameAsPrevious()}
-            className="-mt-1 inline-flex h-touch items-center justify-center gap-1.5 self-center rounded-pill border border-line-strong px-4 text-small font-semibold text-muted hover:bg-line/60"
-          >
-            <History className="h-3.5 w-3.5" aria-hidden="true" />
-            Zelfde als vorige: {formatDecimal(prevSetForActive.weight)} kg × {prevSetForActive.reps}
-          </button>
-        )}
-
         <Button size="xl" onClick={handlePrimary}>
           {primaryLabel(action)}
         </Button>
