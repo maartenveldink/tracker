@@ -10,3 +10,5 @@ Ontwerppakket voor de makeover van Tracker.
 Voorbeelddata: alle cijfers in de schermen zijn verzonnen.
 
 Training: `screens/TrainingB1.dc.html` is het definitieve ontwerp voor de set-registratie (klikbaar prototype). `Training.dc.html` blijft de referentie voor de rest van de flow (overzicht-sheet, oefening toevoegen/overslaan, klaar-toestand, viering), maar de set-indeling daarin is verouderd. `TrainingA1-A3` en `TrainingB2` (superset-schets) zijn verworpen/uitgesteld: niet bouwen.
+
+Unilateraal: `screens/TrainingD1U.dc.html` is het definitieve ontwerp voor oefeningen die links en rechts apart worden gelogd. Supersets zijn nog niet ontworpen; `TrainingC1-C3` zijn verworpen en niet bedoeld om te bouwen.

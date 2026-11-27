@@ -180,6 +180,63 @@
    "h": 844,
    "title": "Training B2 · Superset",
    "radius": 28
+  },
+  "TrainingC1S.dc.html": {
+   "x": 3290,
+   "y": 2150,
+   "w": 390,
+   "h": 844,
+   "title": "Training C1 · Wisselschakelaar · superset",
+   "radius": 28
+  },
+  "TrainingC1U.dc.html": {
+   "x": 3290,
+   "y": 3050,
+   "w": 390,
+   "h": 844,
+   "title": "Training C1 · Wisselschakelaar · unilateraal",
+   "radius": 28
+  },
+  "TrainingC2S.dc.html": {
+   "x": 3760,
+   "y": 2150,
+   "w": 390,
+   "h": 844,
+   "title": "Training C2 · Automatisch wisselen · superset",
+   "radius": 28
+  },
+  "TrainingC2U.dc.html": {
+   "x": 3760,
+   "y": 3050,
+   "w": 390,
+   "h": 844,
+   "title": "Training C2 · Automatisch wisselen · unilateraal",
+   "radius": 28
+  },
+  "TrainingC3S.dc.html": {
+   "x": 4230,
+   "y": 2150,
+   "w": 390,
+   "h": 844,
+   "title": "Training C3 · Accordeon · superset",
+   "radius": 28
+  },
+  "TrainingC3U.dc.html": {
+   "x": 4230,
+   "y": 3050,
+   "w": 390,
+   "h": 844,
+   "title": "Training C3 · Accordeon · unilateraal",
+   "radius": 28
+  },
+  "TrainingD1U.dc.html": {
+   "x": 4700,
+   "y": 3050,
+   "w": 390,
+   "h": 844,
+   "title": "Training D1 · Unilateraal zigzag (klikbaar)",
+   "radius": 28,
+   "is_interactive": true
   }
  },
  "order": [
@@ -203,7 +260,14 @@
   "TrainingA2.dc.html",
   "TrainingA3.dc.html",
   "TrainingB1.dc.html",
-  "TrainingB2.dc.html"
+  "TrainingB2.dc.html",
+  "TrainingC1S.dc.html",
+  "TrainingC1U.dc.html",
+  "TrainingC2S.dc.html",
+  "TrainingC2U.dc.html",
+  "TrainingC3S.dc.html",
+  "TrainingC3U.dc.html",
+  "TrainingD1U.dc.html"
  ],
  "notes": {
   "t1": {
@@ -275,6 +339,20 @@
    "w": 380,
    "fill": "blue",
    "text": "Training B1 (klikbaar)\n\n1. Tik op een bolletje om die set te openen en aan te passen. Knop wordt dan \"Opslaan\".\n2. Het plusje voegt een set toe (met de waarden van de laatste).\n3. Gedaan-lijst vergelijkt per set met vorige keer: ↑ beter (accent), gelijk (muted), ↓ slechter (koraal, met pijl en tekst).\n\nSuperset (B2)\n\n1. Het label SUPERSET en de blauwe omlijning van de actieve oefening tonen dat het een superset is. De rest blijft gelijk aan een gewone oefening.\n2. Bolletjes worden rondes met twee puntjes (A en B).\n3. Rust-ring volgt pas na B."
+  },
+  "t6": {
+   "x": 3290,
+   "y": 2090,
+   "text": "Superset en unilateraal: drie opties (rij 1 superset, rij 2 per kant)",
+   "kind": "title1",
+   "maxW": 1330
+  },
+  "t7": {
+   "x": 4700,
+   "y": 2990,
+   "text": "Unilateraal: links boven, rechts onder (D1)",
+   "kind": "title1",
+   "maxW": 600
   }
  },
  "designSystems": []
