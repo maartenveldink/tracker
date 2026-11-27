@@ -20,6 +20,7 @@
   --color-accent-2: #7c9cff;      /* data, rusttimer, huidige oefening in voortgang, delta-tekst */
   --color-accent-soft: #c8f13533; /* accent met 20% dekking */
   --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-worse: #ff7a59;         /* "slechter dan vorige keer" (altijd met pijl en tekst). Alleen richting A */
 
   /* Alleen voor confetti (naast accent, accent-2 en text) */
   --color-confetti-coral: #ff7a59;
@@ -39,7 +40,7 @@
   --text-screen: 28px;      /* schermtitel (h1) */
   --text-hero: 32px;        /* oefeningnaam, hero-titel, banner-getal */
   --text-big: 34px;         /* grote waarde in grafiekkaart */
-  --text-stepper: 28px;     /* waarde in stappers */
+  --text-stepper: 40px;     /* waarde in de set-kaart (stappers) */
 
   /* Afrondingen */
   --radius-chip: 12px;

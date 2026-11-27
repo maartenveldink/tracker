@@ -9,6 +9,12 @@ Dit document is de bron van waarheid voor het nieuwe uiterlijk en de nieuwe trai
 - **Alles in dit document dat een aanname over de bestaande code is, staat onder "Controleer in de repo" (§12).** Wijkt de repo af, dan wint de repo voor gedrag en data, en dit document voor uiterlijk.
 - Verander geen backend, API-contracten of datamodel, tenzij een nieuwe afgeleide waarde (§9) het echt vereist. Bespreek dat eerst.
 
+### Wat is definitief en wat niet (Training)
+
+- **Definitief voor de set-registratie:** `TrainingB1.dc.html` ("Training B1", klikbaar prototype). Dit bepaalt de indeling van het trainingsscherm: setbolletjes met lijntjes, één set-kaart met stappers, "Gedaan"-lijst met verschil, rust-ring naast "Set klaar".
+- **Nog steeds de referentie voor gedrag eromheen:** `Training.dc.html` (oefeningenoverzicht-sheet, oefening toevoegen/overslaan, klaar-toestand, viering). De **set-indeling in dat bestand is verouderd** (inline stappers in de rij); volg daarvoor B1.
+- **Niet bouwen:** `TrainingA1/A2/A3.dc.html` (verworpen varianten) en `TrainingB2.dc.html` (superset, schets, nog niet uitgewerkt). Een superset-ontwerp volgt later; bouw nu geen supersets.
+
 ### Hoe lees je de bestanden in `screens/`
 
 Elk `.dc.html`-bestand is één scherm van 390 × 844 px. Ze draaien in een eigen runtime (`support.js`) die niet is meegeleverd, dus je kunt ze **niet** los in een browser openen. Behandel ze als leesbare specificatie:
@@ -38,7 +44,9 @@ Bekende routes komen uit de live app. De rest moet je in de repo opzoeken.
 | Home (met data) | `Main.dc.html` | `/` |
 | Home (leeg) | `HomeLeeg.dc.html` | `/` |
 | Start training | `Train.dc.html` | `/start` |
-| Training (tijdens sessie) | `Training.dc.html` | controleer |
+| Training (tijdens sessie), set-registratie | `TrainingB1.dc.html` (definitief) | controleer |
+| Training, rest van de flow (sheet, toevoegen, viering) | `Training.dc.html` (set-indeling verouderd) | controleer |
+| Training-varianten, niet bouwen | `TrainingA1–A3.dc.html`, `TrainingB2.dc.html` | – |
 | Oefening klaar (viering) | `Moment.dc.html` (lus), en in `Training.dc.html` (live) | onderdeel van training |
 | Habits | `Habits.dc.html` | `/habits` |
 | Progressie, tab Oefeningen | `Progressie.dc.html` | `/progress` |
@@ -72,6 +80,7 @@ Bestanden: `tokens/tokens.css` (CSS-variabelen) en `tokens/tokens.json`. **Gebru
 | `--color-accent` | `#C8F135` | primaire actie, voortgang, positief verschil, PR, actieve tab |
 | `--color-on-accent` | `#0A0E1A` | tekst op accent |
 | `--color-accent-2` | `#7C9CFF` | data, rusttimer, delta-tekst "↑ x% t.o.v. vorige week" |
+| `--color-worse` | `#FF7A59` | "slechter dan vorige keer" in de Gedaan-lijst (altijd samen met `↓` en tekst). Nieuw token, zelfde waarde als `--color-confetti-coral`. Alleen voor richting A gedefinieerd |
 
 Contrast (gemeten): tekst op achtergrond 17,5:1, muted op kaart 7,1:1, accent op achtergrond 14,8:1, tekst op accent 14,8:1.
 
@@ -94,7 +103,8 @@ Webfonts via Google Fonts: **Inter** (400, 500, 600) voor tekst, **Space Grotesk
 | Grote waarde (1RM, gewicht) | Space Grotesk | 34 | 700 | eenheid ernaast 16/500 in muted |
 | Kaart- en sheettitel, timer | Space Grotesk | 22 | 700 | |
 | Waarde in stat-tile | Space Grotesk | 24 | 700 | |
-| Waarde in stappers | Space Grotesk | 28 | 700 | |
+| Waarde in stappers (set-kaart) | Space Grotesk | 40 | 700 | regelhoogte 1,15 |
+| Tijd in rust-ring | Space Grotesk | 17 | 700 | `accent-2` |
 | Lijstregel groot (set, oefening) | Inter | 17 | 500–600 | |
 | Lijstregel | Inter | 15 | 400–600 | |
 | Secundair | Inter | 13–14 | 400–500 | kleur muted |
@@ -155,18 +165,24 @@ Maten in px. Staten: standaard, actief/geselecteerd, uitgeschakeld (muted tekst,
 - **Tekstknop.** Hoogte 44, geen rand, accent of muted tekst, 14/600.
 - **Chip / segment.** 44 hoog (hit area), pill. Geselecteerd: accent vlak met `on-accent` tekst, 600. Niet geselecteerd: transparant, muted tekst. Segmented control: container `surface`, radius 16, padding 4, drie gelijke knoppen van 40 hoog, radius 12.
 - **Lijstrij.** Minimaal 56–64 hoog, `surface`, 1 px `line`, radius 14–16, padding 0 14–16. Titel 15–16/600, subregel 12 muted. Rechts: waarde, chevron (muted) of actie.
-- **Set-rij** (training). Raster `28px | 1fr | auto`, minimaal 48 hoog, radius 14. Drie toestanden:
-  - *klaar:* `surface`, ronde badge 28 gevuld accent met setnummer in `on-accent`, tekst `140 kg × 8`, rechts "Klaar" muted.
-  - *nu:* achtergrond `bg`, 2 px accentrand, badge 28 met 2 px accentrand en accent tekst, rechts "Nu" accent 700.
-  - *komt nog:* transparant, 1 px stippelrand `line-strong`, muted tekst, badge op `line`.
-- **Stapper** (gewicht, herhalingen). Container `bg`, radius 16, padding 4. Raster `44px | 1fr | 44px`: min-knop, waarde (28/700, gecentreerd), plus-knop. Knoppen 44 × 52, radius 12, vlak `line`, symbool 24. Label erboven 12 muted, gecentreerd. Gewichtsstap 2,5 kg (instelbaar), herhalingen 1.
-- **Rusttimer-strook.** Kaart radius 14, padding 10 14. Links "Rust" muted, midden tijd `Space Grotesk` 20/700 in `accent-2`, rechts tekstknop "+30 sec". Eronder voortgangsbalk 4 hoog (`line`, vulling `accent-2`).
+- **Set-voortgang** (training, boven de set-kaart). Rij met per set een knop van 48 × 48 (hit area) met daarin een rondje van 36, cijfer 15/700, en tussen de rondjes een **lijntje** (flex 1, minimaal 6 breed, 2 hoog). Laatste item is een **plus-rondje** (stippelrand 1,5 `line-strong`, plus-icoon in accent, aria-label "Set toevoegen"), verborgen bij 8 sets. Staten van het rondje:
+  - *klaar:* gevuld accent, cijfer `on-accent`.
+  - *geopend* (de set die nu in de kaart staat, dus ook een afgeronde set die je aanpast): transparant, 2 px accentrand, cijfer accent. Geen extra ring of outline eromheen.
+  - *komt nog:* vlak `line`, cijfer muted.
+  Lijntje: accent als de set **ervoor** klaar is (de lijn loopt dus tot en met de huidige set gekleurd), anders `line`. Het lijntje voor het plus-rondje is `line`. Tik op een rondje opent die set; `aria-pressed` op het geopende rondje, aria-label "Set 2 (klaar), aanpassen".
+- **Set-kaart.** `surface`, 1 px `line`, radius 24, padding 18 16 16, marge boven 6. Twee kolommen (Gewicht, Herhalingen) met een verticale scheidingslijn van 1 px `line` ertussen (raster `1fr 1px 1fr`, gap 12). Per kolom, gecentreerd: label 12 muted ("Gewicht (kg)", "Herhalingen"), waarde 40/700 `Space Grotesk`, daaronder twee knoppen − en + van 66 × 52, radius 16, vlak `line`, symbool 24, onderlinge ruimte 8, 8 boven. Gewichtsstap 2,5 kg (instelbaar), herhalingen 1. Aria-labels: "Gewicht 2,5 kg minder/meer", "Eén herhaling minder/meer". **Geen kopregel in de kaart**: set-nummer en vorige keer staan al in het scherm (bolletjes, "Vorige keer"-regel).
+- **Gedaan-lijst met verschil.** Sectielabel "GEDAAN" (12/600, +0,08em, muted). Daaronder per afgeronde set een rij van 44 hoog, 1 px onderlijn `line`, links `Set 1 · 140 kg × 8` (15), rechts het verschil met dezelfde set van de vorige sessie (14). De hele rij is een knop die die set opent. Verschil, in dezelfde notatie als de vergelijkingstabel van het "Oefening klaar"-scherm:
+  - zelfde gewicht: herhalingen-verschil: `↑ +1` (accent, 700), `gelijk` (muted, 400), `↓ 1` (`--color-worse`, 700);
+  - ander gewicht: verschil in kg: `↑ +2,5 kg` / `↓ 2,5 kg`;
+  - geen set met dat nummer vorige keer: `nieuw` (muted).
+  Geen woorden als "herh." of "t.o.v. vorige keer".
+- **Rust-ring** (naast de hoofdknop, 64 × 64). Cirkel r 28, lijn 5, spoor `line`, voortgang `accent-2` met ronde uiteinden, begint boven (−90°). Midden: resterende tijd `1:12` in `Space Grotesk` 17/700 `accent-2`. De ring loopt leeg naarmate de rust verstrijkt. Tik = +30 sec. Het is een knop (aria-label "Rust, nog 1 minuut 12. Tik voor 30 seconden extra"), geen aparte kaart.
 - **Voortgangsbalk.** 8 hoog, radius 4, spoor `line`. Vulling accent of `accent-2`.
 - **Invoerveld.** 48 hoog (52 bij de belangrijkste), radius 14, rand `line-strong`, vlak `bg` (of `surface` op `bg`), tekst 16 (voorkomt zoom op iOS). Altijd een zichtbaar of toegankelijk label.
 - **Switch.** Knop met `role="switch"` en `aria-checked`. Spoor 52 × 32, radius 16, knop 26. Aan: spoor accent, knop `on-accent`. Uit: spoor `line-strong`, knop muted. De rij is minimaal 60 hoog.
 - **Bottom sheet.** `surface`, 1 px bovenrand, radius 28 boven, padding 18 20 20, achterliggend scherm met `--color-overlay`. Titel links (22/700), sluitknop rechts (44 × 44, rond).
 - **Banner (verbetering).** Radius 18, achtergrond accent, tekst `on-accent`. Raster `40px | 1fr`: ronde icoonbadge 40 (`bg` met accent icoon), titel 18/700, subregel 14/500.
-- **Vergelijkingstabel.** Kaart met kolommen `44px | 1fr | 72px | 72px` (Set, Vandaag, Vorige keer, Verschil). Rijen 44–48 hoog, scheidingslijn `line`. Verschil: verbetering `↑ +n` in accent 700, gelijk "gelijk" in muted, achteruit `↓ n` in muted.
+- **Vergelijkingstabel.** Kaart met kolommen `44px | 1fr | 72px | 72px` (Set, Vandaag, Vorige keer, Verschil). Rijen 44–48 hoog, scheidingslijn `line`. Verschil: verbetering `↑ +n` in accent 700, gelijk "gelijk" in muted, achteruit `↓ n` (in de Gedaan-lijst van het trainingsscherm in `--color-worse`, in deze tabel muted).
 - **Grafieken.** Eigen SVG of een lichte bibliotheek, geen zware. Specificaties in §7. Elke grafiek heeft `role="img"` en een `aria-label` met de conclusie in woorden.
 
 ## 5. Schermspecificaties
@@ -186,8 +202,16 @@ Leeg: hero wordt "Begin je eerste training" met knoppen "Start vrije training" e
 ### Start training (`Train.dc.html`)
 Voorgestelde training (kaart met 2 px accentrand en primaire knop "Start Benen"), sectie "Uit je schema" met een rij per trainingsdag (A/B/C), en een stippelrij "Vrije training".
 
-### Training (`Training.dc.html`), het belangrijkste scherm
-Geen navigatiebalk. Boven: label "Benen · oefening 3 van 6", timer, een lijst-knop (opent het oefeningenoverzicht) en "Afronden". Daaronder oefeningnaam (32/700), "Vorige keer: 140 × 8 · 8 · 7" en een chip "Doel: 140 kg × 9" in accent. Dan de setlijst, de tekstknoppen "+ Set toevoegen" en "Laatste set weghalen", en de rusttimer-strook zodra er een set klaar is. **Onderin, vast, in duimbereik:** de twee stappers, de grote knop "Set klaar", en een regel "Straks: Beenstrekken · 3 × 12" met "Oefening overslaan".
+### Training (`TrainingB1.dc.html`), het belangrijkste scherm
+Geen navigatiebalk. Van boven naar beneden:
+1. Balk: links alleen de trainingstimer (`42:18`, 22/700); rechts de lijst-knop (opent het oefeningenoverzicht) en "Afronden". Er staat geen label "Benen · oefening 3 van 6".
+2. Oefeningnaam (32/700), regel "Vorige keer: 140 × 8 · 8 · 7" en een chip "Doel: 140 kg × 9" in accent.
+3. Set-voortgang (bolletjes met lijntjes en plus), zie §4.
+4. Set-kaart met de stappers voor de geopende set, zie §4.
+5. "Gedaan"-lijst met verschil, zie §4.
+6. **Onderin, vast, in duimbereik** (padding 0 20 32): rij met rust-ring (64) en de hoofdknop "Set klaar" (flex 1, 64 hoog, radius 18, 19/700). Geen "Straks: …"-regel en geen "Oefening overslaan"-knop op dit scherm; overslaan, toevoegen en wisselen kan via de lijst-knop bovenin.
+
+Het scherm tussen kaart en onderrand blijft leeg (flexibele ruimte); dat is bedoeld.
 
 Gedrag in §6.
 
@@ -221,16 +245,20 @@ Dit is wat `Training.dc.html` doet. Neem de logica over, maar koppel hem aan de 
 
 **Toestand per oefening:** `todo`, `done`, `skipped`. Er is altijd één huidige oefening (`cur`) zolang er nog een `todo` is.
 
-**Sets van de huidige oefening:** `total` (aantal geplande sets, uit het schema of 3 bij een nieuwe oefening) en `done` (gelogde sets met gewicht en herhalingen). De rij op positie `done.length` is "nu". Gewicht en herhalingen in de stappers zijn voorgevuld met de **bovenste set van de vorige sessie** van die oefening en blijven staan na "Set klaar".
+**Sets van de huidige oefening:** `total` (aantal geplande sets, uit het schema of 3 bij een nieuwe oefening) en `done` (gelogde sets met gewicht en herhalingen). De eerste niet-afgeronde set is "nu" en staat standaard geopend in de set-kaart. Gewicht en herhalingen in de stappers zijn voorgevuld met de **bovenste set van de vorige sessie** van die oefening; na "Set klaar" krijgt de eerstvolgende niet-afgeronde set de waarden van de net afgeronde set.
+
+**Geopende set (`sel`).** Standaard de eerste niet-afgeronde set. Tik op een bolletje of op een rij in de Gedaan-lijst opent die set; de stappers werken dan op die set. Is de geopende set al afgerond, dan heet de hoofdknop **"Opslaan"** en keert na een tik terug naar de eerste niet-afgeronde set (de gewijzigde waarden worden direct bewaard en het verschil in de lijst wordt herberekend). Een nog niet afgeronde set die niet de eerstvolgende is mag ook geopend en afgerond worden (volgorde is niet verplicht). Zijn alle sets afgerond en is er niets geopend, dan geldt de regel "Volgende oefening" hieronder.
 
 | Actie | Gevolg |
 |---|---|
-| Tik "Set klaar" | Voeg `{gewicht, herhalingen}` toe aan `done`. Rusttimer start (als aan in instellingen). |
-| `done.length == total` | Knop wordt "Volgende oefening" ("Laatste oefening afronden" als er geen volgende is). Rusttimer-strook verdwijnt. |
+| Tik "Set klaar" | Markeer de geopende set als afgerond met `{gewicht, herhalingen}`, bewaar direct. Rust-ring start (als aan in instellingen). De eerstvolgende niet-afgeronde set wordt geopend en voorgevuld. |
+| Tik "Opslaan" (afgeronde set geopend) | Bewaar de aanpassing, ga terug naar de eerste niet-afgeronde set. Rust-ring wordt niet herstart. |
+| Tik bolletje of rij in Gedaan-lijst | Opent die set in de set-kaart. |
+| `done.length == total` | Knop wordt "Volgende oefening" ("Laatste oefening afronden" als er geen volgende is). De rust-ring blijft zichtbaar zolang hij loopt. |
 | "Volgende oefening" | Huidige → `done`. Huidige oefening = eerstvolgende `todo` na de huidige; anders de eerste `todo` ervoor; anders **klaar-toestand**. |
-| "+ Set toevoegen" | `total + 1`, maximaal 8. |
-| "Laatste set weghalen" | `total = max(1, done.length, total − 1)`. Een gelogde set verdwijnt niet. |
-| "Oefening overslaan" | Huidige → `skipped`, daarna dezelfde zoekregel als hierboven. |
+| Plus-rondje | Voeg een set toe met de waarden van de laatste set, `total + 1`, maximaal 8. De nieuwe set wordt geopend. |
+| Set verwijderen | **Niet ontworpen.** De oude knop "Laatste set weghalen" is vervallen. Zie §12 voor de open vraag. |
+| "Oefening overslaan" (alleen nog via het overzicht, zie hieronder) | Huidige → `skipped`, daarna dezelfde zoekregel als hierboven. |
 | Lijst-knop | Opent het oefeningenoverzicht (sheet). |
 | Rij aantikken in overzicht | Die oefening wordt huidig (status `todo`), sets worden gereset, sheet sluit. |
 | "Overslaan" in overzicht | Zet een `todo` op `skipped`. Is het de huidige, dan geldt de zoekregel. |
@@ -242,7 +270,8 @@ Dit is wat `Training.dc.html` doet. Neem de logica over, maar koppel hem aan de 
 Overige regels:
 - Tijdens de training: scherm aan houden (Screen Wake Lock API, instelbaar), navigatiebalk verbergen.
 - "Afronden" (rechtsboven) vraagt bij openstaande oefeningen om bevestiging. Dat dialoogje is niet ontworpen: gebruik het sheet-patroon.
-- Rustduur komt uit het schema, anders uit de instelling (standaard 1:30). "+30 sec" verlengt. Einde rust: trillen als ondersteund en aan.
+- Rustduur komt uit het schema, anders uit de instelling (standaard 1:30). Tik op de ring verlengt met 30 sec. Einde rust: trillen als ondersteund en aan, ring leeg en tijd `0:00`. De rust loopt door terwijl je een andere set opent of aanpast. Een nieuwe "Set klaar" herstart de rust.
+- Voordat er een set is afgerond (geen rust actief): niet ontworpen. Voorstel: toon de ring leeg met de ingestelde rustduur in muted; tik start de rust handmatig.
 - Bewaar elke afgeronde set direct (niet pas bij afronden), zodat een herlaad of crash niets kwijtraakt.
 
 ## 7. Inzichten: berekeningen
@@ -303,6 +332,7 @@ Kort, direct, informeel ("je"). Nederlands in de hele app. Teksten uit de huidig
 - Switch: `role="switch"` + `aria-checked`. Habit-cirkel: `aria-pressed`.
 - Tekstcontrast ≥ 4,5:1 (gemeten, zie §3). UI-grenzen ≥ 3:1: gebruik `line-strong` (§3).
 - Informatie nooit alleen met kleur: "laag", "gelijk" en "↑ +1" staan als tekst, niet alleen als kleur.
+- Setbolletjes: `aria-pressed` voor de geopende set; verschil in de Gedaan-lijst staat als tekst met pijl, kleur is niet het enige signaal.
 - Rusttimer: kondig het einde van de rust aan met `aria-live="polite"`, niet elke seconde.
 - Grafieken: `role="img"` met een `aria-label` dat de conclusie noemt.
 
@@ -319,6 +349,10 @@ Dit zijn dingen die ik niet kon zien. Zoek ze op en pas het ontwerp aan waar nod
 7. Volume-delta in de tile: vorige week volledig of tot dezelfde weekdag?
 8. Staat het Meer-menu, de Schema's- en Oefeningenlijst op dezelfde routes als in het ontwerp?
 
+9. **Set verwijderen.** In het ontwerp is alleen toevoegen (plus-rondje). Beslis met Maarten hoe je een set weghaalt (bijvoorbeeld een muted tekstknop "Set verwijderen" onder de kaart bij de laatste, niet-afgeronde set).
+10. **Verschil per set.** Het prototype vergelijkt bij een ander gewicht alleen kg. Overweeg geschat 1RM (§7) als de sets sterk afwijken, en leg de keuze vast.
+11. **Superset.** `TrainingB2.dc.html` is een eerste schets en is afgekeurd als uitwerking. Niet bouwen; er komt een nieuw ontwerp.
+
 ## 13. Bouwvolgorde
 
 Werk in kleine, afzonderlijk te reviewen stappen. Houd de app na elke stap werkend.
@@ -326,7 +360,7 @@ Werk in kleine, afzonderlijk te reviewen stappen. Houd de app na elke stap werke
 1. **Inventaris.** Lees de repo, vul §12 in, noem de bestaande schermen, componenten en stijlen.
 2. **Fundament.** Tokens (`tokens/tokens.css`), fonts, globale basisstijl, `theme-color`, navigatiebalk en kaart/knop/chip/rij-componenten volgens §4.
 3. **Home** (met data en leeg).
-4. **Training** inclusief setlijst, stappers, rusttimer, set toevoegen, oefening overslaan/toevoegen, overzicht-sheet en klaar-toestand. Dit levert de meeste waarde.
+4. **Training** volgens `TrainingB1.dc.html` (set-voortgang, set-kaart, Gedaan-lijst met verschil, rust-ring), plus de flow uit `Training.dc.html`: oefening overslaan/toevoegen via het overzicht, overzicht-sheet en klaar-toestand. Dit levert de meeste waarde.
 5. **Viering** (§8).
 6. **Progressie** (drie tabs) met de berekeningen uit §7.
 7. **Overige schermen:** Habits, Start training, Meer, Oefeningen, Schema's, Instellingen.
