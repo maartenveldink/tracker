@@ -154,6 +154,10 @@ export function openSetValues(
 ): { weight: number | null; reps: number | null } {
   const opened = sets[idx];
   if (opened?.completed) return { weight: opened.weight ?? 0, reps: opened.actualReps };
+  // A set that was logged and put back ("Set terugzetten") keeps its own values.
+  if (opened && opened.actualReps != null && opened.actualReps > 0) {
+    return { weight: opened.weight ?? 0, reps: opened.actualReps };
+  }
   for (let i = sets.length - 1; i >= 0; i--) {
     const s = sets[i]!;
     if (s.completed && s.actualReps != null && s.actualReps > 0 && s.weight != null) {

@@ -29,6 +29,7 @@ function ValueColumn({ label, testId, inputMode, value, onChange, onStep, minusL
         id={testId}
         data-testid={testId}
         aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? 'set-input-error' : undefined}
         value={value}
         placeholder="–"
         onChange={e => onChange(e.target.value)}

@@ -12,17 +12,17 @@ interface LiveSetProgressProps {
 /**
  * DESIGN §4 "Set-voortgang": a dot per set with lines in between and a plus
  * dot at the end (hidden at the maximum). Tap a dot to open that set.
- * Hit areas are 48 high; with many sets on a narrow screen they may shrink
- * in width down to the 36px dot so the row never overflows.
+ * Hit areas are 48 × 48 and never below 44 wide; with many sets on a narrow
+ * screen the row scrolls horizontally instead of shrinking the tap targets.
  */
 export function LiveSetProgress({ dots, canAdd, onOpen, onAdd }: LiveSetProgressProps) {
   const hit =
-    'flex h-12 w-12 min-w-9 shrink items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'flex h-12 w-12 min-w-touch shrink items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   const dot = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body font-bold';
   const line = (on: boolean) => <span aria-hidden="true" className={cn('h-0.5 min-w-1.5 flex-1', on ? 'bg-accent' : 'bg-line')} />;
 
   return (
-    <div className="flex items-center" role="group" aria-label="Sets">
+    <div className="-mx-1 flex items-center overflow-x-auto px-1" role="group" aria-label="Sets">
       {dots.map((d, i) => (
         <span key={d.number} className="contents">
           {i > 0 && line(d.lineOn)}

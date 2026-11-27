@@ -160,6 +160,10 @@ describe('openSetValues', () => {
     const planned = [set('todo', 1, { plannedWeight: 40, plannedReps: 12 })];
     expect(openSetValues(planned, 0, [{ weight: 50, reps: 5 }])).toEqual({ weight: 40, reps: 12 });
   });
+  it('a set that was put back keeps its own values', () => {
+    const s = [set('todo', 1, { weight: 60, actualReps: 9 }), set('todo', 2), set('done', 3, { weight: 70, actualReps: 5 })];
+    expect(openSetValues(s, 0, [])).toEqual({ weight: 60, reps: 9 });
+  });
   it('is empty without any source', () => {
     expect(openSetValues([set('todo', 1, { plannedReps: null })], 0, [])).toEqual({ weight: null, reps: null });
   });

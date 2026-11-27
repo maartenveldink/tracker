@@ -475,7 +475,8 @@ export function WorkoutPage() {
 
   /** Log the opened set (weight + reps) — persisted immediately — and move on. */
   async function logSet(setIdx: number, weight: number, reps: number) {
-    if (!current || setIdx < 0 || busyRef.current) return;
+    // A second tap on a stale render: the set is already logged, do nothing.
+    if (!current || setIdx < 0 || sets[setIdx]?.completed || busyRef.current) return;
     busyRef.current = true;
     try {
       requestNotifyPermission();
@@ -550,10 +551,15 @@ export function WorkoutPage() {
 
   /** Plus dot: add a set with the values of the last one and open it. */
   async function handleAddSet() {
-    if (!current || !canAddSet(sets)) return;
-    const newIdx = sets.length;
-    await addWorkoutSet(wid, cur);
-    openSetAt(newIdx);
+    if (!current || !canAddSet(sets) || busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const newIdx = sets.length;
+      await addWorkoutSet(wid, cur);
+      openSetAt(newIdx);
+    } finally {
+      busyRef.current = false;
+    }
   }
 
   /** "Set verwijderen": the opened last set, only while it is not logged. */
@@ -787,7 +793,7 @@ export function WorkoutPage() {
               />
             )}
             {inputError && (
-              <p role="alert" className="mt-1.5 text-caption text-danger">
+              <p id="set-input-error" role="alert" className="mt-1.5 text-caption text-danger">
                 {inputError === 'weight' ? WEIGHT_ERROR : REPS_ERROR}
               </p>
             )}
@@ -876,7 +882,8 @@ export function WorkoutPage() {
               }}
             />
           )}
-          <Button size="xl" className="min-w-0 flex-1" onClick={handlePrimary}>
+          {/* An exercise without sets has nothing to log: add one via the plus dot. */}
+          <Button size="xl" className="min-w-0 flex-1" onClick={handlePrimary} disabled={action === 'set' && openIdx < 0}>
             {primaryLabel(action)}
           </Button>
         </div>
