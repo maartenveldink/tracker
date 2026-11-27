@@ -43,6 +43,8 @@ export function LiveSetRowScroller({
   const ref = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const firstScroll = useRef(true);
+  /** A smooth scroll towards an earlier opened set may still be running. */
+  const gliding = useRef(false);
   const [edges, setEdges] = useState<ScrollEdges>({ left: false, right: false });
 
   useLayoutEffect(() => {
@@ -78,12 +80,19 @@ export function LiveSetRowScroller({
     const fade = scrollEdges(el);
     const left = box.left + (fade.left ? FADE_LEFT : 0);
     const right = box.right - (fade.right ? FADE_RIGHT : 0);
-    if (dot.left >= left - 1 && dot.right <= right + 1) return;
+    if (dot.left >= left - 1 && dot.right <= right + 1) {
+      // In sight now: stop a glide towards a set opened a moment ago (e.g. the
+      // active set shown for a moment while an added set is still being stored).
+      if (gliding.current && typeof el.scrollTo === 'function') el.scrollTo({ left: el.scrollLeft, behavior: 'auto' });
+      gliding.current = false;
+      return;
+    }
     // Centre it (as `scrollIntoView({ inline: 'center', block: 'nearest' })`), but
     // only this scroller moves: the page never jumps. Relative to the current
     // scrollLeft, so it holds for the rtl convention (0 at the right, negative left).
     const delta = dot.left + dot.width / 2 - (box.left + box.width / 2);
     const to = el.scrollLeft + delta;
+    gliding.current = !instant;
     if (typeof el.scrollTo === 'function') el.scrollTo({ left: to, behavior: instant ? 'auto' : 'smooth' });
     else el.scrollLeft = to;
   }, [openedKey, count]);
