@@ -26,17 +26,19 @@ test.describe('Live workout — advanced', () => {
     await expect.poll(() => workout.setCount()).toBe(3);
   });
 
-  test('lets the rest timer be skipped', async ({ schemaEditor, startWorkout, workout }) => {
-    await simpleSchema(schemaEditor, 'E2E Skip');
+  test('shows the rest ring after a set and extends it by 30 seconds', async ({ schemaEditor, startWorkout, workout }) => {
+    await simpleSchema(schemaEditor, 'E2E Rest');
     await startWorkout.goto();
-    await startWorkout.start('E2E Skip');
+    await startWorkout.start('E2E Rest');
 
     await workout.completeActiveSet(60, 10);
     await expect(workout.restTimer).toBeVisible();
     await expect(workout.restTimer).toBeInViewport();
 
-    await workout.skipRest();
-    await expect(workout.restTimer).toHaveCount(0);
+    const before = await workout.restSeconds();
+    await workout.extendRest();
+    // The countdown keeps running, so allow a few seconds of slack under the +30.
+    await expect.poll(() => workout.restSeconds()).toBeGreaterThan(before + 20);
   });
 
   test('creates a brand-new exercise mid-workout and adds it', async ({

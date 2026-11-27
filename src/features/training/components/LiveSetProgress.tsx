@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SetDot } from '../lib/setRegistration';
@@ -13,16 +14,25 @@ interface LiveSetProgressProps {
  * DESIGN §4 "Set-voortgang": a dot per set with lines in between and a plus
  * dot at the end (hidden at the maximum). Tap a dot to open that set.
  * Hit areas are 48 × 48 and never below 44 wide; with many sets on a narrow
- * screen the row scrolls horizontally instead of shrinking the tap targets.
+ * screen the row scrolls horizontally (scrollbar hidden, swipe still works) instead of
+ * shrinking the tap targets; the opened dot is scrolled into view.
  */
 export function LiveSetProgress({ dots, canAdd, onOpen, onAdd }: LiveSetProgressProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const openedIndex = dots.findIndex((d) => d.pressed);
+  const count = dots.length;
+  useEffect(() => {
+    // Instant (no smooth scroll): keeps the opened dot findable without a scrollbar.
+    const el = ref.current?.querySelector('[aria-pressed="true"]');
+    el?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+  }, [openedIndex, count]);
   const hit =
     'flex h-12 w-12 min-w-touch shrink items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   const dot = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body font-bold';
   const line = (on: boolean) => <span aria-hidden="true" className={cn('h-0.5 min-w-1.5 flex-1', on ? 'bg-accent' : 'bg-line')} />;
 
   return (
-    <div className="-mx-1 flex items-center overflow-x-auto px-1" role="group" aria-label="Sets">
+    <div ref={ref} className="scrollbar-none -mx-1 flex items-center overflow-x-auto px-1" role="group" aria-label="Sets">
       {dots.map((d, i) => (
         <span key={d.number} className="contents">
           {i > 0 && line(d.lineOn)}

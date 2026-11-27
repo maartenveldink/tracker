@@ -35,6 +35,7 @@ import {
   primaryLabel,
   restoreSkippedSets,
   skipRemainingSets,
+  restTimerAfterSetLogged,
 } from '../lib/liveTraining';
 import { useCompletedWorkouts, calculate1RM, type OneRMFormula } from '../hooks/useProgress';
 import { volumePerMuscleGroup } from '../lib/metrics';
@@ -500,11 +501,11 @@ export function WorkoutPage() {
         await updateWorkoutSet(wid, cur, nextOpen, { weight });
       }
       closeOpenedSet();
-      if (outcome.rest) startRest(current.exerciseId);
-      // Same exercise stays focused and has nothing left to log = it just got
-      // finished: drop a running timer. (After a unilateral left part there is
-      // no new rest either, but a running one keeps going.)
-      else if (outcome.focusIdx === cur && nextOpen < 0) {
+      // "Set klaar" always ends the current rest: a new rest restarts from the
+      // full duration, otherwise (unilateral left part, superset switch, last
+      // open set) a running timer is cleared.
+      if (restTimerAfterSetLogged(outcome) === 'restart') startRest(current.exerciseId);
+      else {
         setRestTimer(null);
         setRestEnded(false);
       }
@@ -909,15 +910,6 @@ export function WorkoutPage() {
             {primaryLabel(action)}
           </Button>
         </div>
-        {restTimer && (
-          <button
-            type="button"
-            className={cn(textBtn, 'self-start text-muted')}
-            onClick={() => setRestTimer(null)}
-          >
-            Rust overslaan
-          </button>
-        )}
         {finished && (
           <Button variant="secondary" size="lg" onClick={openAdd}>
             + Oefening toevoegen
