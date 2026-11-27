@@ -54,8 +54,34 @@ input{font-family:inherit}
       <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
         <div style="{{r.box}}">
           <span style="{{r.badge}}">{{r.num}}</span>
-          <span style="font-size: 17px; font-weight: 500">{{r.label}}</span>
-          <span style="{{r.tag}}">{{r.status}}</span>
+          <sc-if value="{{r.isActive}}" hint-placeholder-val="{{ false }}">
+            <div style="grid-column: 2 / 4; display: flex; align-items: center; justify-content: space-between; min-width: 0">
+              <div style="display: flex; align-items: center">
+                <button aria-label="Gewicht 2,5 kg minder" onClick="{{r.wMinus}}" style="{{r.stepBtn}}">−</button>
+                <span style="{{r.stepVal}} min-width: 64px; text-align: center">{{r.wText}} kg</span>
+                <button aria-label="Gewicht 2,5 kg meer" onClick="{{r.wPlus}}" style="{{r.stepBtn}}">+</button>
+              </div>
+              <span style="font-size: 17px; color: {{muted}}" aria-hidden="true">×</span>
+              <div style="display: flex; align-items: center">
+                <button aria-label="Eén herhaling minder" onClick="{{r.rMinus}}" style="{{r.stepBtn}}">−</button>
+                <span style="{{r.stepVal}} min-width: 28px; text-align: center">{{r.rText}}</span>
+                <button aria-label="Eén herhaling meer" onClick="{{r.rPlus}}" style="{{r.stepBtn}}">+</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{r.notActive}}" hint-placeholder-val="{{ true }}">
+            <span style="font-size: 17px; font-weight: 500">{{r.label}}</span>
+          </sc-if>
+          <sc-if value="{{r.showTag}}" hint-placeholder-val="{{ true }}">
+            <span style="{{r.tag}}">{{r.status}}</span>
+          </sc-if>
+          <sc-if value="{{r.showRestHere}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; gap: 2px">
+              <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 17px; font-weight: 700; color: {{accent2}}" aria-label="Rust, nog 1 minuut 12">1:12</span>
+              <button aria-label="30 seconden extra rust" style="height: 44px; padding: 0 8px; border: 0; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">+30</button>
+            </div>
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: {{line}}"><div style="width: 55%; height: 3px; background: {{accent2}}"></div></div>
+          </sc-if>
         </div>
       </sc-for>
     </div>
@@ -66,43 +92,11 @@ input{font-family:inherit}
         <button onClick="{{removeSet}}" style="height: 44px; padding: 0 4px; border: 0; background: transparent; color: {{muted}}; font-size: 14px; cursor: pointer">Laatste set weghalen</button>
       </div>
     </sc-if>
-
-    <sc-if value="{{showRest}}" hint-placeholder-val="{{ true }}">
-      <div style="background: {{surface}}; border: 1px solid {{line}}; border-radius: 14px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px">
-        <div style="display: flex; justify-content: space-between; align-items: center">
-          <span style="font-size: 14px; color: {{muted}}">Rust</span>
-          <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 20px; font-weight: 700; color: {{accent2}}">1:12</span>
-          <button style="height: 36px; padding: 0 12px; border: 0; background: transparent; color: {{text}}; font-size: 13px; font-weight: 600; cursor: pointer">+30 sec</button>
-        </div>
-        <div style="height: 4px; border-radius: 2px; background: {{line}}"><div style="width: 55%; height: 4px; border-radius: 2px; background: {{accent2}}"></div></div>
-      </div>
-    </sc-if>
   </div>
 
   <div style="flex: 1"></div>
 
-  <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px">
-    <sc-if value="{{showSteppers}}" hint-placeholder-val="{{ true }}">
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
-        <div style="display: flex; flex-direction: column; gap: 6px">
-          <span style="font-size: 12px; color: {{muted}}; text-align: center">Gewicht (kg)</span>
-          <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; background: {{bg}}; border-radius: 16px; padding: 4px">
-            <button aria-label="Gewicht 2,5 kg minder" onClick="{{wMinus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
-            <span style="text-align: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700">{{wText}}</span>
-            <button aria-label="Gewicht 2,5 kg meer" onClick="{{wPlus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
-          </div>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px">
-          <span style="font-size: 12px; color: {{muted}}; text-align: center">Herhalingen</span>
-          <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; background: {{bg}}; border-radius: 16px; padding: 4px">
-            <button aria-label="Eén herhaling minder" onClick="{{rMinus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
-            <span style="text-align: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 28px; font-weight: 700">{{rText}}</span>
-            <button aria-label="Eén herhaling meer" onClick="{{rPlus}}" style="width: 44px; height: 52px; border: 0; border-radius: 12px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
-          </div>
-        </div>
-      </div>
-    </sc-if>
-
+  <div style="background: {{surface}}; border-top: 1px solid {{line}}; border-radius: 28px 28px 0 0; padding: 14px 20px 16px; display: flex; flex-direction: column; gap: 8px">
     <button onClick="{{complete}}" style="height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">{{buttonLabel}}</button>
 
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
@@ -301,37 +295,42 @@ class Component extends DCLogic {
       return n >= 0 ? go(list, n) : { ex: list, finished: true, done: [], celebrate: false };
     };
 
-    const boxBase = 'min-height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 14px; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px;';
+    const boxBase = 'position: relative; overflow: hidden; min-height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 14px; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px;';
     const badgeBase = 'width: 28px; height: 28px; box-sizing: border-box; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;';
+    const stepBtn = 'width: 40px; height: 44px; border: 0; border-radius: 12px; background: ' + line + '; color: ' + text + '; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+    const stepVal = 'font-family: "Space Grotesk", Inter, sans-serif; font-size: 17px; font-weight: 700;';
+    const common = { wMinus: () => this.setState({ w: Math.max(0, w - 2.5) }), wPlus: () => this.setState({ w: w + 2.5 }), rMinus: () => this.setState({ r: Math.max(1, r - 1) }), rPlus: () => this.setState({ r: r + 1 }), stepBtn, stepVal, wText: fmt(w), rText: String(r) };
     const rows = finished ? [] : Array.from({ length: total }, (_, i) => {
-      if (i < done.length) {
-        return {
-          num: String(i + 1),
+      const num = String(i + 1);
+      const isActive = i === done.length;
+      const isDone = i < done.length;
+      const restHere = isDone && i === done.length - 1 && !complete;
+      const base = { num, isActive, notActive: !isActive, showRestHere: restHere, showTag: !isActive && !restHere };
+      if (isDone) {
+        return Object.assign({}, common, base, {
           label: fmt(done[i].w) + ' kg × ' + done[i].r,
           status: 'Klaar',
           box: boxBase + ' background: ' + surface + '; color: ' + text + ';',
           badge: badgeBase + ' background: ' + accent + '; color: ' + bg + ';',
           tag: 'font-size: 13px; color: ' + muted + ';'
-        };
+        });
       }
-      if (i === done.length) {
-        return {
-          num: String(i + 1),
-          label: fmt(w) + ' kg × ' + r,
-          status: 'Nu',
-          box: boxBase + ' background: ' + bg + '; border: 2px solid ' + accent + '; color: ' + text + ';',
+      if (isActive) {
+        return Object.assign({}, common, base, {
+          label: '',
+          status: '',
+          box: boxBase + ' min-height: 56px; padding: 0 10px 0 14px; gap: 8px; background: ' + bg + '; border: 2px solid ' + accent + '; color: ' + text + ';',
           badge: badgeBase + ' background: transparent; border: 2px solid ' + accent + '; color: ' + accent + ';',
-          tag: 'font-size: 13px; font-weight: 700; color: ' + accent + ';'
-        };
+          tag: ''
+        });
       }
-      return {
-        num: String(i + 1),
+      return Object.assign({}, common, base, {
         label: fmt(w) + ' kg × ' + r,
         status: '',
         box: boxBase + ' background: transparent; border: 1px dashed ' + line + '; color: ' + muted + ';',
         badge: badgeBase + ' background: ' + line + '; color: ' + muted + ';',
         tag: 'font-size: 13px; color: ' + muted + ';'
-      };
+      });
     });
 
     const nextIdx = findNext(ex, cur);
