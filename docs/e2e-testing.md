@@ -58,8 +58,11 @@ The suite exercises the main user flows across the app:
 - **Schemas** — create, copy, delete, a share → re-import round-trip (which also
   proves supersets survive sharing), multi-day schemas (build + start a chosen
   day), and the muscle-coverage breakdown.
-- **Supersets** — link/unlink in the editor; alternating registration and
-  rest-after-round in the live workout.
+- **Supersets** — link/unlink in the editor; in the live workout a pair shows
+  the E2 zigzag (A1 → B1 → A2 …, "Superset" above the timer, a round logged A
+  then B with rest only after B and "na B" on the idle ring, the Gedaan row per
+  round with the difference to last time, the plus dot adding a round); groups
+  of three keep the pill view and alternate A → B → C.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
   weight carry-over, rest ring + rust-balk (ring tap opens the bar, ±15 s, closes on a tap on the time or after 3 s, idle tap on the time starts the rest), the B1 set registration
   (Gedaan list with the difference per set, opening a logged set and "Opslaan"),
@@ -133,8 +136,11 @@ are semantic and style-independent.
 | `reps-input`      | reps input in the set card (live workout)   | entering reps |
 | `set-row`         | a set dot in the set progress (one per set, bilateral exercises), `data-state` done/open/todo, `aria-pressed` = opened | counting sets, opening a set |
 | `side-dot`        | a dot of the unilateral zigzag (one per side, order L1, R1, L2, …), `data-set` (1-based), `data-side` left/right, `data-state`, `aria-pressed` = opened | `workout.sideDots`, `workout.sideDot(set, side)`; `setCount()` counts its left dots |
-| `rest-ring-idle`  | the idle rest ring (no rest running; "na R" on a unilateral exercise, else the rest duration) | `workout.restRingIdle` |
-| `done-row`        | a row of the "Gedaan" list (every logged set, oldest first, inside the scrollable `done-list`; logged set + difference to last time; unilateral: one row per set with both sides logged) | asserting logged values and the difference |
+| `superset-dot`    | a dot of the superset-pair zigzag (E2, order A1, B1, A2, …; an empty part has none), `data-set` (1-based round), `data-part` A/B, `data-shown` = belongs to the exercise on screen, `data-state`, `aria-pressed` = opened | `workout.supersetDots`, `workout.supersetDot(set, part)`; `setCount()` / `removeLastSet()` use the shown member's dots |
+| `superset-label`  | the small "Superset" word above the timer (pair only) | `workout.supersetLabel` |
+| `superset-badge`  | the superset pill next to the name (only groups of three or more) | `workout.supersetBadge` |
+| `rest-ring-idle`  | the idle rest ring (no rest running; "na R" on a unilateral exercise, "na B" in a superset pair, else the rest duration) | `workout.restRingIdle` |
+| `done-row`        | a row of the "Gedaan" list (every logged set, oldest first, inside the scrollable `done-list`; logged set + difference to last time; unilateral: one row per set with both sides logged; superset pair: one row per finished round, `Set 1 · 60 × 10 · 50 × 12`) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
 | `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
 | `rest-bar`        | the rust-balk (−/time/+, replaces ring + main button while open); `rest-bar-time` is the time inside | `workout.restBar`, `openRestBar()`, `adjustRest()`, `closeRestBar()`, `restBarSeconds()` |

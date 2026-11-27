@@ -13,6 +13,7 @@ import {
   resumeWorkout,
   completeWorkout,
   setExerciseSets,
+  addSupersetRound,
   type SetsChange,
 } from '../hooks/useWorkout';
 import { useExercises, useExerciseLookup, updateExercise } from '../hooks/useExercises';
@@ -55,6 +56,16 @@ import {
 } from '../lib/setRegistration';
 import { LiveSetProgress } from '../components/LiveSetProgress';
 import { LiveSideProgress } from '../components/LiveSideProgress';
+import { LiveSupersetProgress } from '../components/LiveSupersetProgress';
+import {
+  firstOpenPart,
+  isSupersetPair,
+  roundCount,
+  roundHasB,
+  supersetDoneRows,
+  supersetDots,
+  type PartRef,
+} from '../lib/supersetRegistration';
 import { LiveSetCard } from '../components/LiveSetCard';
 import { LiveDoneList } from '../components/LiveDoneList';
 import { LiveRestRing, type RestTimerState } from '../components/LiveRestRing';
@@ -75,7 +86,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { isCompletedSet, isWeightedSet } from '../lib/sets';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, ListChecks, Minus, Plus, Link2 } from 'lucide-react';
-import type { Workout } from '../../../db/index';
+import type { Workout, WorkoutSet } from '../../../db/index';
 
 // --- Previous session reference (E3-10) ---
 
@@ -204,8 +215,10 @@ export function WorkoutPage() {
   const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
   const [draft, setDraft] = useState<StepperDraft | null>(null);
   // B1 "geopende set" (`sel`): a set index of the current exercise, keyed so it
-  // never leaks to another exercise. null = the first open set.
-  const [selected, setSelected] = useState<{ key: string; idx: number } | null>(null);
+  // never leaks to another exercise. null = the first open set. `idx: null`
+  // pins the exercise without opening a set (E2 superset pair: keep showing the
+  // member that was jumped to instead of the first open part of the round).
+  const [selected, setSelected] = useState<{ key: string; idx: number | null } | null>(null);
   const [inputError, setInputError] = useState<'weight' | 'reps' | null>(null);
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
   // DESIGN §11: announce the end of the rest once (not every second).
@@ -410,7 +423,17 @@ export function WorkoutPage() {
   const wid: string = workoutId;
   const exercises = workout.exercises;
   const statuses = exerciseStatuses(exercises);
-  const cur = curState === undefined ? findNextTodo(statuses, -1) : curState >= exercises.length ? -1 : curState;
+  const baseCur = curState === undefined ? findNextTodo(statuses, -1) : curState >= exercises.length ? -1 : curState;
+  const supersets = groupSupersets(exercises);
+  // E2 (`TrainingE2.dc.html`): a superset of exactly two members is one zigzag
+  // A1 → B1 → A2 …; the opened part's exercise is the current one. Without an
+  // explicit choice (`selected` pinned to it) the first open part decides.
+  const pair = baseCur >= 0 && isSupersetPair(supersets[baseCur], exercises)
+    ? (supersets[baseCur]!.members as [number, number])
+    : null;
+  const pinned = selected?.key === `${wid}:${baseCur}`;
+  const pairFirst = pair ? firstOpenPart(exercises[pair[0]]!.sets, exercises[pair[1]]!.sets) : null;
+  const cur = pair && pairFirst && !pinned ? pair[pairFirst.member] : baseCur;
   const finished = cur < 0;
   const current = finished ? undefined : exercises[cur];
   const currentExercise = current ? exerciseMap.get(current.exerciseId) : undefined;
@@ -423,7 +446,20 @@ export function WorkoutPage() {
   const openIdx = current ? openSetIndex(sets, selected?.key === exKey ? selected.idx : null) : -1;
   const openSet = openIdx >= 0 ? sets[openIdx] : undefined;
   const nextIdx = finished ? -1 : findNextTodo(statuses, cur);
-  const ssInfo = current ? groupSupersets(exercises)[cur] : undefined;
+  const ssInfo = current ? supersets[cur] : undefined;
+  const pairMember: 0 | 1 = pair && cur === pair[1] ? 1 : 0;
+  const pairSets: [WorkoutSet[], WorkoutSet[]] | null = pair ? [exercises[pair[0]]!.sets, exercises[pair[1]]!.sets] : null;
+  /**
+   * The exercise whose rest applies after a set of exercise `idx`: in a
+   * superset the rest follows the round, so it is the last member's rest (also
+   * what the rest bar adjusts while another member is on screen).
+   */
+  const restExerciseId = (idx: number): string | undefined => {
+    const info = supersets[idx];
+    const at = info?.inSuperset ? info.members[info.members.length - 1]! : idx;
+    return exercises[at]?.exerciseId;
+  };
+  const restExId = current ? restExerciseId(cur) : undefined;
   const moment =
     exerciseComplete && current
       ? compareSessions(weightedLines(sets), prevSession?.sets ?? null, settings.oneRMFormula)
@@ -491,11 +527,23 @@ export function WorkoutPage() {
     editDraft({ reps: String(next) });
   }
 
-  /** Open a set in the set card (tap on a dot or a Gedaan row). */
-  function openSetAt(idx: number) {
-    setSelected({ key: exKey, idx });
+  /** Open a set of exercise `exIdx` in the set card (tap on a dot or a Gedaan row). */
+  function openExerciseSet(exIdx: number, idx: number | null) {
+    if (exIdx !== cur) setCur(exIdx);
+    else setCurState(exIdx);
+    setSelected({ key: `${wid}:${exIdx}`, idx });
     setDraft(null);
     setInputError(null);
+  }
+
+  /** Open a set of the current exercise. */
+  function openSetAt(idx: number) {
+    openExerciseSet(cur, idx);
+  }
+
+  /** E2: open a part (A or B) of the superset pair. */
+  function openPart(part: PartRef) {
+    if (pair) openExerciseSet(pair[part.member], part.setIdx);
   }
 
   /** Back to the default: the first open set. */
@@ -545,7 +593,7 @@ export function WorkoutPage() {
       // "Set klaar" always ends the current rest: a new rest restarts from the
       // full duration, otherwise (unilateral left part, superset switch, last
       // open set) a running timer is cleared.
-      if (restTimerAfterSetLogged(outcome) === 'restart') startRest(current.exerciseId);
+      if (restTimerAfterSetLogged(outcome) === 'restart') startRest(restExId ?? current.exerciseId);
       else {
         setRestTimer(null);
         setRestEnded(false);
@@ -599,11 +647,17 @@ export function WorkoutPage() {
     else void completeWorkout(wid);
   }
 
-  /** Plus dot: add a set with the values of the last one and open it. */
+  /** Plus dot: add a set with the values of the last one and open it (E2: a round, opening its A part). */
   async function handleAddSet() {
     if (!current || busyRef.current) return;
     busyRef.current = true;
     try {
+      if (pair && pairSets) {
+        const round = roundCount(pairSets[0], pairSets[1]);
+        await addSupersetRound(wid, pair);
+        openPart({ member: 0, setIdx: round });
+        return;
+      }
       const newIdx = sets.length;
       await addWorkoutSet(wid, cur);
       openSetAt(newIdx);
@@ -647,7 +701,8 @@ export function WorkoutPage() {
 
   async function jumpTo(idx: number) {
     if (statuses[idx] === 'skipped') await restoreExercise(idx);
-    setCur(idx);
+    // Pinned: a superset member that was jumped to stays on screen.
+    openExerciseSet(idx, null);
     setShowOverview(false);
   }
 
@@ -671,16 +726,16 @@ export function WorkoutPage() {
   function adjustRestFromBar(dir: 1 | -1) {
     armRestBar();
     // Klaar-toestand (no current exercise): only the running rest changes.
-    if (current) adjustRest(current.exerciseId, dir);
+    if (restExId) adjustRest(restExId, dir);
     setRestTimer(t => (t ? adjustRunningRest(t, dir) : t));
   }
 
   /** Tap on the time: close the bar; without a running rest this is the "second tap" that starts it (§6). */
   function finishRestBar() {
     closeRestBar();
-    if (restTimer || !current) return;
+    if (restTimer || !restExId) return;
     requestNotifyPermission();
-    startRest(current.exerciseId);
+    startRest(restExId);
   }
 
   // Persist the current rest time as this exercise's default
@@ -764,10 +819,22 @@ export function WorkoutPage() {
   const unilateral = isUnilateral(sets);
   const dots = current && !unilateral ? setDots(sets, openIdx) : [];
   const parts = current && unilateral ? sideDots(sets, openIdx) : [];
-  const rows = current ? doneRows(sets, prevLines) : [];
+  const roundRows =
+    pair && pairSets
+      ? supersetDoneRows(
+          pairSets[0],
+          pairSets[1],
+          previousLines.get(exercises[pair[0]]!.exerciseId) ?? [],
+          previousLines.get(exercises[pair[1]]!.exerciseId) ?? [],
+        )
+      : null;
+  const rows = roundRows ?? (current ? doneRows(sets, prevLines) : []);
+  const ssDots = pairSets ? supersetDots(pairSets[0], pairSets[1], openSet ? { member: pairMember, setIdx: openIdx } : null) : [];
+  // Idle ring: "na R" (D1U) / "na B" (E2, while the opened part's round still has a B part).
+  const restAfter = unilateral ? 'R' : pairSets && (pairMember === 1 || roundHasB(pairSets[1], openIdx)) ? 'B' : null;
   // DESIGN §6: the ring stays visible while it runs once the exercise is done.
   const showRing = !!restTimer || (!!current && !exerciseComplete) || !!openSet;
-  const restIdleSeconds = current ? getRest(current.exerciseId) : settings.restTimerSeconds;
+  const restIdleSeconds = restExId ? getRest(restExId) : settings.restTimerSeconds;
 
   const textBtn =
     'flex h-touch items-center px-1 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-chip disabled:opacity-40';
@@ -782,13 +849,21 @@ export function WorkoutPage() {
         {/* Bar: only the workout timer + list + Afronden (B1); no navigation bar (DESIGN §6).
             Pause is kept (existing feature) as a compact icon button. */}
         <header className="flex items-center justify-between gap-2">
-          <span
-            role="timer"
-            aria-label="Duur van de training"
-            className={cn('font-display text-title font-bold', isPaused && 'text-muted')}
-          >
-            {formatDurationClock(elapsed)}
-          </span>
+          {/* E2: a superset shows a small grey "Superset" above the timer, inside the 44 px bar (no pill). */}
+          <div className="flex flex-col gap-0.5">
+            {pair && (
+              <span data-testid="superset-label" className="text-small leading-4 text-muted">
+                Superset
+              </span>
+            )}
+            <span
+              role="timer"
+              aria-label="Duur van de training"
+              className={cn('font-display text-title font-bold', pair && 'leading-6', isPaused && 'text-muted')}
+            >
+              {formatDurationClock(elapsed)}
+            </span>
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
@@ -833,7 +908,8 @@ export function WorkoutPage() {
                 Doel: {formatDecimal(goal.weight)} kg × {goal.reps}
               </span>
             )}
-            {ssInfo?.inSuperset && (
+            {/* Groups of three or more (not designed) keep the pill; a pair has the zigzag + "Superset". */}
+            {ssInfo?.inSuperset && !pair && (
               <span
                 data-testid="superset-badge"
                 className="inline-flex items-center gap-1 rounded-chip bg-line px-2.5 py-1 text-caption font-semibold text-accent"
@@ -847,7 +923,17 @@ export function WorkoutPage() {
 
         {current && (
           <div className="flex flex-col">
-            {unilateral ? (
+            {pair && pairSets ? (
+              <LiveSupersetProgress
+                key={`ss-${pair[0]}`}
+                dots={ssDots}
+                rounds={roundCount(pairSets[0], pairSets[1])}
+                names={[nameOf(exercises[pair[0]]!.exerciseId), nameOf(exercises[pair[1]]!.exerciseId)]}
+                shownMember={pairMember}
+                onOpen={openPart}
+                onAdd={() => void handleAddSet()}
+              />
+            ) : unilateral ? (
               <LiveSideProgress
                 key={cur}
                 dots={parts}
@@ -863,6 +949,11 @@ export function WorkoutPage() {
               />
             )}
             {/* No visible side label (D1U): the row of the opened dot shows it; screen readers get it here. */}
+            {pair && openSet && (
+              <p className="sr-only">
+                Set {openIdx + 1} van {pairMember === 0 ? 'A' : 'B'}
+              </p>
+            )}
             {unilateral && openSet?.side && (
               <p className="sr-only">
                 Set {logicalSetNumber(sets, openIdx)} {openSet.side === 'left' ? 'links' : 'rechts'}
@@ -903,7 +994,18 @@ export function WorkoutPage() {
 
         {!openSet && moment?.improved && <ExerciseMoment comparison={moment} animate={animateMoment} />}
 
-        {current && <LiveDoneList rows={rows} exercise={cur} onOpen={openSetAt} />}
+        {current && (
+          <LiveDoneList
+            rows={rows}
+            // A pair is one list: switching between A and B is not "another exercise".
+            exercise={pair ? pair[0] : cur}
+            onOpen={i => {
+              const row = roundRows?.find(r => r.index === i);
+              if (row) openPart(row.open);
+              else openSetAt(i);
+            }}
+          />
+        )}
 
         {current && (
           <div className="flex flex-col">
@@ -973,7 +1075,7 @@ export function WorkoutPage() {
                   timer={restTimer}
                   idleSeconds={restIdleSeconds}
                   ended={restEnded}
-                  unilateral={unilateral}
+                  after={restAfter}
                   onOpen={openRestBar}
                 />
               )}

@@ -92,7 +92,8 @@ test.describe('Live workout — exercise added mid-workout', () => {
     await schemaEditor.save();
     await startWorkout.goto();
     await startWorkout.start('E2E Insert superset');
-    await expect(workout.supersetBadge).toContainText('A');
+    await expect(workout.supersetLabel).toBeVisible();
+    await expect(workout.currentTitle).toContainText(A);
 
     // Give A a single set, so A is finished after round one while B is not.
     await workout.removeLastSet();

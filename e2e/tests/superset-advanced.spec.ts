@@ -22,8 +22,10 @@ test.describe('Supersets — advanced', () => {
     await startWorkout.goto();
     await startWorkout.start('E2E Triset');
 
-    // A → B (no rest)
+    // A → B (no rest). Three members are not designed (E2 is for two): the pill view stays.
     await expect(workout.currentTitle).toContainText(A);
+    await expect(workout.supersetBadge).toContainText('A');
+    await expect(workout.supersetLabel).toHaveCount(0);
     await workout.completeActiveSet(60, 10);
     await expect(workout.currentTitle).toContainText(B);
     await expect(workout.restTimer).toHaveCount(0);

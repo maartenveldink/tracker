@@ -5,13 +5,19 @@ import type { Locator, Page } from '@playwright/test';
  *
  * The screen shows one exercise at a time ("current exercise") in the B1 layout:
  * set dots (`set-row`, one per set) or, for a unilateral exercise, the zigzag
- * (`side-dot`, one per side: L1 → R1 → L2 → R2, `data-set` + `data-side`),
+ * (`side-dot`, one per side: L1 → R1 → L2 → R2, `data-set` + `data-side`); a superset
+ * of two exercises shows one zigzag for both (`superset-dot`, A1 → B1 → A2 → B2,
+ * `data-set` + `data-part`, `data-shown="true"` on the dots of the exercise on screen),
+ * with "Superset" above the timer (`superset-label`);
  * the set card with the weight/reps steppers for the opened set, the "Gedaan"
  * list (`done-row`) and at the bottom the rest ring next to the main button; a tap on the
  * ring swaps that row for the rest bar (`rest-bar`, −/+ 15 s) until it closes. The full list of
  * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
  * it (`exerciseOrder`, `exerciseMeta`, …) open and close it themselves.
  */
+/** Superset-pair dots of the exercise on screen. */
+const SHOWN_PART = '[data-testid="superset-dot"][data-shown="true"]';
+
 function clockSeconds(text: string): number {
   const [m, s] = text.trim().split(':');
   return Number(m) * 60 + Number(s);
@@ -29,9 +35,24 @@ export class WorkoutPage {
     return this.page.getByTestId('current-exercise');
   }
 
-  /** Superset badge of the current exercise (only present inside a superset). */
+  /** Superset pill of the current exercise (only in a group of three or more; a pair has `supersetLabel`). */
   get supersetBadge(): Locator {
     return this.page.getByTestId('superset-badge');
+  }
+
+  /** The small "Superset" word above the timer (a superset of two, E2). */
+  get supersetLabel(): Locator {
+    return this.page.getByTestId('superset-label');
+  }
+
+  /** Zigzag dots of a superset pair, in order A1, B1, A2, B2, … (empty parts have none). */
+  get supersetDots(): Locator {
+    return this.page.getByTestId('superset-dot');
+  }
+
+  /** The dot of one part of a superset round (`set` is the 1-based round). */
+  supersetDot(set: number, part: 'A' | 'B'): Locator {
+    return this.page.locator(`[data-testid="superset-dot"][data-set="${set}"][data-part="${part}"]`);
   }
 
   /** The running rest ring (`role="timer"`, present only while resting; idle it is `rest-ring-idle`). */
@@ -69,7 +90,7 @@ export class WorkoutPage {
     return this.page.locator(`[data-testid="side-dot"][data-set="${set}"][data-side="${side}"]`);
   }
 
-  /** The idle rest ring (no rest running); shows "na R" on a unilateral exercise. */
+  /** The idle rest ring (no rest running); shows "na R" on a unilateral exercise, "na B" in a superset pair. */
   get restRingIdle(): Locator {
     return this.page.getByTestId('rest-ring-idle');
   }
@@ -197,9 +218,9 @@ export class WorkoutPage {
     return this.page.getByText('Training gepauzeerd');
   }
 
-  /** Number of sets of the current exercise; a unilateral left/right pair counts once. */
+  /** Number of sets of the current exercise; a unilateral left/right pair counts once (superset pair: the shown member's parts). */
   setCount(): Promise<number> {
-    return this.page.locator('[data-testid="set-row"], [data-testid="side-dot"][data-side="left"]').count();
+    return this.page.locator(`[data-testid="set-row"], [data-testid="side-dot"][data-side="left"], ${SHOWN_PART}`).count();
   }
 
   async addSet(): Promise<void> {
@@ -209,10 +230,11 @@ export class WorkoutPage {
   /**
    * Removes the last set: opens it via its dot, then "Set verwijderen" (only
    * offered on the last, not yet logged set; a unilateral exercise loses its
-   * left+right pair; its last dot is the right side).
+   * left+right pair; its last dot is the right side; in a superset pair only the
+   * shown exercise loses its last set).
    */
   async removeLastSet(): Promise<void> {
-    await this.page.locator('[data-testid="set-row"], [data-testid="side-dot"]').last().click();
+    await this.page.locator(`[data-testid="set-row"], [data-testid="side-dot"], ${SHOWN_PART}`).last().click();
     await this.page.getByRole('button', { name: 'Set verwijderen', exact: true }).click();
   }
 
