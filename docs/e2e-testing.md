@@ -62,7 +62,9 @@ The suite exercises the main user flows across the app:
   rest-after-round in the live workout.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
   weight carry-over, rest ring (+30 sec, skip), the B1 set registration
-  (Gedaan list with the difference per set, opening a logged set and "Opslaan").
+  (Gedaan list with the difference per set, opening a logged set and "Opslaan"),
+  no set limit: past 8 sets the plus dot stays, the set row scrolls (starts
+  right-aligned) and opening set 1 via the Gedaan list scrolls it into view.
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
 - **Suggested workout** — the cold-start full-body suggestion, target-duration
   control, adding an exercise, and the swap-for-similar sheet.
@@ -132,7 +134,7 @@ are semantic and style-independent.
 | `set-row`         | a set dot in the set progress (one per set, bilateral exercises), `data-state` done/open/todo, `aria-pressed` = opened | counting sets, opening a set |
 | `side-dot`        | a dot of the unilateral zigzag (one per side, order L1, R1, L2, …), `data-set` (1-based), `data-side` left/right, `data-state`, `aria-pressed` = opened | `workout.sideDots`, `workout.sideDot(set, side)`; `setCount()` counts its left dots |
 | `rest-ring-idle`  | the idle rest ring (no rest running; "na R" on a unilateral exercise, else the rest duration) | `workout.restRingIdle` |
-| `done-row`        | a row of the "Gedaan" list (logged set + difference to last time; unilateral: one row per set with both sides logged) | asserting logged values and the difference |
+| `done-row`        | a row of the "Gedaan" list (every logged set, oldest first, inside the scrollable `done-list`; logged set + difference to last time; unilateral: one row per set with both sides logged) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
 | `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
 | `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |

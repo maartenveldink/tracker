@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WorkoutSet } from '../../../db/index';
 import {
   canRemoveOpenSet,
+  doneListScrollToBottom,
   doneRows,
   formatRestClock,
   isUnilateral,
@@ -257,37 +258,55 @@ describe('sideDots', () => {
 });
 
 describe('zigzagLayout', () => {
-  it('uses the design formula: step = min(46, (width − 24) / (parts + 1)), rows at y 16 / 46', () => {
-    const l = zigzagLayout(6, 350);
+  it('fixed step 46 from a 24 px gutter, rows at y 16 / 46 (DESIGN §4 schuifrij)', () => {
+    const l = zigzagLayout(6);
     expect(l.step).toBe(46);
     expect(l.points[0]).toEqual({ x: 24 + 23, y: 16 });
     expect(l.points[1]).toEqual({ x: 24 + 46 + 23, y: 46 });
     // the plus slot sits on the top row after the last right part
     expect(l.points).toHaveLength(7);
     expect(l.points[6]!.y).toBe(16);
+    expect(l.width).toBe(24 + 7 * 46);
   });
-  it('shrinks the step with many sets so 8 sets fit without scrolling', () => {
-    const l = zigzagLayout(16, 350);
-    expect(l.step).toBeCloseTo(326 / 17);
-    const last = l.points[l.points.length - 1]!;
-    // the last 44 px tap target ends within the 20 px screen margin
-    expect(last.x + 22).toBeLessThan(350 + 20);
-    expect(l.points[0]!.x - 22).toBeGreaterThanOrEqual(0);
-  });
-  it('fits a narrow (320 px) screen too', () => {
-    const width = 320 - 40;
-    const l = zigzagLayout(16, width);
-    const last = l.points[l.points.length - 1]!;
-    expect(last.x + 22).toBeLessThan(width + 20);
+  it('does not shrink with many sets: the row scrolls instead', () => {
+    const l = zigzagLayout(40);
+    expect(l.step).toBe(46);
+    expect(l.width).toBe(24 + 41 * 46);
+    // horizontal neighbours' 44 px tap targets do not overlap
+    expect(l.points[2]!.x - l.points[0]!.x).toBeGreaterThanOrEqual(44);
   });
   it('a line between each pair of neighbouring centres', () => {
-    const l = zigzagLayout(2, 350);
+    const l = zigzagLayout(2);
     expect(l.lines).toHaveLength(2);
     expect(l.lines[0]!.x).toBe(l.points[0]!.x);
     expect(l.lines[0]!.y).toBe(16);
     expect(l.lines[0]!.length).toBeCloseTo(Math.hypot(46, 30));
     expect(l.lines[0]!.angle).toBeCloseTo((Math.atan2(30, 46) * 180) / Math.PI);
     expect(l.lines[1]!.angle).toBeCloseTo((Math.atan2(-30, 46) * 180) / Math.PI);
+  });
+});
+
+describe('doneRows lists every logged set, oldest first (owner decision, not the last 3 of DESIGN §5)', () => {
+  it('all 12 logged sets of 13, Set 1 at the top and the newest at the bottom', () => {
+    const s = Array.from({ length: 13 }, (_, i) => set(i < 12 ? 'done' : 'todo', i + 1, { weight: 50, actualReps: 8 }));
+    const rows = doneRows(s, []);
+    expect(rows.map(r => r.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(rows[0]!.label).toBe('Set 1 · 50 kg × 8');
+    expect(rows[11]!.label).toBe('Set 12 · 50 kg × 8');
+  });
+});
+
+describe('doneListScrollToBottom', () => {
+  it('on opening an exercise (first render or another exercise)', () => {
+    expect(doneListScrollToBottom(null, { exercise: 0, count: 3 })).toBe(true);
+    expect(doneListScrollToBottom({ exercise: 0, count: 3 }, { exercise: 1, count: 3 })).toBe(true);
+  });
+  it('when a new set is logged', () => {
+    expect(doneListScrollToBottom({ exercise: 0, count: 3 }, { exercise: 0, count: 4 })).toBe(true);
+  });
+  it('not on unrelated updates (an edit, undo, or nothing changed), so a user scrolled up stays put', () => {
+    expect(doneListScrollToBottom({ exercise: 0, count: 3 }, { exercise: 0, count: 3 })).toBe(false);
+    expect(doneListScrollToBottom({ exercise: 0, count: 3 }, { exercise: 0, count: 2 })).toBe(false);
   });
 });
 

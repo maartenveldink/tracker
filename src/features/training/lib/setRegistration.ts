@@ -146,21 +146,23 @@ export interface ZigzagLayout {
   points: { x: number; y: number }[];
   /** Line from each centre to the next one (`lines[k]` leaves part k). */
   lines: ZigzagLine[];
+  /** Track width up to the end of the plus slot (the 22 px right padding comes on top). */
+  width: number;
 }
 
 const ZIGZAG_GUTTER = 24;
-const ZIGZAG_MAX_STEP = 46;
+const ZIGZAG_STEP = 46;
 const ZIGZAG_ROW_Y = { left: 16, right: 46 } as const;
 
 /**
- * Positions of the zigzag (DESIGN §4): centre x of part k =
- * `24 + k × step + step / 2` with `step = min(46, (width − 24) / (parts + 1))`,
- * y 16 (left, top row) or 46 (right). The step shrinks with many sets, so 8 sets
- * (16 parts) fit without scrolling; the 44 px tap targets then overlap (§12 q13).
+ * Positions of the zigzag (DESIGN §4, schuifbare set-rij): centre x of part k =
+ * `24 + k × 46 + 23`, y 16 (left, top row) or 46 (right). The step is fixed:
+ * with many sets the row scrolls instead of shrinking, so the 44 px tap targets
+ * of horizontal neighbours never overlap (§12 q13).
  */
-export function zigzagLayout(parts: number, width: number): ZigzagLayout {
+export function zigzagLayout(parts: number): ZigzagLayout {
   const slots = parts + 1;
-  const step = Math.max(0, Math.min(ZIGZAG_MAX_STEP, (width - ZIGZAG_GUTTER) / slots));
+  const step = ZIGZAG_STEP;
   const points = Array.from({ length: slots }, (_, k) => ({
     x: ZIGZAG_GUTTER + k * step + step / 2,
     y: k % 2 === 0 ? ZIGZAG_ROW_Y.left : ZIGZAG_ROW_Y.right,
@@ -174,7 +176,7 @@ export function zigzagLayout(parts: number, width: number): ZigzagLayout {
       angle: (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI,
     };
   });
-  return { step, points, lines };
+  return { step, points, lines, width: ZIGZAG_GUTTER + slots * step };
 }
 
 export type DeltaKind = 'up' | 'down' | 'same' | 'new';
@@ -269,6 +271,24 @@ export function doneRows(sets: WorkoutSet[], prevSets: PrevSetRef[]): DoneRow[] 
     });
   });
   return rows;
+}
+
+export interface DoneListState {
+  /** Index of the exercise the list belongs to. */
+  exercise: number;
+  /** Number of logged rows. */
+  count: number;
+}
+
+/**
+ * The Gedaan list shows every logged set, newest at the bottom, in its own
+ * scroll area (owner decision, deviates from "the last 3" in DESIGN §5). It
+ * jumps to the bottom only when an exercise is opened or a new set is logged,
+ * never on other updates, so someone who scrolled up to an older set stays put.
+ */
+export function doneListScrollToBottom(prev: DoneListState | null, next: DoneListState): boolean {
+  if (!prev || prev.exercise !== next.exercise) return true;
+  return next.count > prev.count;
 }
 
 /**

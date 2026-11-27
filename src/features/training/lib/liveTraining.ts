@@ -12,9 +12,6 @@ import { pairPartnerIndex, removeSetAt } from './sets';
 
 export type ExerciseStatus = 'todo' | 'done' | 'skipped';
 
-/** Maximum number of planned sets per exercise (a unilateral left+right pair counts as one). */
-export const MAX_SETS = 8;
-
 /**
  * `todo` while any set is unsettled (or there are no sets), `done` when all sets
  * are settled and at least one was performed, `skipped` when all are settled and
@@ -83,8 +80,27 @@ function logicalSetCount(sets: WorkoutSet[]): number {
   return sets.filter(s => s.side !== 'right').length;
 }
 
-export function canAddSet(sets: WorkoutSet[]): boolean {
-  return logicalSetCount(sets) < MAX_SETS;
+/**
+ * The plus dot: append a set with the values of the last one (planned reps and
+ * weight). A unilateral exercise gets a left/right pair (one logical set).
+ * There is no maximum number of sets; the set row scrolls.
+ */
+export function appendSet(sets: WorkoutSet[], exerciseId: string): WorkoutSet[] {
+  const lastSet = sets[sets.length - 1];
+  const sides: WorkoutSet['side'][] = lastSet?.side !== undefined ? ['left', 'right'] : [undefined];
+  const added: WorkoutSet[] = sides.map((side, i) => ({
+    exerciseId,
+    setNumber: sets.length + 1 + i,
+    plannedReps: lastSet?.plannedReps ?? null,
+    ...(lastSet?.plannedRepsMax != null ? { plannedRepsMax: lastSet.plannedRepsMax } : {}),
+    ...(lastSet?.plannedWeight != null ? { plannedWeight: lastSet.plannedWeight } : {}),
+    ...(side ? { side } : {}),
+    actualReps: null,
+    weight: lastSet?.weight ?? null,
+    completed: false,
+    skipped: false,
+  }));
+  return [...sets, ...added];
 }
 
 /**
