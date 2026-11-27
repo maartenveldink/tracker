@@ -236,6 +236,11 @@ export function WorkoutPage() {
     },
     [],
   );
+  // A rest that runs out while the bar is open closes it, so a tap in the 3 s
+  // window can't silently start a new rest ("Rust voorbij" is announced as usual).
+  useEffect(() => {
+    if (restEnded) closeRestBar();
+  }, [restEnded, closeRestBar]);
   const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
   // The "current exercise" pointer (the only UI state of the state machine).
   // undefined = not chosen yet: the first `todo` exercise (resume-friendly);

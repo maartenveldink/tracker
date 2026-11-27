@@ -3,6 +3,9 @@ import { test, expect } from '../fixtures/app';
 const A = 'Barbell Bench Press';
 const B = 'Barbell Row';
 
+/** 105 -> "1:45" (rest clock). */
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 test.describe('Live workout — one exercise at a time', () => {
   test('walks through exercises, skips one and ends in the klaar-toestand', async ({
     schemaEditor,
@@ -76,13 +79,13 @@ test.describe('Live workout — one exercise at a time', () => {
     await startWorkout.start('E2E Rust-balk');
 
     // Idle: the bar shows the set rest duration; + makes it exactly 15 s longer.
+    // (The bar closes 3 s after opening / the last tap, so tap first, assert after.)
+    const idle = await workout.idleRestSeconds();
     await workout.openRestBar();
-    await expect(workout.restBar).toBeVisible();
+    await workout.adjustRest('longer');
+    await expect(workout.restBarTime).toHaveText(clock(idle + 15));
     // No "Set klaar" next to the bar.
     await expect(page.getByRole('button', { name: 'Set klaar', exact: true })).toHaveCount(0);
-    const idle = await workout.restBarSeconds();
-    await workout.adjustRest('longer');
-    expect(await workout.restBarSeconds()).toBe(idle + 15);
 
     // A tap on the time closes the bar right away and (idle) starts the rest by hand.
     await workout.closeRestBar();
@@ -94,7 +97,7 @@ test.describe('Live workout — one exercise at a time', () => {
     const before = await workout.restSeconds();
     await workout.openRestBar();
     await workout.adjustRest('longer');
-    expect(await workout.restBarSeconds()).toBeGreaterThan(before + 10);
+    await expect.poll(() => workout.restBarSeconds()).toBeGreaterThan(before + 10);
     await expect(workout.restBar).toHaveCount(0, { timeout: 6000 });
     await expect(page.getByRole('button', { name: 'Set klaar', exact: true })).toBeVisible();
 

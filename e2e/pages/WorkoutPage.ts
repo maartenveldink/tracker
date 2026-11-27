@@ -12,6 +12,11 @@ import type { Locator, Page } from '@playwright/test';
  * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
  * it (`exerciseOrder`, `exerciseMeta`, …) open and close it themselves.
  */
+function clockSeconds(text: string): number {
+  const [m, s] = text.trim().split(':');
+  return Number(m) * 60 + Number(s);
+}
+
 export class WorkoutPage {
   constructor(private readonly page: Page) {}
 
@@ -231,11 +236,19 @@ export class WorkoutPage {
     await this.restBar.getByRole('button', { name: /^Klaar met rust instellen/ }).click();
   }
 
+  /** The time inside the rest bar ("1:45"). */
+  get restBarTime(): Locator {
+    return this.restBar.getByTestId('rest-bar-time');
+  }
+
   /** Seconds shown in the rest bar ("1:45" -> 105). */
   async restBarSeconds(): Promise<number> {
-    const text = (await this.restBar.getByTestId('rest-bar-time').textContent()) ?? '';
-    const [m, s] = text.trim().split(':');
-    return Number(m) * 60 + Number(s);
+    return clockSeconds((await this.restBarTime.textContent()) ?? '');
+  }
+
+  /** Rest duration shown in the idle ring ("1:30" -> 90; not on a unilateral "na R" ring). */
+  async idleRestSeconds(): Promise<number> {
+    return clockSeconds((await this.restRingIdle.textContent()) ?? '');
   }
 
   /** Remaining rest in seconds, read from the timer's aria-label ("Rust nog 1 minuut 12 seconden"). */

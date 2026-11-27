@@ -62,9 +62,11 @@ test.describe('Live workout — advanced', () => {
     await workout.openRestBar();
     await workout.adjustRest('shorter');
     await workout.closeRestBar();
-    // Closing a bar on a running rest does not restart it; the countdown keeps running.
+    // Closing a bar on a running rest does not restart it; the countdown keeps running
+    // (the default rest is well above 15 s, so the rest is still running).
+    await expect(workout.restBar).toHaveCount(0);
     await expect(workout.restTimer).toBeVisible();
-    expect(await workout.restSeconds()).toBeLessThanOrEqual(before - 15);
+    await expect.poll(() => workout.restSeconds()).toBeLessThanOrEqual(before - 15);
   });
 
   test('creates a brand-new exercise mid-workout and adds it', async ({
