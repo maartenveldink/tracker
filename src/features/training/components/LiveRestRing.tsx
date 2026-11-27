@@ -16,8 +16,8 @@ interface LiveRestRingProps {
   ended: boolean;
   /** Unilateral exercise (D1U): the idle ring shows "na R" (rest follows after the right part). */
   unilateral?: boolean;
-  onExtend: () => void;
-  onStart: () => void;
+  /** Tap on the ring (running or idle): open the rest bar. */
+  onOpen: () => void;
 }
 
 const R = 28;
@@ -25,11 +25,11 @@ const CIRCUMFERENCE = 2 * Math.PI * R;
 
 /**
  * DESIGN §4 "Rust-ring": 64×64 next to the main button. Running: the ring runs
- * empty in accent-2, tap = +30 sec. Idle (no rest yet, or it ran out): an empty
- * ring with the rest duration in muted (unilateral, D1U: "na R"); tap starts
- * the rest by hand (§6 proposal).
+ * empty in accent-2. Idle (no rest yet, or it ran out): an empty ring with the
+ * rest duration in muted (unilateral, D1U: "na R"). A tap always opens the rest
+ * bar (`LiveRestBar`); there is no separate "+30 sec" any more.
  */
-export function LiveRestRing({ timer, idleSeconds, ended, unilateral = false, onExtend, onStart }: LiveRestRingProps) {
+export function LiveRestRing({ timer, idleSeconds, ended, unilateral = false, onOpen }: LiveRestRingProps) {
   const running = timer !== null;
   const fraction = running ? restRingFraction(timer.remaining, timer.total) : 0;
   const shown = running ? formatRestClock(timer.remaining) : restRingIdleText(idleSeconds, ended, unilateral);
@@ -38,7 +38,7 @@ export function LiveRestRing({ timer, idleSeconds, ended, unilateral = false, on
     <button
       type="button"
       aria-label={running ? restRingLabel(timer.remaining, true) : restRingIdleLabel(idleSeconds, unilateral)}
-      onClick={running ? onExtend : onStart}
+      onClick={onOpen}
       className="relative h-button-train w-button-train shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">

@@ -49,7 +49,7 @@ test.describe('Live workout — advanced', () => {
     await expect(workout.setDots.first()).toBeInViewport({ ratio: 0.9 });
   });
 
-  test('shows the rest ring after a set and extends it by 30 seconds', async ({ schemaEditor, startWorkout, workout }) => {
+  test('shows the rest ring after a set; the rest bar shortens it by 15 seconds', async ({ schemaEditor, startWorkout, workout }) => {
     await simpleSchema(schemaEditor, 'E2E Rest');
     await startWorkout.goto();
     await startWorkout.start('E2E Rest');
@@ -59,9 +59,14 @@ test.describe('Live workout — advanced', () => {
     await expect(workout.restTimer).toBeInViewport();
 
     const before = await workout.restSeconds();
-    await workout.extendRest();
-    // The countdown keeps running, so allow a few seconds of slack under the +30.
-    await expect.poll(() => workout.restSeconds()).toBeGreaterThan(before + 20);
+    await workout.openRestBar();
+    await workout.adjustRest('shorter');
+    await workout.closeRestBar();
+    // Closing a bar on a running rest does not restart it; the countdown keeps running
+    // (the default rest is well above 15 s, so the rest is still running).
+    await expect(workout.restBar).toHaveCount(0);
+    await expect(workout.restTimer).toBeVisible();
+    await expect.poll(() => workout.restSeconds()).toBeLessThanOrEqual(before - 15);
   });
 
   test('creates a brand-new exercise mid-workout and adds it', async ({

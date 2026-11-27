@@ -61,7 +61,7 @@ The suite exercises the main user flows across the app:
 - **Supersets** — link/unlink in the editor; alternating registration and
   rest-after-round in the live workout.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
-  weight carry-over, rest ring (+30 sec, skip), the B1 set registration
+  weight carry-over, rest ring + rust-balk (ring tap opens the bar, ±15 s, closes on a tap on the time or after 3 s, idle tap on the time starts the rest), the B1 set registration
   (Gedaan list with the difference per set, opening a logged set and "Opslaan"),
   no set limit: past 8 sets the plus dot stays, the set row scrolls (starts
   right-aligned) and opening set 1 via the Gedaan list scrolls it into view.
@@ -137,6 +137,7 @@ are semantic and style-independent.
 | `done-row`        | a row of the "Gedaan" list (every logged set, oldest first, inside the scrollable `done-list`; logged set + difference to last time; unilateral: one row per set with both sides logged) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
 | `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
+| `rest-bar`        | the rust-balk (−/time/+, replaces ring + main button while open); `rest-bar-time` is the time inside | `workout.restBar`, `openRestBar()`, `adjustRest()`, `closeRestBar()`, `restBarSeconds()` |
 | `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |
 | `celebration`     | the progress-celebration overlay     | asserting the burst plays on a better session |
 
