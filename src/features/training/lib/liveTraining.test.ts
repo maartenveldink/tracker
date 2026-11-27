@@ -175,6 +175,29 @@ describe('afterSetLogged (supersets + rest)', () => {
     expect(afterSetLogged([ex(['done', 'todo']), ex(['todo'])], 0, 1)).toEqual({ focusIdx: 0, rest: false });
     expect(afterSetLogged([ex(['todo'])], 0, 0)).toEqual({ focusIdx: 0, rest: false });
   });
+  it('unilateral (D1U): no rest after the left part, rest after the right part completes the set', () => {
+    const pairEx = (states: [S, 'left' | 'right'][]): WorkoutExercise => ({
+      ...ex([]),
+      sets: states.map(([st, side], i) => set(st, i + 1, side)),
+    });
+    const s = pairEx([['todo', 'left'], ['todo', 'right'], ['todo', 'left'], ['todo', 'right']]);
+    expect(afterSetLogged([s], 0, 0)).toEqual({ focusIdx: 0, rest: false });
+    const half = pairEx([['done', 'left'], ['todo', 'right'], ['todo', 'left'], ['todo', 'right']]);
+    expect(afterSetLogged([half], 0, 1)).toEqual({ focusIdx: 0, rest: true });
+  });
+  it('unilateral: right first, then left completes the set and rests', () => {
+    const pairEx: WorkoutExercise = {
+      ...ex([]),
+      sets: [set('todo', 1, 'left'), set('done', 2, 'right'), set('todo', 3, 'left'), set('todo', 4, 'right')],
+    };
+    expect(afterSetLogged([pairEx], 0, 0)).toEqual({ focusIdx: 0, rest: true });
+    const fresh: WorkoutExercise = { ...pairEx, sets: [set('todo', 1, 'left'), set('todo', 2, 'right'), set('todo', 3, 'left'), set('todo', 4, 'right')] };
+    expect(afterSetLogged([fresh], 0, 1)).toEqual({ focusIdx: 0, rest: false });
+  });
+  it('unilateral: no rest after the right part of the last set', () => {
+    const last: WorkoutExercise = { ...ex([]), sets: [set('done', 1, 'left'), set('todo', 2, 'right')] };
+    expect(afterSetLogged([last], 0, 1)).toEqual({ focusIdx: 0, rest: false });
+  });
   it('mid-round hands off to the next member without rest', () => {
     const exs = [ex(['todo', 'todo'], 'g'), ex(['todo', 'todo'], 'g')];
     expect(afterSetLogged(exs, 0, 0)).toEqual({ focusIdx: 1, rest: false });

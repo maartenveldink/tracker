@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { formatRestClock, restRingFraction, restRingLabel, restTimerLabel } from '../lib/setRegistration';
+import { formatRestClock, restRingFraction, restRingIdleLabel, restRingIdleText, restRingLabel, restTimerLabel } from '../lib/setRegistration';
 
 export interface RestTimerState {
   remaining: number; // seconds
@@ -14,6 +14,8 @@ interface LiveRestRingProps {
   idleSeconds: number;
   /** The last rest just ran out: an idle ring shows 0:00 until the next start. */
   ended: boolean;
+  /** Unilateral exercise (D1U): the idle ring shows "na R" (rest follows after the right part). */
+  unilateral?: boolean;
   onExtend: () => void;
   onStart: () => void;
 }
@@ -24,17 +26,18 @@ const CIRCUMFERENCE = 2 * Math.PI * R;
 /**
  * DESIGN §4 "Rust-ring": 64×64 next to the main button. Running: the ring runs
  * empty in accent-2, tap = +30 sec. Idle (no rest yet, or it ran out): an empty
- * ring with the rest duration in muted; tap starts the rest by hand (§6 proposal).
+ * ring with the rest duration in muted (unilateral, D1U: "na R"); tap starts
+ * the rest by hand (§6 proposal).
  */
-export function LiveRestRing({ timer, idleSeconds, ended, onExtend, onStart }: LiveRestRingProps) {
+export function LiveRestRing({ timer, idleSeconds, ended, unilateral = false, onExtend, onStart }: LiveRestRingProps) {
   const running = timer !== null;
   const fraction = running ? restRingFraction(timer.remaining, timer.total) : 0;
-  const shown = running ? timer.remaining : ended ? 0 : idleSeconds;
+  const shown = running ? formatRestClock(timer.remaining) : restRingIdleText(idleSeconds, ended, unilateral);
 
   const button = (
     <button
       type="button"
-      aria-label={running ? restRingLabel(timer.remaining, true) : restRingLabel(idleSeconds, false)}
+      aria-label={running ? restRingLabel(timer.remaining, true) : restRingIdleLabel(idleSeconds, unilateral)}
       onClick={running ? onExtend : onStart}
       className="relative h-button-train w-button-train shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
@@ -61,7 +64,7 @@ export function LiveRestRing({ timer, idleSeconds, ended, onExtend, onStart }: L
           running ? 'text-accent-2' : 'text-muted',
         )}
       >
-        {formatRestClock(shown)}
+        {shown}
       </span>
     </button>
   );

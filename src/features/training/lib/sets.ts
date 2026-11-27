@@ -27,12 +27,22 @@ export function setVolume(s: WorkoutSet): number {
  * partner too; bilateral sets (no `side`) are removed alone.
  */
 export function removeSetAt(sets: WorkoutSet[], index: number): WorkoutSet[] {
-  const target = sets[index];
-  if (!target) return sets;
+  if (!sets[index]) return sets;
   const drop = new Set<number>([index]);
-  if (target.side === 'left' && sets[index + 1]?.side === 'right') drop.add(index + 1);
-  if (target.side === 'right' && sets[index - 1]?.side === 'left') drop.add(index - 1);
+  const partner = pairPartnerIndex(sets, index);
+  if (partner >= 0) drop.add(partner);
   return sets
     .filter((_, i) => !drop.has(i))
     .map((set, i) => ({ ...set, setNumber: i + 1 }));
+}
+
+/**
+ * The other side of a unilateral left/right pair (left at i ↔ right at i + 1),
+ * or -1 for a bilateral set or a side without a partner.
+ */
+export function pairPartnerIndex(sets: { side?: 'left' | 'right' }[], index: number): number {
+  const side = sets[index]?.side;
+  if (side === 'left' && sets[index + 1]?.side === 'right') return index + 1;
+  if (side === 'right' && sets[index - 1]?.side === 'left') return index - 1;
+  return -1;
 }

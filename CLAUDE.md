@@ -51,7 +51,7 @@ src/
     index.ts      # Dexie DB class (versioned migrations) + all entity types
     muscles.ts    # Standardised muscle group definitions (global + detailed)
   hooks/
-    useSettings.ts # App settings (singleton row), defaults
+    useSettings.ts # App settings (singleton row), defaults; useSettingsState() also returns `loaded` (wait for it before a one-off decision such as playing a celebration)
   styles/
     tokens.css    # Design tokens (colours, type scale, radii, sizes, motion); Tailwind maps to these in tailwind.config.js
   components/     # App-wide shared UI (Layout bottom nav + "Meer" sheet, PageHeader, ConfirmDialog, ...)
@@ -63,10 +63,10 @@ src/
   features/
     training/     # Exercises, schemas, live workout, progress & metrics — the whole app
       db/         # seed (25 default exercises: muscles + laterality + movement type), demo data
-      hooks/      # useExercises (+ useExerciseLookup), useSchemas, useWorkout, useProgress, useBodyWeight, useCoachSummary
-      lib/        # liveTraining (live-workout state machine: current exercise, set/step actions, primary button label incl. "Opslaan"), setRegistration (B1: opened set `sel`, set dots, Gedaan rows + difference per set, set-card values, "Set verwijderen" rule, rest-ring fraction/labels), celebration ("better than last time" trigger), progressInsights (plateau, new PR, recent training stats), lastPerformed (last session per exercise), workoutBuild, estimateSchemaTime, activeSchemas (which schemas show on Train/Home), suggestWorkout, progression, home (Home derived values: week dots, volume delta, last trained per muscle group, next training, empty state), schemaDays (pure schema/day helpers, re-exported by useSchemas), restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
-      pages/      # Exercise* (ExerciseDetailPage = `/exercises/:id`: info card + shared ExerciseDetail; edit via `/exercises/:id/edit`), Schema*, SchemaImport, StartWorkout, Workout, WorkoutEdit, WorkoutSummary, Progress
-      components/ # ExerciseDetail (goal + 1RM chart + sessions, shared by Progress and the exercise detail page); Live* (B1 set registration): LiveSetProgress (set dots), LiveSetCard (two-column steppers), LiveDoneList (Gedaan list with difference), LiveRestRing (rest ring next to the main button), LiveOverviewSheet, LiveAddExerciseSheet; ExerciseMoment, CelebrationEffects/CelebrationBurst, WeeklySetsCard, PeriodChips, chartTheme (chart colours from tokens), MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
+      hooks/      # useExercises (+ useExerciseLookup), useSchemas, useWorkout, useProgress, useBodyWeight, useCoachSummary, useWakeLock (screen on during a workout)
+      lib/        # liveTraining (live-workout state machine: current exercise, set/step actions, primary button label incl. "Opslaan"), setRegistration (B1: opened set `sel`, set dots, Gedaan rows + difference per set, set-card values, "Set verwijderen" rule, rest-ring fraction/labels; D1U unilateral: isUnilateral, sideDots, zigzagLayout, pairDelta, "na R" ring text; setProgress for the overview), celebration ("better than last time" trigger + `finishedBetterThanLastTime`), workoutSummary (summary: PRs, better than last time, volume delta vs the previous session of the schema day, headline, fireworks rule + `shouldPlayArrivalCelebration`), progressInsights (plateau, new PR, recent training stats), lastPerformed (last session per exercise), workoutBuild, estimateSchemaTime, activeSchemas (which schemas show on Train/Home), suggestWorkout, home (Home derived values: week dots, volume delta, last trained per muscle group, next training, empty state), schemaDays (pure schema/day helpers, re-exported by useSchemas), restTime (rest resolution + matrix), weightStep (equipment→weight increment), superset (grouping), metrics (streak/volume/PRs/heatmap), sets (shared set predicates: isCompletedSet/isWeightedSet/setVolume/removeSetAt/pairPartnerIndex), insertPosition (where an added exercise lands), deload (stall detection), deloadDismiss, goalProgress (exercise goal %), calendarMonth (month grid), reps, schemaShare, schemaJson (readable schema format: validation + mapping + schemaToJson), coachSummary / coachPrompt (analysis summary + prompt for Claude)
+      pages/      # Exercise* (ExerciseDetailPage = `/exercises/:id`: info card + shared ExerciseDetail; edit via `/exercises/:id/edit`), Schema*, SchemaImport, StartWorkout, SuggestWorkout, Workout, WorkoutEdit, WorkoutHistory, WorkoutSummary, Progress
+      components/ # ExerciseDetail (goal + 1RM chart + sessions, shared by Progress and the exercise detail page); ExerciseForm; Live* (B1 set registration): LiveSetProgress (set dots), LiveSideProgress (D1U zigzag for unilateral exercises), LiveSetCard (two-column steppers), LiveDoneList (Gedaan list with difference), LiveRestRing (rest ring next to the main button), LiveOverviewSheet, LiveAddExerciseSheet; ExerciseMoment, CelebrationEffects (fireworks/confetti, live workout + summary), WeeklySetsCard, PeriodChips, chartTheme (chart colours from tokens), MuscleChip, BodyWeightSection, RecordsBoard, ConsistencyHeatmap, TrainingCalendar, VolumeTrendChart, WorkoutHistory, MuscleVolumeBars, GoalProgressBar, DeloadCard, CoachCopySection
     habits/       # Habit tracker (/habits): pages/ (list, detail, form), components/ (HabitControl, HabitHeatmap, HabitsTodayCard), hooks/useHabits, lib/schedule (pure schedule + streak logic)
   App.tsx         # Routes (Dashboard is "/"), lazy-loads the Progress page
   main.tsx        # Entry point (seeds DB, inits settings, renders app)
@@ -92,7 +92,8 @@ src/
 - **Epic 3** (E3-01 to E3-09 core; E3-10..): Live workout logging — start from schema or free ("Vrije training", ad-hoc), set logging, pause/resume, summary; rest ring (tap = +30 sec, "Rust overslaan", idle ring starts the rest by hand) with vibration/sound/notification alerts; quick logging; weight prefill & carry-over from previous session; previous-session references; live muscle-group volume overview (shared `MuscleVolumeBars` with the summary) to decide what to still train; an exercise added mid-workout is inserted after the last finished exercise (never inside a superset, see `lib/insertPosition.ts`).
 - **Epic 4**: Training history per exercise with 1RM chart + session list; workout edit and delete. Progress page sections: **Records board**, **Consistency heatmap**, **Volume / muscle-balance trend**, **Body-weight tracking**, a **Workout history overview** with delete, and a **month calendar** under the heatmap (`TrainingCalendar`; Progress reads `?tab=overview`).
 - **Dashboard** (redesigned, WP2): Home landing "Vandaag" with hero "Aan de beurt" (next schema day via rotation, else suggestion; empty state "Begin je eerste training"), week card with day dots, stat tiles (streak, volume + delta, weight with "+ Log" sheet), "Laatst getraind" per muscle group, recent PRs, habits — powered by `metrics` + `home` libs. Also shows a **deload suggestion** (`DeloadCard`, rule + thresholds in `lib/deload.ts`; snoozable for a week).
-- **Viering "Oefening klaar"** (WP5): trigger = gemiddeld geschat 1RM over gewogen sets > vorige sessie (`lib/celebration.ts`, pure + tests; `lib/progression.ts` gebruikt hetzelfde voor de samenvatting). Banner + vergelijkingstabel (`ExerciseMoment`) zijn afgeleid van de sets; confetti/vuurwerk (`CelebrationEffects`) en trillen vuren op het moment dat een set wordt gelogd waarmee een oefening (ook een superset-lid dat niet in beeld is) klaar is en de trigger waar is (`finishedBetterThanLastTime` in `lib/celebration.ts`); geen replay na terugkeren naar een afgeronde oefening of na reload, en geen viering zonder vorige sessie. Instellingen `celebrationEnabled`/`celebrationVibrate`; reduced motion = geen effecten.
+- **Viering "Oefening klaar"** (WP5): trigger = gemiddeld geschat 1RM over gewogen sets > vorige sessie (`lib/celebration.ts`, pure + tests; `lib/workoutSummary.ts` gebruikt dezelfde vergelijking voor de samenvatting). Banner + vergelijkingstabel (`ExerciseMoment`) zijn afgeleid van de sets; confetti/vuurwerk (`CelebrationEffects`) en trillen vuren op het moment dat een set wordt gelogd waarmee een oefening (ook een superset-lid dat niet in beeld is) klaar is en de trigger waar is (`finishedBetterThanLastTime` in `lib/celebration.ts`); geen replay na terugkeren naar een afgeronde oefening of na reload, en geen viering zonder vorige sessie. Instellingen `celebrationEnabled`/`celebrationVibrate`; reduced motion = geen effecten.
+- **Samenvatting** (`WorkoutSummaryPage`, `lib/workoutSummary.ts`, pure + tests): hero met kop ("Je bent vooruitgegaan" alleen bij een PR of een oefening beter dan vorige keer, anders eerlijk "Training voltooid"), duur/sets/volume, volume-delta t.o.v. de vorige sessie van dezelfde schema(dag), streak, hoogtepunten, oefeningkaarten met vergelijking, spiergroep-volume. Alles vergeleken met *eerdere* trainingen. Na het afronden speelt dezelfde `CelebrationEffects` (+ trillen) eenmalig, alleen als er iets te vieren is: router-flag `justFinished` (alleen gezet als de live training de workout nog lopend zag, daarna direct gewist) + `completedAt` hooguit 5 min oud (`shouldPlayArrivalCelebration`), pas als `useSettingsState().loaded`.
 - **Supersets**: consecutive exercises sharing a `supersetGroup` are trained alternating; linked in the schema editor, rest resolves after the round. See `features/training/lib/superset.ts`.
 - **Progressive overload**: hitting the top of the rep range on every set bumps the next session's suggested weight by one increment (per-exercise `weightStep` override, else the equipment/global step).
 - **Epic 8**: Settings — 1RM formula, muscle detail level, workout density, per-equipment weight steps, rest timer + alert toggles + laterality×movement-type rest-defaults matrix; clear data, JSON export/import.
@@ -103,7 +104,7 @@ src/
 
 ## Redesign (design handoff)
 
-Status: WP0-WP8 are done (see `docs/plan.redesign.md`; a11y/PWA review and open points in `docs/redesign-wp8-review.md`).
+Status: WP0-WP8 are done, plus Training B1 (PR #43) and D1U (unilateral) (see `docs/plan.redesign.md`; a11y/PWA review and open points in `docs/redesign-wp8-review.md`).
 
 A visual makeover is planned in `docs/plan.redesign.md` (work packages WP0-WP8). Source of
 truth for looks: `docs/design-handoff/` (`DESIGN.md`, `tokens/`, `screens/*.dc.html`, which
@@ -122,8 +123,8 @@ wins for looks. Conventions for redesigned screens:
 ## Training B1 (set registration)
 
 The live screen follows `docs/design-handoff/screens/TrainingB1.dc.html`: bar with workout timer + list + pause + Afronden;
-name, "Vorige keer", goal chip (and the superset chip); set dots (`set-row`, one per set, a unilateral pair is one dot,
-`aria-pressed` = opened); set card for the opened set; Gedaan list (`done-row`) with the difference to the same set last
+name, "Vorige keer", goal chip (and the superset chip); set dots (`set-row`, one per set,
+`aria-pressed` = opened; unilateral exercises get the D1U zigzag instead, see below); set card for the opened set; Gedaan list (`done-row`) with the difference to the same set last
 time (reps at the same weight, kg at another weight, "nieuw"; no 1RM, `--color-worse` for worse, always with arrow +
 text); fixed bottom row with the rest ring (`rest-timer` while running, `rest-ring-idle` otherwise) + main button
 ("Set klaar" / "Opslaan" for an opened logged set / "Volgende oefening" / "Laatste oefening afronden"). Decisions (owner
@@ -131,6 +132,29 @@ not reachable, DESIGN §12 defaults): "Set verwijderen" is a muted text button u
 not yet logged set; an opened logged set also offers "Set terugzetten" (undo completion). Skip/add exercises only via
 the overview sheet. Notes, per-exercise rest and "Oefening verwijderen" stay as text buttons under the Gedaan list.
 Supersets keep the existing logic (`afterSetLogged`); there is no superset design yet (B2 rejected).
+The previous live components `LiveStepper` and `LiveRestStrip` were replaced by B1 and removed; the "Zelfde als vorige"
+button was removed before (PR #38; E3-19/SL-02 are void).
+
+## Training D1U (unilateral set registration)
+
+For an exercise whose sets are logged per side (`WorkoutSet.side`, from `Exercise.laterality === 'unilateral'` when
+the workout is built) the live screen follows `docs/design-handoff/screens/TrainingD1U.dc.html`: B1, but the set dots
+are a zigzag (`LiveSideProgress`, `side-dot` with `data-set`/`data-side`): one 28 px dot per side, left on the top row,
+right on the bottom row, order L1 → R1 → L2 → R2, a line from centre to centre (accent when the part it leaves is
+done), the plus dot on the top row at the end, 44 × 44 tap targets centred on the dots; `step = min(46, (width − 24) /
+(parts + 1))` from the measured width, so 8 sets fit without scrolling (the tap targets then overlap, DESIGN §12 q13).
+No visible side label (an `sr-only` line names the opened side). Data model unchanged: the design's set
+`{weight, left, right}` is the stored left row + right row of the same logical set (weight stays per row).
+Rules (pure, `lib/setRegistration.ts` + `afterSetLogged`): after the left part the right part starts with its values
+(`openSetValues`, partner first); rest starts only once a part completes its set (after the right part, or the left
+one if right was logged first) and never after the last set; a running rest keeps running when a left part is logged;
+the idle ring shows "na R" (0:00 right after a rest ran out); the Gedaan list has one row per set with both sides
+logged, `Set 1 · 20 kg · L 12 · R 12` (per-side weight when the sides differ), difference = sum of the reps
+difference left + right at the same weight, else kg (DESIGN §12 q10), `nieuw` without a full previous set; the
+overview counts a unilateral set once (`setProgress`). Bilateral exercises are exactly B1. Unilateral is set per
+exercise (`Exercise.laterality`, Epic 1 toggle), so there is no extra switch (DESIGN §12 q9).
+Known limitation: a unilateral exercise inside a superset keeps the superset logic (members alternate per row, so
+per side, and rest can start between L and R); supersets are not designed yet.
 
 ## Rest-time resolution
 

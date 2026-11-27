@@ -44,13 +44,17 @@ import { ExerciseMoment } from '../components/ExerciseMoment';
 import {
   canRemoveOpenSet,
   doneRows,
+  isUnilateral,
   logicalSetNumber,
   nextOpenSetIndex,
   openSetIndex,
   openSetValues,
   setDots,
+  setProgress,
+  sideDots,
 } from '../lib/setRegistration';
 import { LiveSetProgress } from '../components/LiveSetProgress';
+import { LiveSideProgress } from '../components/LiveSideProgress';
 import { LiveSetCard } from '../components/LiveSetCard';
 import { LiveDoneList } from '../components/LiveDoneList';
 import { LiveRestRing, type RestTimerState } from '../components/LiveRestRing';
@@ -123,7 +127,9 @@ function findPreviousLines(
     const w = completedWorkouts[i];
     if (!w || w.id === currentWorkoutId) continue;
     const sets = w.exercises.find(e => e.exerciseId === exerciseId)?.sets.filter(isCompletedSet) ?? [];
-    if (sets.length > 0) return sets.map(s => ({ weight: s.weight ?? 0, reps: s.actualReps! }));
+    if (sets.length > 0) {
+      return sets.map(s => ({ weight: s.weight ?? 0, reps: s.actualReps!, ...(s.side ? { side: s.side } : {}) }));
+    }
   }
   return [];
 }
@@ -495,8 +501,10 @@ export function WorkoutPage() {
       }
       closeOpenedSet();
       if (outcome.rest) startRest(current.exerciseId);
-      // Same exercise stays focused without rest = it just got finished: drop a running timer
-      else if (outcome.focusIdx === cur) {
+      // Same exercise stays focused and has nothing left to log = it just got
+      // finished: drop a running timer. (After a unilateral left part there is
+      // no new rest either, but a running one keeps going.)
+      else if (outcome.focusIdx === cur && nextOpen < 0) {
         setRestTimer(null);
         setRestEnded(false);
       }
@@ -663,7 +671,7 @@ export function WorkoutPage() {
   // --- Derived view data ---
   const overviewRows: OverviewRow[] = exercises.map((we, i) => {
     const prev = previousSessions.get(we.exerciseId);
-    const settled = we.sets.filter(s => s.completed).length;
+    const { done: settled, total } = setProgress(we.sets);
     const top = prev ? [...prev.sets].sort((a, b) => b.weight - a.weight || b.reps - a.reps)[0] : undefined;
     const info = groupSupersets(exercises)[i]!;
     return {
@@ -671,7 +679,7 @@ export function WorkoutPage() {
       status: statuses[i]!,
       isCurrent: i === cur,
       meta:
-        `${settled > 0 ? `${settled}/` : ''}${we.sets.length} sets` +
+        `${settled > 0 ? `${settled}/` : ''}${total} sets` +
         (top ? ` · vorige ${formatDecimal(top.weight)} × ${top.reps}` : ' · nieuw'),
       superset: info.inSuperset ? info.label : undefined,
     };
@@ -686,12 +694,11 @@ export function WorkoutPage() {
     : prevLines.length > 0
       ? `Vorige keer: ${formatPrevLine(prevLines)}`
       : 'Geen eerdere sessie';
-  const dots = current ? setDots(sets, openIdx) : [];
+  // D1U: an exercise logged per side shows the zigzag (one dot per side) instead of B1's dots.
+  const unilateral = isUnilateral(sets);
+  const dots = current && !unilateral ? setDots(sets, openIdx) : [];
+  const parts = current && unilateral ? sideDots(sets, openIdx) : [];
   const rows = current ? doneRows(sets, prevLines) : [];
-  // Unilateral: the dot is the pair, so say which side the card is for.
-  const sideLabel = openSet?.side
-    ? `Set ${logicalSetNumber(sets, openIdx)} · ${openSet.side === 'left' ? 'links' : 'rechts'}`
-    : null;
   // DESIGN §6: the ring stays visible while it runs once the exercise is done.
   const showRing = !!restTimer || (!!current && !exerciseComplete) || !!openSet;
 
@@ -773,13 +780,27 @@ export function WorkoutPage() {
 
         {current && (
           <div className="flex flex-col">
-            <LiveSetProgress
-              dots={dots}
-              canAdd={canAddSet(sets)}
-              onOpen={openSetAt}
-              onAdd={() => void handleAddSet()}
-            />
-            {sideLabel && <p className="mt-1 text-small text-muted">{sideLabel}</p>}
+            {unilateral ? (
+              <LiveSideProgress
+                dots={parts}
+                canAdd={canAddSet(sets)}
+                onOpen={openSetAt}
+                onAdd={() => void handleAddSet()}
+              />
+            ) : (
+              <LiveSetProgress
+                dots={dots}
+                canAdd={canAddSet(sets)}
+                onOpen={openSetAt}
+                onAdd={() => void handleAddSet()}
+              />
+            )}
+            {/* No visible side label (D1U): the row of the opened dot shows it; screen readers get it here. */}
+            {unilateral && openSet?.side && (
+              <p className="sr-only">
+                Set {logicalSetNumber(sets, openIdx)} {openSet.side === 'left' ? 'links' : 'rechts'}
+              </p>
+            )}
             {openSet && (
               <LiveSetCard
                 weightText={weightText}
@@ -875,6 +896,7 @@ export function WorkoutPage() {
               timer={restTimer}
               idleSeconds={current ? getRest(current.exerciseId) : settings.restTimerSeconds}
               ended={restEnded}
+              unilateral={unilateral}
               onExtend={() => setRestTimer(t => (t ? { ...t, remaining: t.remaining + 30, total: t.total + 30 } : t))}
               onStart={() => {
                 requestNotifyPermission();

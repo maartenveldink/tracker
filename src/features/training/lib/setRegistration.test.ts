@@ -4,6 +4,7 @@ import {
   canRemoveOpenSet,
   doneRows,
   formatRestClock,
+  isUnilateral,
   logicalSetNumber,
   nextOpenSetIndex,
   openSetIndex,
@@ -11,8 +12,14 @@ import {
   restRingFraction,
   restRingLabel,
   restTimerLabel,
+  pairDelta,
+  restRingIdleLabel,
+  restRingIdleText,
   setDelta,
   setDots,
+  setProgress,
+  sideDots,
+  zigzagLayout,
 } from './setRegistration';
 
 type S = 'todo' | 'done' | 'skip';
@@ -133,12 +140,6 @@ describe('doneRows', () => {
     expect(rows.map(r => r.delta.text)).toEqual(['gelijk', '↑ +1', 'nieuw']);
     expect(rows[1]!.ariaLabel).toBe('Set 2 · 140 kg × 9, ↑ +1, aanpassen');
   });
-  it('names the side of a unilateral set and compares per side', () => {
-    const s = [set('done', 1, { side: 'left', weight: 20, actualReps: 10 }), set('done', 2, { side: 'right', weight: 20, actualReps: 9 })];
-    const rows = doneRows(s, [{ weight: 20, reps: 10 }, { weight: 20, reps: 10 }]);
-    expect(rows.map(r => r.label)).toEqual(['Set 1 links · 20 kg × 10', 'Set 1 rechts · 20 kg × 9']);
-    expect(rows.map(r => r.delta.text)).toEqual(['gelijk', '↓ 1']);
-  });
   it('treats a set without weight as 0 kg', () => {
     const s = [set('done', 1, { weight: null, actualReps: 8 })];
     expect(doneRows(s, [])[0]!.label).toBe('Set 1 · 0 kg × 8');
@@ -212,5 +213,178 @@ describe('rest ring', () => {
   it('keeps the timer label format', () => {
     expect(restTimerLabel(72)).toBe('Rust nog 1 minuut 12 seconden');
     expect(restTimerLabel(130)).toBe('Rust nog 2 minuten 10 seconden');
+  });
+});
+
+// --- D1U: unilateral set registration (zigzag L1 → R1 → L2 → R2) ---
+
+const L = (state: S, n: number, extra: Partial<WorkoutSet> = {}) => set(state, n, { side: 'left', ...extra });
+const R = (state: S, n: number, extra: Partial<WorkoutSet> = {}) => set(state, n, { side: 'right', ...extra });
+
+describe('isUnilateral', () => {
+  it('is true when the sets are logged per side', () => {
+    expect(isUnilateral(pairs('todo'))).toBe(true);
+    expect(isUnilateral(sets('todo', 'todo'))).toBe(false);
+    expect(isUnilateral([])).toBe(false);
+  });
+});
+
+describe('sideDots', () => {
+  it('one dot per part in zigzag order, numbered by set, with the side', () => {
+    const dots = sideDots([L('done', 1), R('todo', 2), L('todo', 3), R('todo', 4)], 1);
+    expect(dots.map(d => d.index)).toEqual([0, 1, 2, 3]);
+    expect(dots.map(d => d.number)).toEqual([1, 1, 2, 2]);
+    expect(dots.map(d => d.side)).toEqual(['left', 'right', 'left', 'right']);
+    expect(dots.map(d => d.state)).toEqual(['done', 'open', 'todo', 'todo']);
+    expect(dots.map(d => d.pressed)).toEqual([false, true, false, false]);
+  });
+  it('the line starting at a part is accent when that part is done', () => {
+    const dots = sideDots([L('done', 1), R('done', 2), L('todo', 3), R('todo', 4)], 2);
+    expect(dots.map(d => d.lineOn)).toEqual([true, true, false, false]);
+  });
+  it('aria-labels as in the design', () => {
+    const dots = sideDots([L('done', 1), R('todo', 2), L('skip', 3), R('skip', 4)], 1);
+    expect(dots.map(d => d.ariaLabel)).toEqual([
+      'Set 1 links (klaar), aanpassen',
+      'Set 1 rechts',
+      'Set 2 links (overgeslagen)',
+      'Set 2 rechts (overgeslagen)',
+    ]);
+  });
+  it('an opened done part shows as open (adjusting it)', () => {
+    expect(sideDots([L('done', 1), R('todo', 2)], 0)[0]!.state).toBe('open');
+  });
+});
+
+describe('zigzagLayout', () => {
+  it('uses the design formula: step = min(46, (width − 24) / (parts + 1)), rows at y 16 / 46', () => {
+    const l = zigzagLayout(6, 350);
+    expect(l.step).toBe(46);
+    expect(l.points[0]).toEqual({ x: 24 + 23, y: 16 });
+    expect(l.points[1]).toEqual({ x: 24 + 46 + 23, y: 46 });
+    // the plus slot sits on the top row after the last right part
+    expect(l.points).toHaveLength(7);
+    expect(l.points[6]!.y).toBe(16);
+  });
+  it('shrinks the step with many sets so 8 sets fit without scrolling', () => {
+    const l = zigzagLayout(16, 350);
+    expect(l.step).toBeCloseTo(326 / 17);
+    const last = l.points[l.points.length - 1]!;
+    // the last 44 px tap target ends within the 20 px screen margin
+    expect(last.x + 22).toBeLessThan(350 + 20);
+    expect(l.points[0]!.x - 22).toBeGreaterThanOrEqual(0);
+  });
+  it('fits a narrow (320 px) screen too', () => {
+    const width = 320 - 40;
+    const l = zigzagLayout(16, width);
+    const last = l.points[l.points.length - 1]!;
+    expect(last.x + 22).toBeLessThan(width + 20);
+  });
+  it('a line between each pair of neighbouring centres', () => {
+    const l = zigzagLayout(2, 350);
+    expect(l.lines).toHaveLength(2);
+    expect(l.lines[0]!.x).toBe(l.points[0]!.x);
+    expect(l.lines[0]!.y).toBe(16);
+    expect(l.lines[0]!.length).toBeCloseTo(Math.hypot(46, 30));
+    expect(l.lines[0]!.angle).toBeCloseTo((Math.atan2(30, 46) * 180) / Math.PI);
+    expect(l.lines[1]!.angle).toBeCloseTo((Math.atan2(-30, 46) * 180) / Math.PI);
+  });
+});
+
+describe('pairDelta (decision on DESIGN §12 q10: sum of left + right)', () => {
+  const prev = { left: { weight: 20, reps: 12 }, right: { weight: 20, reps: 12 } };
+  it('same weight: the reps difference of left + right summed', () => {
+    expect(pairDelta({ left: { weight: 20, reps: 13 }, right: { weight: 20, reps: 13 } }, prev)).toEqual({ kind: 'up', text: '↑ +2' });
+    expect(pairDelta({ left: { weight: 20, reps: 12 }, right: { weight: 20, reps: 12 } }, prev)).toEqual({ kind: 'same', text: 'gelijk' });
+    expect(pairDelta({ left: { weight: 20, reps: 12 }, right: { weight: 20, reps: 11 } }, prev)).toEqual({ kind: 'down', text: '↓ 1' });
+    expect(pairDelta({ left: { weight: 20, reps: 13 }, right: { weight: 20, reps: 11 } }, prev)).toEqual({ kind: 'same', text: 'gelijk' });
+  });
+  it('another weight: the kg difference', () => {
+    expect(pairDelta({ left: { weight: 22.5, reps: 8 }, right: { weight: 22.5, reps: 8 } }, prev)).toEqual({ kind: 'up', text: '↑ +2,5 kg' });
+    expect(pairDelta({ left: { weight: 17.5, reps: 8 }, right: { weight: 17.5, reps: 8 } }, prev)).toEqual({ kind: 'down', text: '↓ 2,5 kg' });
+  });
+  it('"nieuw" without a full previous set', () => {
+    expect(pairDelta({ left: { weight: 20, reps: 12 }, right: { weight: 20, reps: 12 } }, undefined)).toEqual({ kind: 'new', text: 'nieuw' });
+  });
+});
+
+describe('doneRows (unilateral)', () => {
+  const prev = [
+    { weight: 20, reps: 12, side: 'left' as const },
+    { weight: 20, reps: 12, side: 'right' as const },
+    { weight: 20, reps: 11, side: 'left' as const },
+    { weight: 20, reps: 11, side: 'right' as const },
+  ];
+  it('one row per set whose left and right parts are both done; a half set is not listed', () => {
+    const s = [
+      L('done', 1, { weight: 20, actualReps: 12 }),
+      R('done', 2, { weight: 20, actualReps: 12 }),
+      L('done', 3, { weight: 20, actualReps: 12 }),
+      R('todo', 4),
+    ];
+    const rows = doneRows(s, prev);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.label).toBe('Set 1 · 20 kg · L 12 · R 12');
+    expect(rows[0]!.delta.text).toBe('gelijk');
+    // tapping the row opens the left part (design: sel = i × 2)
+    expect(rows[0]!.index).toBe(0);
+    expect(rows[0]!.ariaLabel).toBe('Set 1 · 20 kg · L 12 · R 12, gelijk, aanpassen');
+  });
+  it('compares with the same set last time', () => {
+    const s = [
+      L('done', 1, { weight: 20, actualReps: 12 }),
+      R('done', 2, { weight: 20, actualReps: 12 }),
+      L('done', 3, { weight: 20, actualReps: 12 }),
+      R('done', 4, { weight: 20, actualReps: 12 }),
+      L('done', 5, { weight: 20, actualReps: 10 }),
+      R('done', 6, { weight: 20, actualReps: 10 }),
+    ];
+    expect(doneRows(s, prev).map(r => r.delta.text)).toEqual(['gelijk', '↑ +2', 'nieuw']);
+  });
+  it('shows the weight per side when the sides differ', () => {
+    const s = [L('done', 1, { weight: 20, actualReps: 12 }), R('done', 2, { weight: 22.5, actualReps: 10 })];
+    expect(doneRows(s, [])[0]!.label).toBe('Set 1 · L 20 kg × 12 · R 22,5 kg × 10');
+  });
+});
+
+describe('openSetValues (unilateral)', () => {
+  it('after the left part, the right part of the same set gets the same reps (and weight)', () => {
+    const s = [L('done', 1, { weight: 20, actualReps: 12 }), R('todo', 2), L('todo', 3), R('todo', 4)];
+    expect(openSetValues(s, 1, [])).toEqual({ weight: 20, reps: 12 });
+  });
+  it('the partner wins over a later logged part', () => {
+    const s = [
+      L('done', 1, { weight: 20, actualReps: 12 }),
+      R('todo', 2),
+      L('done', 3, { weight: 22.5, actualReps: 8 }),
+      R('todo', 4),
+    ];
+    expect(openSetValues(s, 1, [])).toEqual({ weight: 20, reps: 12 });
+  });
+  it('the next set takes over the values of the part just done', () => {
+    const s = [L('done', 1, { weight: 20, actualReps: 12 }), R('done', 2, { weight: 20, actualReps: 11 }), L('todo', 3), R('todo', 4)];
+    expect(openSetValues(s, 2, [])).toEqual({ weight: 20, reps: 11 });
+  });
+});
+
+describe('rest ring idle (unilateral)', () => {
+  it('shows "na R" while no rest runs on a unilateral exercise', () => {
+    expect(restRingIdleText(90, false, true)).toBe('na R');
+    expect(restRingIdleText(90, false, false)).toBe('1:30');
+  });
+  it('shows 0:00 right after a rest ran out', () => {
+    expect(restRingIdleText(90, true, true)).toBe('0:00');
+    expect(restRingIdleText(90, true, false)).toBe('0:00');
+  });
+  it('says the rest follows after the right side', () => {
+    expect(restRingIdleLabel(90, true)).toBe('Rust volgt na rechts (1 minuut 30). Tik om de rust nu te starten');
+    expect(restRingIdleLabel(90, false)).toBe(restRingLabel(90, false));
+  });
+});
+
+describe('setProgress', () => {
+  it('counts sets; a unilateral set once and only when both sides are logged', () => {
+    expect(setProgress(sets('done', 'todo', 'todo'))).toEqual({ done: 1, total: 3 });
+    expect(setProgress([L('done', 1), R('done', 2), L('done', 3), R('todo', 4), L('todo', 5), R('todo', 6)])).toEqual({ done: 1, total: 3 });
   });
 });

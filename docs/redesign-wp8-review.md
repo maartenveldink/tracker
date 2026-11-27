@@ -16,7 +16,7 @@ Stand na WP8. Wat is gedaan, wat is gemeten, wat een mens in de browser moet bek
 - **PWA:** manifest `lang` is `nl`; `engines`/`prebuild` eisen Node >= 22.12 (Vitest 5).
 - **e2e:** `a11y.spec.ts` (tikdoelen, nav-kolom op brede viewport).
 
-Focusringen: een globale `:focus-visible`-outline (2px accent, offset 2) in `tokens.css` en `index.css` dekt ook knoppen zonder eigen ring (zoals "Zelfde als vorige" en de add-sheet-knoppen).
+Focusringen: een globale `:focus-visible`-outline (2px accent, offset 2) in `tokens.css` en `index.css` dekt ook knoppen zonder eigen ring (zoals de add-sheet-knoppen; de toenmalige knop "Zelfde als vorige" is inmiddels verwijderd).
 
 ## Gemeten / nagelopen (statisch)
 

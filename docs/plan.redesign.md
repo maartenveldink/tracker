@@ -75,6 +75,7 @@ geeft volgorde; pakketten zonder afhankelijkheid kunnen parallel.
 - Statemachine (`todo/done/skipped`, zoekregel voor "huidige oefening") als **pure functie** in `features/training/lib/` + unit tests (WP0).
 - Behoud bestaande functies: supersets, rest-resolutie (`restTime.ts`), invoegpositie (`insertPosition.ts`), voorinvulling, progressive overload.
 - Kan eventueel gesplitst: 4a statemachine + tests, 4b UI.
+- **Later vervangen:** de setlijst, onderbalk-stappers en rusttimer-strook van WP4 zijn vervangen door Training B1 (set-bolletjes, set-kaart, Gedaan-lijst, rust-ring; PR #43) en voor unilaterale oefeningen door D1U (zigzag L/R). Zie `CLAUDE.md` "Training B1" en "Training D1U".
 
 ### WP5 Viering   (afh. WP4)
 Trigger = gemiddeld geschat 1RM (beslissing 2, niet totaalvolume zoals DESIGN §8), banner, vergelijkingstabel, confetti/vuurwerk (deterministische pseudo-random, `aria-hidden`), instelling "Viering bij verbetering" + "Trillen" in Instellingen, reduced motion. Trigger-logica als pure functie + tests. Verwijder/koppel de bestaande verbeteringsanimatie.

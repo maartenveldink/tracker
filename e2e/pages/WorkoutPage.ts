@@ -4,7 +4,8 @@ import type { Locator, Page } from '@playwright/test';
  * Page object for the live workout screen (`/workout/:id`).
  *
  * The screen shows one exercise at a time ("current exercise") in the B1 layout:
- * set dots (`set-row`, one per set; a unilateral left/right pair is one dot),
+ * set dots (`set-row`, one per set) or, for a unilateral exercise, the zigzag
+ * (`side-dot`, one per side: L1 → R1 → L2 → R2, `data-set` + `data-side`),
  * the set card with the weight/reps steppers for the opened set, the "Gedaan"
  * list (`done-row`) and at the bottom the rest ring next to the main button. The full list of
  * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
@@ -52,7 +53,25 @@ export class WorkoutPage {
     return this.page.getByTestId('set-row');
   }
 
-  /** Rows of the "Gedaan" list (one per logged set, with the difference to last time). */
+  /** Zigzag dots of a unilateral exercise (one per side, in order L1, R1, L2, R2, …). */
+  get sideDots(): Locator {
+    return this.page.getByTestId('side-dot');
+  }
+
+  /** The zigzag dot of one side of a unilateral set (`set` is 1-based). */
+  sideDot(set: number, side: 'left' | 'right'): Locator {
+    return this.page.locator(`[data-testid="side-dot"][data-set="${set}"][data-side="${side}"]`);
+  }
+
+  /** The idle rest ring (no rest running); shows "na R" on a unilateral exercise. */
+  get restRingIdle(): Locator {
+    return this.page.getByTestId('rest-ring-idle');
+  }
+
+  /**
+   * Rows of the "Gedaan" list (one per logged set, with the difference to last
+   * time; unilateral: one per set with both sides logged, "Set 1 · 20 kg · L 12 · R 12").
+   */
   get doneRows(): Locator {
     return this.page.getByTestId('done-row');
   }
@@ -172,9 +191,9 @@ export class WorkoutPage {
     return this.page.getByText('Training gepauzeerd');
   }
 
-  /** Number of sets (dots) of the current exercise; a unilateral left/right pair counts once. */
+  /** Number of sets of the current exercise; a unilateral left/right pair counts once. */
   setCount(): Promise<number> {
-    return this.page.getByTestId('set-row').count();
+    return this.page.locator('[data-testid="set-row"], [data-testid="side-dot"][data-side="left"]').count();
   }
 
   async addSet(): Promise<void> {
@@ -184,10 +203,10 @@ export class WorkoutPage {
   /**
    * Removes the last set: opens it via its dot, then "Set verwijderen" (only
    * offered on the last, not yet logged set; a unilateral exercise loses its
-   * left+right pair).
+   * left+right pair; its last dot is the right side).
    */
   async removeLastSet(): Promise<void> {
-    await this.setDots.last().click();
+    await this.page.locator('[data-testid="set-row"], [data-testid="side-dot"]').last().click();
     await this.page.getByRole('button', { name: 'Set verwijderen', exact: true }).click();
   }
 

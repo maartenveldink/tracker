@@ -33,7 +33,7 @@ Dit document beschrijft UX-verbeteringen voor het live logging-scherm en de bred
 | ID | Status | Requirement |
 |----|--------|-------------|
 | SL-01 | — | Bij het openen van een set toont het systeem het gewicht en het aantal reps van dezelfde set uit de meest recente voltooide sessie met dit schema als prefill. Als er geen vorige sessie is, blijven de velden leeg (huidig gedrag). |
-| SL-02 | — | Naast de kg- en reps-invoer verschijnt een "Zelfde als vorige" knop (of geste) die met één tik het gewicht en reps van de corresponderende set uit de vorige sessie overneemt en de set direct als voltooid markeert. |
+| SL-02 | vervallen | Naast de kg- en reps-invoer verschijnt een "Zelfde als vorige" knop (of geste) die met één tik het gewicht en reps van de corresponderende set uit de vorige sessie overneemt en de set direct als voltooid markeert. **Vervallen:** de knop is verwijderd (PR #38); het B1-scherm vult de set-kaart vooraf in, zodat een ongewijzigde set één tik op "Set klaar" is. |
 | SL-03 | — | Het gewicht-invoerveld biedt snelle aanpassingsknoppen (+/−) voor veelgebruikte stappen: +2,5 kg / −2,5 kg en +5 kg / −5 kg, bereikbaar zonder het toetsenbord te openen. |
 | SL-04 | — | Het reps-invoerveld biedt +1 / −1 knoppen naast het veld, zodat kleine afwijkingen van de geplande reps met één tik aanpasbaar zijn. |
 | SL-05 | — | Wanneer de gebruiker het kg-veld of reps-veld aanraakt, selecteert het systeem automatisch de volledige inhoud, zodat de gebruiker direct kan overtypen zonder eerst te wissen. |
