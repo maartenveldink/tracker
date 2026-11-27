@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Training – E1 Inklappen en rust instellen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+.noscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.noscroll::-webkit-scrollbar { display: none; }
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">42:18</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button aria-label="Oefeningen in deze training" style="width: 44px; height: 44px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+      </button>
+      <button style="height: 44px; padding: 0 18px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Afronden</button>
+    </div>
+  </div>
+  <div style="padding: 18px 20px 0; display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">Beenpers</h1>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <span style="font-size: 14px; color: {{muted}}">Vorige keer: 140 × 8 · 8 · 7</span>
+      <span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: {{line}}; color: {{accent}}">Doel: 140 kg × 9</span>
+    </div>
+  </div>
+
+  <div class="noscroll" style="direction: rtl; overflow-x: auto; overflow-y: hidden; {{fadeStyle}} margin: 16px 20px 0; overscroll-behavior-x: contain">
+    <div style="direction: ltr; display: flex; align-items: center; width: max-content; min-width: 100%; box-sizing: border-box; padding: 0 22px 0 0">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="6">
+        <sc-if value="{{d.showLine}}" hint-placeholder-val="{{ false }}">
+          <span style="{{d.lineStyle}}"></span>
+        </sc-if>
+        <button aria-label="{{d.aria}}" aria-pressed="{{d.pressed}}" onClick="{{d.onClick}}" style="width: 48px; height: 48px; flex: none; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+          <span style="{{d.dot}}">
+            <sc-if value="{{d.isNum}}" hint-placeholder-val="{{ true }}">{{d.label}}</sc-if>
+            <sc-if value="{{d.isCheck}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></sc-if>
+            <sc-if value="{{d.isPlus}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></sc-if>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="margin: 6px 20px 0; background: {{surface}}; border: 1px solid {{line}}; border-radius: 24px; padding: 18px 16px 16px">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); gap: 12px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Gewicht (kg)</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">{{wText}}</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px">
+          <button aria-label="Gewicht 2,5 kg minder" onClick="{{wMinus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+          <button aria-label="Gewicht 2,5 kg meer" onClick="{{wPlus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+        </div>
+      </div>
+      <div style="background: {{line}}"></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Herhalingen</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">{{rText}}</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px">
+          <button aria-label="Eén herhaling minder" onClick="{{rMinus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+          <button aria-label="Eén herhaling meer" onClick="{{rPlus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 14px 24px 0; display: flex; flex-direction: column">
+    <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: {{muted}}">GEDAAN</span>
+    <sc-for list="{{doneRows}}" as="x" hint-placeholder-count="2">
+      <button aria-label="{{x.aria}}" onClick="{{x.onClick}}" style="display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0; border: 0; border-bottom: 1px solid {{line}}; background: transparent; color: {{text}}; cursor: pointer; text-align: left; font-family: inherit">
+        <span style="font-size: 15px">{{x.label}}</span>
+        <span style="{{x.deltaStyle}}">{{x.delta}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="flex: 1"></div>
+  <div style="padding: 0 20px 32px; display: flex; gap: 12px; align-items: center">
+    <sc-if value="{{restEdit}}" hint-placeholder-val="{{ false }}">
+      <div style="flex: 1; height: 64px; box-sizing: border-box; border-radius: 32px; border: 2px solid {{accent2}}; background: {{surface}}; display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+        <button aria-label="Rust 15 seconden korter" onClick="{{restMinus}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+        <button aria-label="Klaar met rust instellen" onClick="{{toggleRest}}" style="height: 48px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 26px; font-weight: 700; color: {{accent2}}"><span style="font-size: 13px; font-weight: 500; color: {{muted}}; margin-right: 8px; font-family: Inter, system-ui, sans-serif">Rust</span>{{restText}}</button>
+        <button aria-label="Rust 15 seconden langer" onClick="{{restPlus}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{notRestEdit}}" hint-placeholder-val="{{ true }}">
+      <button aria-label="Rust, nog {{restText}}. Tik om in te stellen" onClick="{{toggleRest}}" style="flex: none; width: 64px; height: 64px; border: 0; border-radius: 32px; background: transparent; cursor: pointer; position: relative; padding: 0">
+        <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="{{line}}" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="{{accent2}}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 32 32)"/></svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 17px; font-weight: 700; color: {{accent2}}">{{restText}}</span>
+      </button>
+      <button onClick="{{complete}}" style="flex: 1; height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">{{buttonLabel}}</button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"lineStrong":{"editor":"color","default":"#5B6C99","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"worse":{"editor":"color","default":"#FF7A59","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    const st = this.state || {};
+    const mk = (n, doneN) => Array.from({ length: n }, (_, i) => ({ w: 140, r: 8, done: i < doneN }));
+    const sets = st.sets || mk(8, 5);
+    const sel = st.sel === undefined ? null : st.sel;
+    const pop = !!st.pop;
+    const restEdit = !!st.restEdit;
+    const restDur = st.restDur === undefined || st.restDur === null ? 90 : st.restDur;
+    const restLeft = st.restLeft === undefined || st.restLeft === null ? 72 : st.restLeft;
+    const prev = [{ w: 140, r: 8 }, { w: 140, r: 8 }, { w: 140, r: 7 }];
+    const fmt = (n) => String(n).replace('.', ',');
+    // de rust-balk sluit 3 seconden na de laatste aanpassing vanzelf
+    const arm = () => { clearTimeout(this._rt); this._rt = setTimeout(() => this.setState({ restEdit: false }), 3000); };
+    const mmss = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const colors = {
+      bg: p.bg ?? '#0A0E1A',
+      surface: p.surface ?? '#131A2B',
+      line: p.line ?? '#26324F',
+      lineStrong: p.lineStrong ?? '#5B6C99',
+      text: p.text ?? '#F1F4FB',
+      muted: p.muted ?? '#9AA6C2',
+      accent: p.accent ?? '#C8F135',
+      accent2: p.accent2 ?? '#7C9CFF',
+      worse: p.worse ?? '#FF7A59',
+    };
+    const n = sets.length;
+    const firstUndone = sets.findIndex((s) => !s.done);
+    const idx = sel !== null && sel < n ? sel : (firstUndone >= 0 ? firstUndone : n - 1);
+    const cur = sets[idx];
+    const editing = cur.done;
+    const upd = (patch) => this.setState({ sets: sets.map((s, i) => (i === idx ? Object.assign({}, s, patch) : s)) });
+    const dotBase = 'width: 36px; height: 36px; box-sizing: border-box; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700;';
+    const lineOf = (on) => 'flex: none; width: 12px; height: 2px; background: ' + (on ? colors.accent : colors.line) + ';';
+    const setDot = (i, afterPop) => {
+      const s = sets[i];
+      let ds;
+      if (i === idx) ds = dotBase + ' background: ' + colors.bg + '; border: 2px solid ' + colors.accent + '; color: ' + colors.accent + ';';
+      else if (s.done) ds = dotBase + ' background: ' + colors.accent + '; color: ' + colors.bg + ';';
+      else ds = dotBase + ' background: ' + colors.line + '; color: ' + colors.muted + ';';
+      return { isNum: true, isCheck: false, isPlus: false, label: String(i + 1), aria: 'Set ' + (i + 1) + (s.done ? ' (klaar), aanpassen' : ''), pressed: i === idx, onClick: () => this.setState(afterPop ? { sel: i, pop: false } : { sel: i }), dot: ds };
+    };
+    const addSet = (afterPop) => () => this.setState({ sets: sets.concat([{ w: sets[n - 1].w, r: sets[n - 1].r, done: false }]), sel: n, pop: false });
+    const plusDot = (afterPop) => ({ isNum: false, isCheck: false, isPlus: true, label: '', aria: 'Set toevoegen', pressed: false, onClick: addSet(afterPop), dot: dotBase + ' border: 1.5px dashed ' + colors.lineStrong + '; color: ' + colors.accent + ';' });
+    const W = 4;
+    const collapse = false;
+    const start = collapse ? n - W : 0;   // venster eindigt altijd bij de laatste set, zodat het plusje rechts blijft staan
+    const end = n;
+    const dots = [];
+    const push = (d, lineOn, first) => { d.showLine = !first; d.lineStyle = lineOf(lineOn); dots.push(d); };
+    if (start > 0) {
+      const allDone = sets.slice(0, start).every((s) => s.done);
+      push({ isNum: !allDone, isCheck: allDone, isPlus: false, label: String(start), aria: start + ' eerdere sets, alle sets tonen', pressed: pop, onClick: () => this.setState({ pop: !pop }), dot: dotBase + ' width: 40px; ' + (idx < start ? 'background: ' + colors.bg + '; border: 2px solid ' + colors.accent + ';' : 'background: ' + colors.line + ';') + ' color: ' + colors.accent + ';' }, false, true);
+      if (allDone) { dots[0].isNum = true; dots[0].label = '✓' + start; dots[0].isCheck = false; }
+    }
+    for (let i = start; i < end; i++) push(setDot(i, false), i > 0 && sets[i - 1].done, dots.length === 0);
+    push(plusDot(false), false, dots.length === 0);
+    const popDots = [];
+    for (let i = 0; i < n; i++) popDots.push(setDot(i, true));
+    popDots.push(plusDot(true));
+    const doneIdx = [];
+    sets.forEach((s, i) => { if (s.done) doneIdx.push(i); });
+    const shown = doneIdx.slice(-3);
+    const doneRows = shown.map((i) => {
+      const s = sets[i];
+      const pv = prev[i];
+      let delta = 'nieuw', kind = 'same';
+      if (pv) {
+        if (s.w === pv.w) {
+          const d = s.r - pv.r;
+          kind = d > 0 ? 'up' : d < 0 ? 'down' : 'same';
+          delta = d > 0 ? '↑ +' + d : d < 0 ? '↓ ' + Math.abs(d) : 'gelijk';
+        } else {
+          const d = s.w - pv.w;
+          kind = d > 0 ? 'up' : 'down';
+          delta = (d > 0 ? '↑ +' : '↓ ') + fmt(Math.abs(d)) + ' kg';
+        }
+      }
+      const col = kind === 'up' ? colors.accent : kind === 'down' ? colors.worse : colors.muted;
+      return { label: 'Set ' + (i + 1) + ' · ' + fmt(s.w) + ' kg × ' + s.r, aria: 'Set ' + (i + 1) + ' aanpassen, ' + delta, delta, deltaStyle: 'font-size: 14px; font-weight: ' + (kind === 'same' ? '400' : '700') + '; color: ' + col + ';', onClick: () => this.setState({ sel: i }) };
+    });
+    const hidden = doneIdx.length - shown.length;
+    return Object.assign({}, colors, {
+      dots, popDots, pop, doneRows,
+      // de uitfade aan de randen staat alleen aan als de rij echt breder is dan het scherm
+      fadeStyle: (dots.length * 48 + (dots.length - 1) * 12 + 22 > 350) ? '-webkit-mask-image: linear-gradient(to right, transparent 0, transparent 4px, #000 76px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, transparent 4px, #000 76px, #000 calc(100% - 22px), transparent 100%);' : '',
+      showMore: hidden > 0,
+      moreText: hidden === 1 ? '+ 1 eerdere set' : '+ ' + hidden + ' eerdere sets',
+      openPop: () => this.setState({ pop: true }),
+      wText: fmt(cur.w), rText: String(cur.r),
+      buttonLabel: editing ? 'Opslaan' : 'Set klaar',
+      wMinus: () => upd({ w: Math.max(0, cur.w - 2.5) }), wPlus: () => upd({ w: cur.w + 2.5 }),
+      rMinus: () => upd({ r: Math.max(1, cur.r - 1) }), rPlus: () => upd({ r: cur.r + 1 }),
+      restEdit, notRestEdit: !restEdit,
+      restText: mmss(restLeft),
+      ringDash: Math.round(176 * Math.min(1, restLeft / restDur)) + ' 176',
+      toggleRest: () => { clearTimeout(this._rt); if (!restEdit) arm(); this.setState({ restEdit: !restEdit }); },
+      restMinus: () => { arm(); this.setState({ restLeft: Math.max(0, restLeft - 15), restDur: Math.max(15, restDur - 15) }); },
+      restPlus: () => { arm(); this.setState({ restLeft: restLeft + 15, restDur: restDur + 15 }); },
+      complete: () => {
+        clearTimeout(this._rt);
+        if (editing) { this.setState({ sel: null, pop: false, restEdit: false }); return; }
+        const next = sets.map((s, i) => (i === idx ? Object.assign({}, s, { done: true }) : s));
+        const nu = next.findIndex((s) => !s.done);
+        if (nu >= 0) next[nu] = Object.assign({}, next[nu], { w: cur.w, r: cur.r });
+        this.setState({ sets: next, sel: null, pop: false, restEdit: false, restLeft: restDur });
+      }
+    });
+  }
+}
+</script>
+</body>
+</html>
