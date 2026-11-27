@@ -117,6 +117,16 @@ export interface AfterSetLogged {
 }
 
 /**
+ * What happens to the rest timer after a set was logged ("Set klaar"): a new
+ * rest restarts it from the full duration, otherwise a running timer is
+ * cleared (tapping "Set klaar" means the rest is over). Editing an already
+ * logged set ("Opslaan") does not go through here.
+ */
+export function restTimerAfterSetLogged(outcome: AfterSetLogged): 'restart' | 'clear' {
+  return outcome.rest ? 'restart' : 'clear';
+}
+
+/**
  * What happens after a set was logged. For supersets the members alternate
  * without rest, and rest starts only after the last member of a round that leaves open sets. No rest after the last open set of an exercise (or group). Pass the
  * workout as it was *before* the set was completed: the just-finished

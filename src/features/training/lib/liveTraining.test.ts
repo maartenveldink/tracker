@@ -4,6 +4,7 @@ import {
   MAX_SETS,
   activeSetIndex,
   afterSetLogged,
+  restTimerAfterSetLogged,
   canAddSet,
   canRemoveLastSet,
   exerciseStatus,
@@ -266,5 +267,16 @@ describe('number parsing for the steppers', () => {
   it('formats with a decimal comma', () => {
     expect(formatDecimal(62.5)).toBe('62,5');
     expect(formatDecimal(null)).toBe('');
+  });
+});
+
+describe('restTimerAfterSetLogged', () => {
+  it('restarts the timer when the logged set brings a new rest', () => {
+    expect(restTimerAfterSetLogged({ focusIdx: 0, rest: true })).toBe('restart');
+  });
+
+  it('clears a running timer when there is no new rest (left part, superset switch, last set)', () => {
+    expect(restTimerAfterSetLogged({ focusIdx: 0, rest: false })).toBe('clear');
+    expect(restTimerAfterSetLogged({ focusIdx: 1, rest: false })).toBe('clear');
   });
 });

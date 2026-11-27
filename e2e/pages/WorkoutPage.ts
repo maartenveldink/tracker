@@ -210,11 +210,6 @@ export class WorkoutPage {
     await this.page.getByRole('button', { name: 'Set verwijderen', exact: true }).click();
   }
 
-  /** Skips the running rest. */
-  async skipRest(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Rust overslaan', exact: true }).click();
-  }
-
   /** Taps the running rest ring: +30 seconds. */
   async extendRest(): Promise<void> {
     await this.restTimer.getByRole('button').click();
