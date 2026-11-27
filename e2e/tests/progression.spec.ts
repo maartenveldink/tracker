@@ -60,6 +60,11 @@ test.describe('Progression', () => {
     await workout.completeActiveSet(70, 10); // heavier -> a better session
 
     await expect(page.getByTestId('celebration')).toBeVisible();
+    // The overlay alone is not enough: its pieces start at opacity 0 and only
+    // show up through their animation, so it must really be applied.
+    const pieces = page.getByTestId('celebration').locator('span');
+    await expect(pieces.first()).toHaveCSS('animation-name', 'confetti');
+    await expect(pieces.last()).toHaveCSS('animation-name', 'firework-ray');
     await expect(page.getByTestId('moment-banner')).toContainText('Beter dan vorige keer');
 
     // A reload must not replay the effects.

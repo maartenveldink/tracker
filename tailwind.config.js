@@ -125,6 +125,10 @@ export default {
         'float-up': 'float-up 1.4s ease-out forwards',
         'banner-pop': 'banner-pop var(--motion-pop) both',
         'moment-fade': 'moment-fade var(--motion-row) both',
+        // CelebrationEffects sets duration/delay per piece inline; without these
+        // entries the classes don't exist and the pieces stay at opacity 0.
+        confetti: 'confetti 4.5s both',
+        'firework-ray': 'firework-ray 3.2s ease-out both',
       },
     },
   },
