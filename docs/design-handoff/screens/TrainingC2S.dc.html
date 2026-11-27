@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Training – C2 Superset</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="align-self: flex-start; height: 22px; padding: 0 9px; box-sizing: border-box; border: 1px solid {{accent2}}; border-radius: 11px; display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: {{accent2}}">SUPERSET · B</span>
+      <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">42:18</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button aria-label="Oefeningen in deze training" style="width: 44px; height: 44px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+      </button>
+      <button style="height: 44px; padding: 0 18px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Afronden</button>
+    </div>
+  </div>
+  <div style="padding: 18px 20px 0; display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">Beencurl</h1>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <span style="font-size: 14px; color: {{muted}}">Vorige keer: 45 × 12 · 12 · 10</span>
+      <span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: {{line}}; color: {{accent}}">Doel: 45 kg × 13</span>
+    </div>
+  </div>
+  <div style="padding: 16px 20px 0; display: flex; align-items: center">
+    <button aria-label="Set 1" style="width: 48px; height: 48px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 36px; height: 36px; box-sizing: border-box; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: {{accent}}; color: {{bg}};">1</span></button><span style="flex: 1; min-width: 6px; height: 2px; background: {{accent}}"></span><button aria-label="Set 2" style="width: 48px; height: 48px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 36px; height: 36px; box-sizing: border-box; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; border: 2px solid {{accent}}; color: {{accent}};">2</span></button><span style="flex: 1; min-width: 6px; height: 2px; background: {{line}}"></span><button aria-label="Set 3" style="width: 48px; height: 48px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 36px; height: 36px; box-sizing: border-box; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; background: {{line}}; color: {{muted}};">3</span></button><span style="flex: 1; min-width: 6px; height: 2px; background: {{line}}"></span><button aria-label="Set toevoegen" style="width: 48px; height: 48px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 36px; height: 36px; box-sizing: border-box; border-radius: 18px; border: 1.5px dashed {{lineStrong}}; color: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
+  </div>
+  <div style="margin: 6px 20px 0; background: {{surface}}; border: 1px solid {{line}}; border-radius: 24px; padding: 18px 16px 16px">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); gap: 12px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Gewicht (kg)</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">45</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px"><button aria-label="Gewicht minder" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button><button aria-label="Gewicht meer" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button></div>
+      </div>
+      <div style="background: {{line}}"></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Herhalingen</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">12</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px"><button aria-label="Herhalingen minder" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button><button aria-label="Herhalingen meer" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding: 14px 24px 0; display: flex; flex-direction: column">
+    <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: {{muted}}">GEDAAN</span>
+    <button style="display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0; border: 0; border-bottom: 1px solid {{line}}; background: transparent; color: {{text}}; cursor: pointer; text-align: left; font-family: inherit"><span style="font-size: 15px">Set 1 · 140 × 8 · 45 × 12</span><span style="font-size: 14px; font-weight: 400; color: {{muted}}">gelijk</span></button>
+    <button style="display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0; border: 0; border-bottom: 1px solid {{line}}; background: transparent; color: {{text}}; cursor: pointer; text-align: left; font-family: inherit"><span style="font-size: 15px">Set 2 · 140 × 9 · –</span><span style="font-size: 14px; font-weight: 700; color: {{accent}}">↑ +1</span></button>
+  </div>
+  <div style="flex: 1"></div>
+  <div style="padding: 0 20px 32px; display: flex; gap: 12px; align-items: center">
+    <button aria-label="Rust volgt na deze set" style="flex: none; width: 64px; height: 64px; border: 0; border-radius: 32px; background: transparent; cursor: pointer; position: relative; padding: 0">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="{{line}}" stroke-width="5"/></svg>
+      <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 15px; font-weight: 700; color: {{muted}}">na B</span>
+    </button>
+    <button style="flex: 1; height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">Set klaar</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"lineStrong":{"editor":"color","default":"#5B6C99","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"worse":{"editor":"color","default":"#FF7A59","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return {
+      bg: p.bg ?? '#0A0E1A',
+      surface: p.surface ?? '#131A2B',
+      line: p.line ?? '#26324F',
+      lineStrong: p.lineStrong ?? '#5B6C99',
+      text: p.text ?? '#F1F4FB',
+      muted: p.muted ?? '#9AA6C2',
+      accent: p.accent ?? '#C8F135',
+      accent2: p.accent2 ?? '#7C9CFF',
+      worse: p.worse ?? '#FF7A59',
+    };
+  }
+}
+</script>
+</body>
+</html>
