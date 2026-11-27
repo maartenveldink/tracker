@@ -98,4 +98,36 @@ test.describe('Live workout', () => {
     await expect(workout.primaryButton).toHaveText('Laatste oefening afronden');
     await expect(workout.restTimer).toHaveCount(0);
   });
+
+  test('B1: the Gedaan list shows the difference, a logged set can be opened and saved', async ({
+    schemaEditor,
+    startWorkout,
+    workout,
+  }) => {
+    await createSimpleSchema(schemaEditor, 'E2E B1 schema');
+    // Baseline session: 3 × 60 kg × 10.
+    await startWorkout.goto();
+    await startWorkout.start('E2E B1 schema');
+    await workout.completeExercise(60, 10);
+    await workout.finish();
+
+    await startWorkout.goto();
+    await startWorkout.start('E2E B1 schema');
+    await workout.completeActiveSet(60, 11);
+    await workout.logActiveReps(10);
+    await expect(workout.doneRows).toHaveText([/Set 1 · 60 kg × 11\s*↑ \+1/, /Set 2 · 60 kg × 10\s*gelijk/]);
+    // The next open set is opened by default, set 1 is done.
+    await expect(workout.setDots.nth(2)).toHaveAttribute('aria-pressed', 'true');
+    await expect(workout.setDots.nth(0)).toHaveAccessibleName('Set 1 (klaar), aanpassen');
+
+    // Open the logged set 1, lower the weight and save: no rest restart, back to set 3.
+    await workout.openSet(0);
+    await expect(workout.primaryButton).toHaveText('Opslaan');
+    await expect(workout.repsInput).toHaveValue('11');
+    await workout.weightInput.fill('57,5');
+    await workout.primaryButton.click();
+    await expect(workout.doneRows.first()).toHaveText(/Set 1 · 57,5 kg × 11\s*↓ 2,5 kg/);
+    await expect(workout.primaryButton).toHaveText('Set klaar');
+    await expect(workout.setDots.nth(2)).toHaveAttribute('aria-pressed', 'true');
+  });
 });

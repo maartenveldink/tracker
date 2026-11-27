@@ -32,6 +32,7 @@ export default {
         secondary: { DEFAULT: token('line'), foreground: token('text') },
         destructive: { DEFAULT: token('destructive'), foreground: token('text') },
         danger: token('danger'),
+        worse: token('worse'),
         card: { DEFAULT: token('surface'), foreground: token('text') },
         popover: { DEFAULT: token('surface'), foreground: token('text') },
       },

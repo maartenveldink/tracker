@@ -61,7 +61,8 @@ The suite exercises the main user flows across the app:
 - **Supersets** — link/unlink in the editor; alternating registration and
   rest-after-round in the live workout.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
-  weight carry-over, rest timer.
+  weight carry-over, rest ring (+30 sec, skip), the B1 set registration
+  (Gedaan list with the difference per set, opening a logged set and "Opslaan").
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
 - **Suggested workout** — the cold-start full-body suggestion, target-duration
   control, adding an exercise, and the swap-for-similar sheet.
@@ -126,11 +127,12 @@ are semantic and style-independent.
 | `superset-group`  | superset wrapper (editor & workout)  | asserting a group exists / is dissolved |
 | `schema-exercise` | an exercise row in the schema editor | scoping actions to one row |
 | `current-exercise`| the current exercise on the live screen | following the app's focus (name, set list) |
-| `weight-input`    | weight stepper input (live workout)  | entering weight |
-| `reps-input`      | reps stepper input (live workout)    | entering reps |
-| `set-row`         | a logged set in the current exercise | counting/asserting logged sets |
+| `weight-input`    | weight input in the set card (live workout) | entering weight |
+| `reps-input`      | reps input in the set card (live workout)   | entering reps |
+| `set-row`         | a set dot in the set progress (one per set; a unilateral left/right pair is one dot), `data-state` done/open/todo, `aria-pressed` = opened | counting sets, opening a set |
+| `done-row`        | a row of the "Gedaan" list (logged set + difference to last time) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
-| `rest-timer`      | the rest countdown strip             | asserting rest starts (only) after a round |
+| `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
 | `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |
 | `celebration`     | the progress-celebration overlay     | asserting the burst plays on a better session |
 

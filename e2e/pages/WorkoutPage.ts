@@ -3,8 +3,10 @@ import type { Locator, Page } from '@playwright/test';
 /**
  * Page object for the live workout screen (`/workout/:id`).
  *
- * The screen shows one exercise at a time ("current exercise"): its sets, the
- * weight/reps steppers and the big "Set klaar" button. The full list of
+ * The screen shows one exercise at a time ("current exercise") in the B1 layout:
+ * set dots (`set-row`, one per set; a unilateral left/right pair is one dot),
+ * the set card with the weight/reps steppers for the opened set, the "Gedaan"
+ * list (`done-row`) and at the bottom the rest ring next to the main button. The full list of
  * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
  * it (`exerciseOrder`, `exerciseMeta`, …) open and close it themselves.
  */
@@ -25,7 +27,7 @@ export class WorkoutPage {
     return this.page.getByTestId('superset-badge');
   }
 
-  /** The rest-timer strip (present only while resting). */
+  /** The running rest ring (`role="timer"`, present only while resting; idle it is `rest-ring-idle`). */
   get restTimer(): Locator {
     return this.page.getByTestId('rest-timer');
   }
@@ -40,9 +42,24 @@ export class WorkoutPage {
     return this.page.getByTestId('reps-input');
   }
 
-  /** The big primary button ("Set klaar" / "Volgende oefening" / …). */
+  /** The big primary button ("Set klaar" / "Opslaan" / "Volgende oefening" / …). */
   get primaryButton(): Locator {
-    return this.page.getByRole('button', { name: /^(Set klaar|Volgende oefening|Laatste oefening afronden|Training afronden)$/ });
+    return this.page.getByRole('button', { name: /^(Set klaar|Opslaan|Volgende oefening|Laatste oefening afronden|Training afronden)$/ });
+  }
+
+  /** Set dots of the current exercise (one per set, a left/right pair counts once). */
+  get setDots(): Locator {
+    return this.page.getByTestId('set-row');
+  }
+
+  /** Rows of the "Gedaan" list (one per logged set, with the difference to last time). */
+  get doneRows(): Locator {
+    return this.page.getByTestId('done-row');
+  }
+
+  /** Opens the nth (0-based) set in the set card by tapping its dot. */
+  async openSet(index: number): Promise<void> {
+    await this.setDots.nth(index).click();
   }
 
   /** Opens the exercise overview sheet. */
@@ -155,7 +172,7 @@ export class WorkoutPage {
     return this.page.getByText('Training gepauzeerd');
   }
 
-  /** Number of set rows of the current exercise. */
+  /** Number of sets (dots) of the current exercise; a unilateral left/right pair counts once. */
   setCount(): Promise<number> {
     return this.page.getByTestId('set-row').count();
   }
@@ -164,14 +181,38 @@ export class WorkoutPage {
     await this.page.getByRole('button', { name: 'Set toevoegen' }).click();
   }
 
-  /** "Laatste set weghalen" (a unilateral exercise loses a left+right pair). */
+  /**
+   * Removes the last set: opens it via its dot, then "Set verwijderen" (only
+   * offered on the last, not yet logged set; a unilateral exercise loses its
+   * left+right pair).
+   */
   async removeLastSet(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Laatste set weghalen' }).click();
+    await this.setDots.last().click();
+    await this.page.getByRole('button', { name: 'Set verwijderen', exact: true }).click();
   }
 
-  /** Skips the running rest timer. */
+  /** Skips the running rest. */
   async skipRest(): Promise<void> {
-    await this.restTimer.getByRole('button', { name: 'Sla over' }).click();
+    await this.page.getByRole('button', { name: 'Rust overslaan', exact: true }).click();
+  }
+
+  /** Taps the running rest ring: +30 seconds. */
+  async extendRest(): Promise<void> {
+    await this.restTimer.getByRole('button').click();
+  }
+
+  /** Remaining rest in seconds, read from the timer's aria-label ("Rust nog 1 minuut 12 seconden"). */
+  async restSeconds(): Promise<number> {
+    const label = (await this.restTimer.getAttribute('aria-label')) ?? '';
+    const m = label.match(/(\d+) minu(?:ut|ten) (\d+) seconden/);
+    return Number(m?.[1]) * 60 + Number(m?.[2]);
+  }
+
+  /** Skips an exercise via the overview sheet (the live screen has no skip button, B1). */
+  async skipExercise(name: string): Promise<void> {
+    await this.openOverview();
+    await this.page.getByRole('button', { name: `${name} overslaan` }).click();
+    await this.closeSheet();
   }
 
   /** Finishes the workout (confirms the sheet) and waits for the summary. */

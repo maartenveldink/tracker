@@ -24,14 +24,13 @@ import {
   activeSetIndex,
   afterSetLogged,
   canAddSet,
-  canRemoveLastSet,
   exerciseStatuses,
   findNextTodo,
   focusAfterInsert,
   formatDecimal,
   formatPrevLine,
-  initialSetValues,
   parseDecimal,
+  type PrevSetRef,
   primaryAction,
   primaryLabel,
   restoreSkippedSets,
@@ -42,15 +41,26 @@ import { volumePerMuscleGroup } from '../lib/metrics';
 import { compareSessions, finishedBetterThanLastTime, weightedLines } from '../lib/celebration';
 import { CelebrationEffects, prefersReducedMotion } from '../components/CelebrationEffects';
 import { ExerciseMoment } from '../components/ExerciseMoment';
-import { LiveStepper } from '../components/LiveStepper';
-import { LiveRestStrip, type RestTimerState } from '../components/LiveRestStrip';
+import {
+  canRemoveOpenSet,
+  doneRows,
+  logicalSetNumber,
+  nextOpenSetIndex,
+  openSetIndex,
+  openSetValues,
+  setDots,
+} from '../lib/setRegistration';
+import { LiveSetProgress } from '../components/LiveSetProgress';
+import { LiveSetCard } from '../components/LiveSetCard';
+import { LiveDoneList } from '../components/LiveDoneList';
+import { LiveRestRing, type RestTimerState } from '../components/LiveRestRing';
 import { LiveOverviewSheet, type OverviewRow } from '../components/LiveOverviewSheet';
 import { LiveAddExerciseSheet } from '../components/LiveAddExerciseSheet';
 import { useSettings } from '../../../hooks/useSettings';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { isWeightedSet } from '../lib/sets';
+import { isCompletedSet, isWeightedSet } from '../lib/sets';
 import { cn, formatDurationClock } from '@/lib/utils';
 import { Pause, Play, ListChecks, Minus, Plus, Link2 } from 'lucide-react';
 import type { Workout } from '../../../db/index';
@@ -98,6 +108,26 @@ function findPreviousSession(
   return null;
 }
 
+/**
+ * Performed sets (bodyweight included, as 0 kg) of the last earlier session of
+ * this exercise, in order. Feeds the "Vorige keer" line, the set-card prefill
+ * and the per-set difference in the Gedaan list. (`findPreviousSession` stays
+ * weighted-only: it feeds the 1RM-based celebration.)
+ */
+function findPreviousLines(
+  exerciseId: string,
+  completedWorkouts: Workout[],
+  currentWorkoutId: string | undefined,
+): PrevSetRef[] {
+  for (let i = completedWorkouts.length - 1; i >= 0; i--) {
+    const w = completedWorkouts[i];
+    if (!w || w.id === currentWorkoutId) continue;
+    const sets = w.exercises.find(e => e.exerciseId === exerciseId)?.sets.filter(isCompletedSet) ?? [];
+    if (sets.length > 0) return sets.map(s => ({ weight: s.weight ?? 0, reps: s.actualReps! }));
+  }
+  return [];
+}
+
 // E3-12: short beep via WebAudio when the rest timer ends.
 function playRestBeep(): void {
   try {
@@ -132,7 +162,7 @@ function requestNotifyPermission(): void {
 const WEIGHT_ERROR = 'Vul eerst een gewicht in (0 voor lichaamsgewicht).';
 const REPS_ERROR = 'Vul het aantal herhalingen in.';
 
-/** Local draft of the stepper values; `key` ties it to one current exercise. */
+/** Local draft of the set-card values; `key` ties it to one opened set of one exercise. */
 interface StepperDraft {
   key: string;
   weight?: string;
@@ -159,6 +189,9 @@ export function WorkoutPage() {
   const [exerciseNotesDraft, setExerciseNotesDraft] = useState<{ idx: number; text: string } | null>(null);
   const [workoutNotesDraft, setWorkoutNotesDraft] = useState<string | null>(null);
   const [draft, setDraft] = useState<StepperDraft | null>(null);
+  // B1 "geopende set" (`sel`): a set index of the current exercise, keyed so it
+  // never leaks to another exercise. null = the first open set.
+  const [selected, setSelected] = useState<{ key: string; idx: number } | null>(null);
   const [inputError, setInputError] = useState<'weight' | 'reps' | null>(null);
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
   // DESIGN §11: announce the end of the rest once (not every second).
@@ -180,6 +213,7 @@ export function WorkoutPage() {
     setExerciseNotesDraft(null);
     setWorkoutNotesDraft(null);
     setDraft(null);
+    setSelected(null);
     setCurState(undefined);
     setRestTimer(null);
   }, [workoutId]);
@@ -198,6 +232,14 @@ export function WorkoutPage() {
     }
     return map;
   }, [workout, completedWorkouts, workoutId, settings.oneRMFormula]);
+
+  const previousLines = useMemo(() => {
+    const map = new Map<string, PrevSetRef[]>();
+    for (const ex of workout?.exercises ?? []) {
+      if (!map.has(ex.exerciseId)) map.set(ex.exerciseId, findPreviousLines(ex.exerciseId, completedWorkouts, workoutId));
+    }
+    return map;
+  }, [workout, completedWorkouts, workoutId]);
 
   // Volume per muscle group so far this session (shown in the overview sheet).
   const muscleVolume = useMemo(
@@ -301,6 +343,8 @@ export function WorkoutPage() {
     setCurState(idx);
     setAnimateMoment(false);
     setDraft(null);
+    setSelected(null);
+    setRestEnded(false);
     setInputError(null);
     setNotesOpen(false);
     setExerciseNotesDraft(null);
@@ -326,25 +370,31 @@ export function WorkoutPage() {
   const current = finished ? undefined : exercises[cur];
   const currentExercise = current ? exerciseMap.get(current.exerciseId) : undefined;
   const prevSession = current ? previousSessions.get(current.exerciseId) : undefined;
+  const prevLines = current ? previousLines.get(current.exerciseId) ?? [] : [];
   const sets = current?.sets ?? [];
-  const activeIdx = activeSetIndex(sets);
-  const exerciseComplete = !!current && sets.length > 0 && activeIdx < 0;
+  const exerciseComplete = !!current && sets.length > 0 && activeSetIndex(sets) < 0;
+  const exKey = `${wid}:${cur}`;
+  // The set in the set card (B1 `sel`), -1 = none (all settled, nothing opened).
+  const openIdx = current ? openSetIndex(sets, selected?.key === exKey ? selected.idx : null) : -1;
+  const openSet = openIdx >= 0 ? sets[openIdx] : undefined;
   const nextIdx = finished ? -1 : findNextTodo(statuses, cur);
-  const nextEx = nextIdx >= 0 ? exercises[nextIdx] : undefined;
   const ssInfo = current ? groupSupersets(exercises)[cur] : undefined;
   const moment =
     exerciseComplete && current
       ? compareSessions(weightedLines(sets), prevSession?.sets ?? null, settings.oneRMFormula)
       : null;
-  const action = primaryAction({ finished, exerciseComplete, hasNext: nextIdx >= 0 });
+  const action = primaryAction({
+    finished,
+    exerciseComplete,
+    hasNext: nextIdx >= 0,
+    opened: openSet ? (openSet.completed ? 'logged' : 'open') : undefined,
+  });
   const isPaused = workout.status === 'paused';
   const openExercises = statuses.filter(s => s === 'todo').length;
 
-  // Stepper values: the draft while the user edits, else the derived start values.
-  const draftKey = `${wid}:${cur}`;
-  const base = current
-    ? initialSetValues(sets, (prevSession?.sets ?? []).map(s => ({ weight: s.weight, reps: s.reps })))
-    : { weight: null, reps: null };
+  // Set-card values: the draft while the user edits, else the derived values of the opened set.
+  const draftKey = `${exKey}:${openIdx}`;
+  const base = openSet ? openSetValues(sets, openIdx, prevLines) : { weight: null, reps: null };
   const live = draft && draft.key === draftKey ? draft : null;
   const weightText = live?.weight !== undefined ? live.weight : formatDecimal(base.weight);
   const repsText = live?.reps !== undefined ? live.reps : base.reps === null ? '' : String(base.reps);
@@ -394,6 +444,20 @@ export function WorkoutPage() {
     editDraft({ reps: String(next) });
   }
 
+  /** Open a set in the set card (tap on a dot or a Gedaan row). */
+  function openSetAt(idx: number) {
+    setSelected({ key: exKey, idx });
+    setDraft(null);
+    setInputError(null);
+  }
+
+  /** Back to the default: the first open set. */
+  function closeOpenedSet() {
+    setSelected(null);
+    setDraft(null);
+    setInputError(null);
+  }
+
   /**
    * Fire the one-off effects when this write finished the current exercise better
    * than last time. Uses the stored sets, so a double tap on a stale render can't fire twice.
@@ -409,26 +473,27 @@ export function WorkoutPage() {
     }
   }
 
-  /** Log the active set (weight + reps) — persisted immediately — and move on. */
-  async function logSet(weight: number, reps: number) {
-    if (!current || activeIdx < 0 || busyRef.current) return;
+  /** Log the opened set (weight + reps) — persisted immediately — and move on. */
+  async function logSet(setIdx: number, weight: number, reps: number) {
+    // A second tap on a stale render: the set is already logged, do nothing.
+    if (!current || setIdx < 0 || sets[setIdx]?.completed || busyRef.current) return;
     busyRef.current = true;
     try {
       requestNotifyPermission();
-      const outcome = afterSetLogged(exercises, cur, activeIdx);
-      const change = await updateWorkoutSet(wid, cur, activeIdx, {
+      const outcome = afterSetLogged(exercises, cur, setIdx);
+      const change = await updateWorkoutSet(wid, cur, setIdx, {
         weight,
         actualReps: reps,
         completed: true,
         skipped: false,
       });
-      // Carry the weight over to the next set if it has none yet
-      const nextSet = sets[activeIdx + 1];
-      if (nextSet && nextSet.weight === null) {
-        await updateWorkoutSet(wid, cur, activeIdx + 1, { weight });
+      // Carry the weight over to the next open set if it has none yet (its reps
+      // follow from the last logged set, see openSetValues).
+      const nextOpen = nextOpenSetIndex(sets, setIdx);
+      if (nextOpen >= 0 && sets[nextOpen]?.weight === null) {
+        await updateWorkoutSet(wid, cur, nextOpen, { weight });
       }
-      setDraft(null);
-      setInputError(null);
+      closeOpenedSet();
       if (outcome.rest) startRest(current.exerciseId);
       // Same exercise stays focused without rest = it just got finished: drop a running timer
       else if (outcome.focusIdx === cur) {
@@ -442,35 +507,74 @@ export function WorkoutPage() {
     }
   }
 
-  async function handleSetDone() {
+  /** Read and validate the set-card values; sets the inline error otherwise. */
+  function readValues(): { weight: number; reps: number } | null {
     const weight = parseDecimal(weightText);
     const reps = parseInt(repsText);
     // SL-05: a set needs a weight before it counts. 0 is valid (bodyweight).
-    if (weight === null) return setInputError('weight');
-    if (!Number.isFinite(reps) || reps <= 0) return setInputError('reps');
-    await logSet(weight, reps);
+    if (weight === null) {
+      setInputError('weight');
+      return null;
+    }
+    if (!Number.isFinite(reps) || reps <= 0) {
+      setInputError('reps');
+      return null;
+    }
+    return { weight, reps };
+  }
+
+  async function handleSetDone() {
+    const values = readValues();
+    if (values) await logSet(openIdx, values.weight, values.reps);
+  }
+
+  /** "Opslaan": store the adjusted values of a logged set; the rest is not restarted. */
+  async function handleSave() {
+    const values = readValues();
+    if (!values || openIdx < 0 || busyRef.current) return;
+    busyRef.current = true;
+    try {
+      await updateWorkoutSet(wid, cur, openIdx, { weight: values.weight, actualReps: values.reps });
+      closeOpenedSet();
+    } finally {
+      busyRef.current = false;
+    }
   }
 
   function handlePrimary() {
     if (action === 'set') void handleSetDone();
+    else if (action === 'save') void handleSave();
     else if (action === 'next') setCur(nextIdx);
     else if (action === 'last') setCur(-1);
     else void completeWorkout(wid);
   }
 
+  /** Plus dot: add a set with the values of the last one and open it. */
   async function handleAddSet() {
-    if (current && canAddSet(sets)) await addWorkoutSet(wid, cur);
+    if (!current || !canAddSet(sets) || busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const newIdx = sets.length;
+      await addWorkoutSet(wid, cur);
+      openSetAt(newIdx);
+    } finally {
+      busyRef.current = false;
+    }
   }
 
-  async function handleRemoveLastSet() {
-    if (!current || !canRemoveLastSet(sets)) return;
+  /** "Set verwijderen": the opened last set, only while it is not logged. */
+  async function handleRemoveOpenSet() {
+    if (!current || !canRemoveOpenSet(sets, openIdx)) return;
+    closeOpenedSet();
     // Removing the only open set finishes the exercise too.
     celebrateIfFinished(await removeWorkoutSet(wid, cur, sets.length - 1), true);
   }
 
-  // Undo completion of a logged set
-  async function handleUncomplete(setIndex: number) {
-    await updateWorkoutSet(wid, cur, setIndex, { completed: false });
+  /** Undo the completion of the opened, logged set; it stays opened as an open set. */
+  async function handleUncomplete() {
+    if (openIdx < 0) return;
+    setDraft(null);
+    await updateWorkoutSet(wid, cur, openIdx, { completed: false });
   }
 
   async function skipExercise(idx: number) {
@@ -574,65 +678,59 @@ export function WorkoutPage() {
   });
 
   const goal = currentExercise?.goal;
-  const barLabel = `${workout.schemaDayName ?? workout.schemaName ?? 'Vrije training'} · ${
-    finished ? 'klaar' : `oefening ${cur + 1} van ${exercises.length}`
-  }`;
-  const firstPlannedReps = nextEx?.sets[0]?.plannedReps;
-  const nextLine = finished
-    ? exercises.length === 0
-      ? 'Voeg je eerste oefening toe.'
-      : 'Alle oefeningen zijn gedaan of overgeslagen.'
-    : nextEx
-      ? `Straks: ${nameOf(nextEx.exerciseId)} · ${nextEx.sets.filter(s => s.side !== 'right').length} × ${firstPlannedReps ?? '–'}`
-      : 'Dit is de laatste oefening.';
   const title = finished
     ? exercises.length === 0 ? 'Vrije training' : 'Training klaar'
     : nameOf(current!.exerciseId);
   const subline = finished
-    ? exercises.length === 0 ? 'Nog geen oefeningen.' : 'Rond af, of voeg nog een oefening toe.'
-    : prevSession
-      ? `Vorige keer: ${formatPrevLine(prevSession.sets)}`
+    ? exercises.length === 0 ? 'Voeg je eerste oefening toe.' : 'Rond af, of voeg nog een oefening toe.'
+    : prevLines.length > 0
+      ? `Vorige keer: ${formatPrevLine(prevLines)}`
       : 'Geen eerdere sessie';
+  const dots = current ? setDots(sets, openIdx) : [];
+  const rows = current ? doneRows(sets, prevLines) : [];
+  // Unilateral: the dot is the pair, so say which side the card is for.
+  const sideLabel = openSet?.side
+    ? `Set ${logicalSetNumber(sets, openIdx)} · ${openSet.side === 'left' ? 'links' : 'rechts'}`
+    : null;
+  // DESIGN §6: the ring stays visible while it runs once the exercise is done.
+  const showRing = !!restTimer || (!!current && !exerciseComplete) || !!openSet;
 
   const textBtn =
     'flex h-touch items-center px-1 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-chip disabled:opacity-40';
+  const iconBtn =
+    'flex h-touch w-touch items-center justify-center rounded-pill border border-line-strong hover:bg-line/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-column flex-col bg-bg text-text">
       <CelebrationEffects key={celebrateNonce} play={celebrateNonce > 0} />
 
-      <div className="flex flex-col gap-3.5 px-screen-x pt-5">
-        {/* Header: no navigation bar during training (DESIGN §6) */}
+      <div className="flex flex-col gap-4 px-screen-x pt-5">
+        {/* Bar: only the workout timer + list + Afronden (B1); no navigation bar (DESIGN §6).
+            Pause is kept (existing feature) as a compact icon button. */}
         <header className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-small text-muted">{barLabel}</span>
-            <span
-              role="timer"
-              aria-label="Duur van de training"
-              className="font-display text-title font-bold"
-            >
-              {formatDurationClock(elapsed)}
-            </span>
-          </div>
+          <span
+            role="timer"
+            aria-label="Duur van de training"
+            className={cn('font-display text-title font-bold', isPaused && 'text-muted')}
+          >
+            {formatDurationClock(elapsed)}
+          </span>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               aria-label="Oefeningen in deze training"
               onClick={() => setShowOverview(true)}
-              className="flex h-touch w-touch items-center justify-center rounded-pill border border-line-strong hover:bg-line/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={iconBtn}
             >
               <ListChecks className="h-5 w-5" aria-hidden="true" />
             </button>
             <button
               type="button"
+              aria-label={isPaused ? 'Hervat' : 'Pauze'}
               onClick={() => (isPaused ? resumeWorkout(wid) : pauseWorkout(wid))}
-              className={cn(
-                'flex h-touch items-center gap-1.5 rounded-pill border px-3.5 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isPaused ? 'border-accent text-accent' : 'border-line-strong text-text',
-              )}
+              className={cn(iconBtn, isPaused && 'border-accent text-accent')}
             >
-              {isPaused ? <Play className="h-3.5 w-3.5" aria-hidden="true" /> : <Pause className="h-3.5 w-3.5" aria-hidden="true" />}
-              {isPaused ? 'Hervat' : 'Pauze'}
+              {isPaused ? <Play className="h-4 w-4" aria-hidden="true" /> : <Pause className="h-4 w-4" aria-hidden="true" />}
             </button>
             <button
               type="button"
@@ -673,86 +771,54 @@ export function WorkoutPage() {
           </div>
         </div>
 
-        {moment?.improved && (
-          <ExerciseMoment comparison={moment} animate={animateMoment} />
+        {current && (
+          <div className="flex flex-col">
+            <LiveSetProgress
+              dots={dots}
+              canAdd={canAddSet(sets)}
+              onOpen={openSetAt}
+              onAdd={() => void handleAddSet()}
+            />
+            {sideLabel && <p className="mt-1 text-small text-muted">{sideLabel}</p>}
+            {openSet && (
+              <LiveSetCard
+                weightText={weightText}
+                repsText={repsText}
+                onWeightChange={text => editDraft({ weight: text })}
+                onRepsChange={text => editDraft({ reps: text })}
+                onStepWeight={stepWeight}
+                onStepReps={stepReps}
+                stepLabel={stepLabel}
+                inputError={inputError}
+              />
+            )}
+            {inputError && (
+              <p id="set-input-error" role="alert" className="mt-1.5 text-caption text-danger">
+                {inputError === 'weight' ? WEIGHT_ERROR : REPS_ERROR}
+              </p>
+            )}
+            {openSet && (openSet.completed || canRemoveOpenSet(sets, openIdx)) && (
+              <div className="flex justify-center">
+                {openSet.completed ? (
+                  <button type="button" className={cn(textBtn, 'text-muted')} onClick={() => void handleUncomplete()}>
+                    Set terugzetten
+                  </button>
+                ) : (
+                  <button type="button" className={cn(textBtn, 'text-muted')} onClick={() => void handleRemoveOpenSet()}>
+                    Set verwijderen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Set list: klaar / nu / komt nog (DESIGN §4 "Set-rij") */}
-        {current && (
-          <ol className="flex flex-col gap-1.5" aria-label="Sets">
-            {sets.map((set, i) => {
-              const isNow = i === activeIdx;
-              const badge = set.side ? (set.side === 'left' ? 'L' : 'R') : set.setNumber;
-              const valueLabel = set.completed
-                ? `${formatDecimal(set.weight ?? 0)} kg × ${set.actualReps}`
-                : `${weightText ? formatDecimal(parseDecimal(weightText)) : '–'} kg × ${repsText || '–'}`;
-              const rowBase =
-                'grid min-h-12 w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-row px-3.5 text-left';
-              const badgeBase = 'flex h-7 w-7 items-center justify-center rounded-full text-small font-bold';
-              if (set.completed) {
-                return (
-                  <li key={set.setNumber}>
-                    <button
-                      type="button"
-                      data-testid="set-row"
-                      data-state="done"
-                      aria-label={`Set ${set.setNumber}: ${valueLabel}, klaar. Tik om terug te zetten.`}
-                      onClick={() => void handleUncomplete(i)}
-                      className={cn(rowBase, 'border border-line bg-surface text-text')}
-                    >
-                      <span className={cn(badgeBase, 'bg-accent text-on-accent')}>{badge}</span>
-                      <span className="text-body-lg font-medium">{valueLabel}</span>
-                      <span className="text-small text-muted">Klaar</span>
-                    </button>
-                  </li>
-                );
-              }
-              if (set.skipped) {
-                return (
-                  <li key={set.setNumber}>
-                    <div data-testid="set-row" data-state="skipped" className={cn(rowBase, 'border border-dashed border-line-strong text-muted opacity-60')}>
-                      <span className={cn(badgeBase, 'bg-line text-muted')}>{badge}</span>
-                      <span className="text-body-lg font-medium">Overgeslagen</span>
-                      <span />
-                    </div>
-                  </li>
-                );
-              }
-              return (
-                <li key={set.setNumber}>
-                  <div
-                    data-testid="set-row"
-                    data-state={isNow ? 'now' : 'todo'}
-                    aria-current={isNow ? 'step' : undefined}
-                    className={cn(
-                      rowBase,
-                      isNow
-                        ? 'border-2 border-accent bg-bg text-text'
-                        : 'border border-dashed border-line-strong text-muted',
-                    )}
-                  >
-                    <span className={cn(badgeBase, isNow ? 'border-2 border-accent text-accent' : 'bg-line text-muted')}>
-                      {badge}
-                    </span>
-                    <span className="text-body-lg font-medium">{valueLabel}</span>
-                    <span className={cn('text-small', isNow && 'font-bold text-accent')}>{isNow ? 'Nu' : ''}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+        {!openSet && moment?.improved && <ExerciseMoment comparison={moment} animate={animateMoment} />}
+
+        {current && <LiveDoneList rows={rows} onOpen={openSetAt} />}
 
         {current && (
           <div className="flex flex-col">
-            <div className="flex items-center justify-between">
-              <button type="button" className={cn(textBtn, 'text-accent')} onClick={() => void handleAddSet()} disabled={!canAddSet(sets)}>
-                + Set toevoegen
-              </button>
-              <button type="button" className={cn(textBtn, 'text-muted')} onClick={() => void handleRemoveLastSet()} disabled={!canRemoveLastSet(sets)}>
-                Laatste set weghalen
-              </button>
-            </div>
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -798,66 +864,43 @@ export function WorkoutPage() {
         </p>
       </div>
 
+      {/* Flexible empty space between the content and the thumb zone is intended (DESIGN §5). */}
       <div className="flex-1" />
 
-      {/* Fixed bottom panel in thumb reach (DESIGN §5) */}
-      <div className="sticky bottom-0 z-30 mt-4 flex flex-col gap-3.5 rounded-t-sheet border-t border-line bg-surface px-screen-x pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[18px]">
-        {/* Inside the sticky panel so the timer is always in view, no scrolling needed. */}
-        {restTimer && (
-          <LiveRestStrip
-            timer={restTimer}
-            onExtend={() => setRestTimer(t => (t ? { ...t, remaining: t.remaining + 30, total: t.total + 30 } : t))}
-            onReset={() => setRestTimer(t => (t ? { ...t, remaining: t.total, startedAt: Date.now() } : t))}
-            onSkip={() => setRestTimer(null)}
-          />
-        )}
-        {current && !exerciseComplete && (
-          <div className="grid grid-cols-2 gap-3">
-            <LiveStepper
-              label="Gewicht (kg)"
-              testId="weight-input"
-              inputMode="decimal"
-              value={weightText}
-              onChange={text => editDraft({ weight: text })}
-              onStep={stepWeight}
-              minusLabel={`Gewicht ${stepLabel} kg minder`}
-              plusLabel={`Gewicht ${stepLabel} kg meer`}
-              invalid={inputError === 'weight'}
+      {/* Fixed bottom row in thumb reach: rest ring + main button (DESIGN §5, B1). */}
+      <div className="sticky bottom-0 z-30 mt-4 flex flex-col gap-2 bg-bg px-screen-x pb-[max(2rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="flex items-center gap-3">
+          {showRing && (
+            <LiveRestRing
+              timer={restTimer}
+              idleSeconds={current ? getRest(current.exerciseId) : settings.restTimerSeconds}
+              ended={restEnded}
+              onExtend={() => setRestTimer(t => (t ? { ...t, remaining: t.remaining + 30, total: t.total + 30 } : t))}
+              onStart={() => {
+                requestNotifyPermission();
+                startRest(current?.exerciseId ?? '');
+              }}
             />
-            <LiveStepper
-              label="Herhalingen"
-              testId="reps-input"
-              inputMode="numeric"
-              value={repsText}
-              onChange={text => editDraft({ reps: text.replace(/\D/g, '') })}
-              onStep={stepReps}
-              minusLabel="Eén herhaling minder"
-              plusLabel="Eén herhaling meer"
-              invalid={inputError === 'reps'}
-            />
-          </div>
-        )}
-        {inputError && (
-          <p role="alert" className="-mt-1.5 text-caption text-danger">
-            {inputError === 'weight' ? WEIGHT_ERROR : REPS_ERROR}
-          </p>
-        )}
-        <Button size="xl" onClick={handlePrimary}>
-          {primaryLabel(action)}
-        </Button>
-
-        <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 text-small text-muted">{nextLine}</span>
-          {!finished ? (
-            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-small" onClick={() => void skipExercise(cur)}>
-              Oefening overslaan
-            </Button>
-          ) : (
-            <Button variant="secondary" className="h-touch shrink-0 rounded-pill px-4 text-small" onClick={openAdd}>
-              + Oefening toevoegen
-            </Button>
           )}
+          {/* An exercise without sets has nothing to log: add one via the plus dot. */}
+          <Button size="xl" className="min-w-0 flex-1" onClick={handlePrimary} disabled={action === 'set' && openIdx < 0}>
+            {primaryLabel(action)}
+          </Button>
         </div>
+        {restTimer && (
+          <button
+            type="button"
+            className={cn(textBtn, 'self-start text-muted')}
+            onClick={() => setRestTimer(null)}
+          >
+            Rust overslaan
+          </button>
+        )}
+        {finished && (
+          <Button variant="secondary" size="lg" onClick={openAdd}>
+            + Oefening toevoegen
+          </Button>
+        )}
       </div>
 
       <LiveOverviewSheet
