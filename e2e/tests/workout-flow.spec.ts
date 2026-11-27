@@ -28,7 +28,7 @@ test.describe('Live workout — one exercise at a time', () => {
     await expect(workout.currentTitle).toContainText(B);
 
     // Skipping the last open exercise leads to the klaar-toestand.
-    await page.getByRole('button', { name: 'Oefening overslaan' }).click();
+    await workout.skipExercise(B);
     await expect(workout.currentTitle).toHaveText('Training klaar');
     await expect(workout.primaryButton).toHaveText('Training afronden');
 
@@ -61,7 +61,7 @@ test.describe('Live workout — one exercise at a time', () => {
     await page.waitForURL(/\/workout\/[^\/]+\/summary$/);
   });
 
-  test('the rest strip can be extended by 30 seconds', async ({
+  test('tapping the rest ring adds 30 seconds', async ({
     schemaEditor,
     startWorkout,
     workout,
@@ -74,14 +74,9 @@ test.describe('Live workout — one exercise at a time', () => {
     await startWorkout.goto();
     await startWorkout.start('E2E Extend');
     await workout.completeActiveSet(60, 10);
-    const secs = async () => {
-      const label = (await workout.restTimer.getByRole('timer').getAttribute('aria-label')) ?? '';
-      const m = label.match(/(\d+) minuten (\d+) seconden/);
-      return Number(m?.[1]) * 60 + Number(m?.[2]);
-    };
-    const before = await secs();
-    await workout.restTimer.getByRole('button', { name: '+30 sec' }).click();
-    expect(await secs()).toBeGreaterThan(before + 20);
+    const before = await workout.restSeconds();
+    await workout.extendRest();
+    expect(await workout.restSeconds()).toBeGreaterThan(before + 20);
   });
 
   test('a set cannot be logged without a weight', async ({ startWorkout, workout, page }) => {

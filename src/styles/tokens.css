@@ -26,6 +26,9 @@
   --color-destructive: #c2410c;
   --color-danger: #ff8a5c;
 
+  /* "Slechter dan vorige keer" in de Gedaan-lijst (altijd samen met ↓ en tekst). */
+  --color-worse: #ff7a59;
+
   /* Alleen voor confetti (naast accent, accent-2 en text) */
   --color-confetti-coral: #ff7a59;
   --color-confetti-amber: #ffb84d;
@@ -44,7 +47,7 @@
   --text-screen: 26px;      /* schermtitel (h1) */
   --text-hero: 30px;        /* oefeningnaam, hero-titel, banner-getal */
   --text-big: 32px;         /* grote waarde in grafiekkaart */
-  --text-stepper: 26px;     /* waarde in stappers */
+  --text-stepper: 40px;     /* waarde in de set-kaart (stappers), ontwerpwaarde B1 */
 
   /* Afrondingen */
   --radius-chip: 12px;

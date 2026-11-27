@@ -13,7 +13,6 @@ import {
   formatPrevLine,
   parseDecimal,
   focusAfterInsert,
-  initialSetValues,
   primaryAction,
   primaryLabel,
   restoreSkippedSets,
@@ -101,6 +100,14 @@ describe('primaryAction / primaryLabel', () => {
   it('offers finishing the training in the klaar-toestand', () => {
     expect(primaryAction({ finished: true, exerciseComplete: false, hasNext: false })).toBe('finish');
     expect(primaryLabel('finish')).toBe('Training afronden');
+  });
+  it('saves an opened, already logged set (B1 "Opslaan"), also when the exercise is complete', () => {
+    expect(primaryAction({ finished: false, exerciseComplete: true, hasNext: true, opened: 'logged' })).toBe('save');
+    expect(primaryAction({ finished: false, exerciseComplete: false, hasNext: true, opened: 'logged' })).toBe('save');
+    expect(primaryLabel('save')).toBe('Opslaan');
+  });
+  it('logs an opened open set even when every other set is settled (a skipped set)', () => {
+    expect(primaryAction({ finished: false, exerciseComplete: true, hasNext: true, opened: 'open' })).toBe('set');
   });
 });
 
@@ -206,27 +213,6 @@ describe('focusAfterInsert', () => {
   it('keeps (and shifts) a started, unfinished current exercise', () => {
     expect(focusAfterInsert([ex(['done', 'todo']), ex(['todo'])], 0, 1)).toBe(0);
     expect(focusAfterInsert([ex(['todo']), ex(['done', 'todo'])], 1, 0)).toBe(2);
-  });
-});
-
-describe('initialSetValues', () => {
-  const prev = [{ weight: 100, reps: 8 }, { weight: 100, reps: 7 }];
-  it('prefers the last logged set of this session', () => {
-    const sets = [set('done', 1), set('todo', 2)];
-    sets[0] = { ...sets[0]!, weight: 62.5, actualReps: 9 };
-    expect(initialSetValues(sets, prev)).toEqual({ weight: 62.5, reps: 9 });
-  });
-  it('else the active set plan, then the previous session', () => {
-    const planned = [{ ...set('todo', 1), plannedWeight: 40 }];
-    expect(initialSetValues(planned, prev)).toEqual({ weight: 40, reps: 10 });
-    expect(initialSetValues([{ ...set('todo', 1), plannedReps: null }], prev)).toEqual({ weight: 100, reps: 8 });
-  });
-  it('uses the stored weight of the active set first', () => {
-    const sets = [{ ...set('todo', 1), weight: 55 }];
-    expect(initialSetValues(sets, prev).weight).toBe(55);
-  });
-  it('leaves values empty when nothing is known', () => {
-    expect(initialSetValues([{ ...set('todo', 1), plannedReps: null }], [])).toEqual({ weight: null, reps: null });
   });
 });
 

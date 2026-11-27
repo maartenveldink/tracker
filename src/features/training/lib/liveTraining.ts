@@ -41,7 +41,7 @@ export function findNextTodo(statuses: ExerciseStatus[], from: number): number {
   return -1;
 }
 
-export type PrimaryAction = 'set' | 'next' | 'last' | 'finish';
+export type PrimaryAction = 'set' | 'save' | 'next' | 'last' | 'finish';
 
 /** What the big bottom button does. */
 export function primaryAction(input: {
@@ -51,15 +51,22 @@ export function primaryAction(input: {
   exerciseComplete: boolean;
   /** A `todo` exercise exists besides the current one. */
   hasNext: boolean;
+  /**
+   * The set shown in the set card (B1 `sel`): `logged` = an already completed
+   * set is being adjusted ("Opslaan"), `open` = a set still to log, absent = none.
+   */
+  opened?: 'logged' | 'open';
 }): PrimaryAction {
   if (input.finished) return 'finish';
-  if (!input.exerciseComplete) return 'set';
+  if (input.opened === 'logged') return 'save';
+  if (input.opened === 'open' || !input.exerciseComplete) return 'set';
   return input.hasNext ? 'next' : 'last';
 }
 
 export function primaryLabel(action: PrimaryAction): string {
   switch (action) {
     case 'set': return 'Set klaar';
+    case 'save': return 'Opslaan';
     case 'next': return 'Volgende oefening';
     case 'last': return 'Laatste oefening afronden';
     case 'finish': return 'Training afronden';
@@ -155,31 +162,6 @@ export function focusAfterInsert(exercises: WorkoutExercise[], cur: number, at: 
 export interface PrevSetRef {
   weight: number;
   reps: number;
-}
-
-/**
- * Values the weight/reps steppers start with for an exercise: the last logged
- * set of this session (so they stay put after "Set klaar"); otherwise the
- * active set's own value or plan; otherwise the matching set of the previous
- * session. `null` = unknown, left empty.
- */
-export function initialSetValues(
-  sets: WorkoutSet[],
-  prevSets: PrevSetRef[],
-): { weight: number | null; reps: number | null } {
-  for (let i = sets.length - 1; i >= 0; i--) {
-    const s = sets[i]!;
-    if (s.completed && s.actualReps != null && s.actualReps > 0 && s.weight != null) {
-      return { weight: s.weight, reps: s.actualReps };
-    }
-  }
-  const idx = activeSetIndex(sets);
-  const active = idx >= 0 ? sets[idx] : undefined;
-  const prev = prevSets[idx >= 0 ? idx : 0] ?? prevSets[0];
-  return {
-    weight: active?.weight ?? active?.plannedWeight ?? prev?.weight ?? null,
-    reps: active?.actualReps ?? active?.plannedReps ?? prev?.reps ?? null,
-  };
 }
 
 /** 62.5 → "62,5"; null → "" (decimal comma, as in the design). */
