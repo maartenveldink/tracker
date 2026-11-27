@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Training – E2 Superset inklappen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+.noscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.noscroll::-webkit-scrollbar { display: none; }
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: {{text}}; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; color: {{muted}}; line-height: 16px">Superset</span>
+      <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 700">42:18</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button aria-label="Oefeningen in deze training" style="width: 44px; height: 44px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+      </button>
+      <button style="height: 44px; padding: 0 18px; border: 1px solid {{line}}; border-radius: 22px; background: transparent; color: {{text}}; font-size: 14px; font-weight: 600; cursor: pointer">Afronden</button>
+    </div>
+  </div>
+  <div style="padding: 18px 20px 0; display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">{{h1}}</h1>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <span style="font-size: 14px; color: {{muted}}">{{prevLine}}</span>
+      <span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: {{line}}; color: {{accent}}">{{goalText}}</span>
+    </div>
+  </div>
+
+  <div class="noscroll" style="direction: rtl; overflow-x: auto; overflow-y: hidden; {{fadeStyle}} margin: 10px 20px 0; overscroll-behavior-x: contain">
+  <div style="{{trackStyle}}">
+    <span style="position: absolute; left: 0; top: 9px; font-size: 12px; font-weight: 600; color: {{muted}}" aria-hidden="true">A</span>
+    <span style="position: absolute; left: 0; top: 39px; font-size: 12px; font-weight: 600; color: {{muted}}" aria-hidden="true">B</span>
+    <sc-for list="{{lines}}" as="l" hint-placeholder-count="6">
+      <span style="{{l.style}}"></span>
+    </sc-for>
+    <sc-for list="{{dots}}" as="d" hint-placeholder-count="7">
+      <button aria-label="{{d.aria}}" aria-pressed="{{d.pressed}}" onClick="{{d.onClick}}" style="{{d.btn}}">
+        <span style="{{d.dot}}">
+          <sc-if value="{{d.isNum}}" hint-placeholder-val="{{ true }}">{{d.label}}</sc-if>
+          <sc-if value="{{d.isPlus}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></sc-if>
+        </span>
+      </button>
+    </sc-for>
+  </div>
+  </div>
+
+  <div style="margin: 6px 20px 0; background: {{surface}}; border: 1px solid {{line}}; border-radius: 24px; padding: 18px 16px 16px">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); gap: 12px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Gewicht (kg)</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">{{wText}}</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px">
+          <button aria-label="Gewicht 2,5 kg minder" onClick="{{wMinus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+          <button aria-label="Gewicht 2,5 kg meer" onClick="{{wPlus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+        </div>
+      </div>
+      <div style="background: {{line}}"></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+        <span style="font-size: 12px; color: {{muted}}">Herhalingen</span>
+        <span style="font-family: 'Space Grotesk', Inter, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.15">{{rText}}</span>
+        <div style="display: flex; gap: 8px; margin-top: 8px">
+          <button aria-label="Eén herhaling minder" onClick="{{rMinus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+          <button aria-label="Eén herhaling meer" onClick="{{rPlus}}" style="width: 66px; height: 52px; border: 0; border-radius: 16px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 14px 24px 0; display: flex; flex-direction: column">
+    <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: {{muted}}">GEDAAN</span>
+    <sc-for list="{{doneRows}}" as="x" hint-placeholder-count="2">
+      <button aria-label="{{x.aria}}" onClick="{{x.onClick}}" style="display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0; border: 0; border-bottom: 1px solid {{line}}; background: transparent; color: {{text}}; cursor: pointer; text-align: left; font-family: inherit">
+        <span style="font-size: 15px">{{x.label}}</span>
+        <span style="{{x.deltaStyle}}">{{x.delta}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="flex: 1"></div>
+  <div style="padding: 0 20px 32px; display: flex; gap: 12px; align-items: center">
+    <sc-if value="{{restEdit}}" hint-placeholder-val="{{ false }}">
+      <div style="flex: 1; height: 64px; box-sizing: border-box; border-radius: 32px; border: 2px solid {{accent2}}; background: {{surface}}; display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+        <button aria-label="Rust 15 seconden korter" onClick="{{restMinus}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">−</button>
+        <button aria-label="Klaar met rust instellen" onClick="{{toggleRest}}" style="height: 48px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 26px; font-weight: 700; color: {{accent2}}"><span style="font-size: 13px; font-weight: 500; color: {{muted}}; margin-right: 8px; font-family: Inter, system-ui, sans-serif">Rust</span>{{editText}}</button>
+        <button aria-label="Rust 15 seconden langer" onClick="{{restPlus}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: {{line}}; color: {{text}}; font-size: 24px; cursor: pointer">+</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{notRestEdit}}" hint-placeholder-val="{{ true }}">
+      <button aria-label="Rust, nog {{restText}}. Tik om in te stellen" onClick="{{toggleRest}}" style="flex: none; width: 64px; height: 64px; border: 0; border-radius: 32px; background: transparent; cursor: pointer; position: relative; padding: 0">
+        <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="{{line}}" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="{{accent2}}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 32 32)"/></svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 17px; font-weight: 700; color: {{accent2}}">{{restText}}</span>
+      </button>
+      <button onClick="{{complete}}" style="flex: 1; height: 64px; border: 0; border-radius: 18px; background: {{accent}}; color: {{bg}}; font-size: 19px; font-weight: 700; cursor: pointer">{{buttonLabel}}</button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"bg":{"editor":"color","default":"#0A0E1A","section":"Kleuren"},"surface":{"editor":"color","default":"#131A2B","section":"Kleuren"},"line":{"editor":"color","default":"#26324F","section":"Kleuren"},"lineStrong":{"editor":"color","default":"#5B6C99","section":"Kleuren"},"text":{"editor":"color","default":"#F1F4FB","section":"Kleuren"},"muted":{"editor":"color","default":"#9AA6C2","section":"Kleuren"},"accent":{"editor":"color","default":"#C8F135","section":"Kleuren"},"accent2":{"editor":"color","default":"#7C9CFF","section":"Kleuren"},"worse":{"editor":"color","default":"#FF7A59","section":"Kleuren"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    const st = this.state || {};
+    // rondes: elke ronde = deel A (Beenpers) + deel B (Beencurl); onderdeel k: 0 = 1A, 1 = 1B, 2 = 2A ...
+    const mk = (n, doneParts) => Array.from({ length: n }, (_, i) => ({ wa: 140, ra: 8, wb: 45, rb: 12, da: i * 2 < doneParts, db: i * 2 + 1 < doneParts }));
+    const rounds = st.rounds || mk(6, 9);
+    const sel = st.sel === undefined ? null : st.sel;
+    const pop = !!st.pop;
+    const restEdit = !!st.restEdit;
+    const restDur = st.restDur === undefined || st.restDur === null ? 90 : st.restDur;
+    const restLeft = st.restLeft === undefined || st.restLeft === null ? 72 : st.restLeft;
+    const prevA = [{ w: 140, r: 8 }, { w: 140, r: 8 }, { w: 140, r: 7 }];
+    const prevB = [{ w: 45, r: 12 }, { w: 45, r: 12 }, { w: 45, r: 10 }];
+    const names = ['Beenpers', 'Beencurl'];
+    const prevLines = ['Vorige keer: 140 × 8 · 8 · 7', 'Vorige keer: 45 × 12 · 12 · 10'];
+    const goals = ['Doel: 140 kg × 9', 'Doel: 45 kg × 13'];
+    const fmt = (n) => String(n).replace('.', ',');
+    // de rust-balk sluit 3 seconden na de laatste aanpassing vanzelf
+    const arm = () => { clearTimeout(this._rt); this._rt = setTimeout(() => this.setState({ restEdit: false }), 3000); };
+    const mmss = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const colors = {
+      bg: p.bg ?? '#0A0E1A',
+      surface: p.surface ?? '#131A2B',
+      line: p.line ?? '#26324F',
+      lineStrong: p.lineStrong ?? '#5B6C99',
+      text: p.text ?? '#F1F4FB',
+      muted: p.muted ?? '#9AA6C2',
+      accent: p.accent ?? '#C8F135',
+      accent2: p.accent2 ?? '#7C9CFF',
+      worse: p.worse ?? '#FF7A59',
+    };
+    const R = rounds.length;
+    const nP = R * 2;
+    const isDone = (k) => (k % 2 === 0 ? rounds[k >> 1].da : rounds[k >> 1].db);
+    let first = -1;
+    for (let k = 0; k < nP; k++) { if (!isDone(k)) { first = k; break; } }
+    const idx = sel !== null && sel < nP ? sel : (first >= 0 ? first : nP - 1);
+    const ri = idx >> 1;
+    const isA = idx % 2 === 0;
+    const cur = rounds[ri];
+    const curW = isA ? cur.wa : cur.wb;
+    const curR = isA ? cur.ra : cur.rb;
+    const editing = isDone(idx);
+    const setR = (patch) => this.setState({ rounds: rounds.map((r, i) => (i === ri ? Object.assign({}, r, patch) : r)) });
+    // venster van 2 rondes
+    const WR = 2;
+    const collapse = false;
+    const sr = collapse ? R - WR : 0;   // venster eindigt altijd bij de laatste ronde, zodat het plusje rechts blijft staan
+    const er = R;
+    const D = 28;
+    const dotBase = 'width: ' + D + 'px; height: ' + D + 'px; box-sizing: border-box; border-radius: ' + (D / 2) + 'px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;';
+    const partDot = (k, popLabel) => {
+      let ds;
+      if (k === idx) ds = dotBase + ' background: ' + colors.bg + '; border: 2px solid ' + colors.accent + '; color: ' + colors.accent + ';';
+      else if (isDone(k)) ds = dotBase + ' background: ' + colors.accent + '; color: ' + colors.bg + ';';
+      else ds = dotBase + ' background: ' + colors.line + '; color: ' + colors.muted + ';';
+      return { isNum: true, isPlus: false, label: popLabel ? String((k >> 1) + 1) + (k % 2 === 0 ? 'A' : 'B') : String((k >> 1) + 1), aria: 'Set ' + ((k >> 1) + 1) + (k % 2 === 0 ? ' ' + names[0] : ' ' + names[1]) + (isDone(k) ? ' (klaar), aanpassen' : ''), pressed: k === idx, onClick: () => this.setState({ sel: k, pop: false }), dot: ds };
+    };
+    const addRound = () => { const l = rounds[R - 1]; this.setState({ rounds: rounds.concat([{ wa: l.wa, ra: l.ra, wb: l.wb, rb: l.rb, da: false, db: false }]), sel: nP, pop: false }); };
+    const plusDot = () => ({ isNum: false, isPlus: true, label: '', aria: 'Set toevoegen', pressed: false, onClick: addRound, dot: dotBase + ' background: ' + colors.bg + '; border: 1.5px dashed ' + colors.lineStrong + '; color: ' + colors.accent + ';' });
+    const chipStyle = (done, hasSel) => dotBase + ' width: 40px; ' + (hasSel ? 'background: ' + colors.bg + '; border: 2px solid ' + colors.accent + ';' : 'background: ' + colors.line + ';') + ' color: ' + (done || hasSel ? colors.accent : colors.muted) + ';';
+    // zichtbare items
+    const items = [];
+    if (sr > 0) {
+      const allDone = rounds.slice(0, sr).every((r) => r.da && r.db);
+      items.push({ y: 31, done: allDone, d: { isNum: true, isPlus: false, label: (allDone ? '✓' : '') + sr, aria: sr + ' eerdere sets, alle sets tonen', pressed: pop, onClick: () => this.setState({ pop: !pop }), dot: chipStyle(allDone, idx < sr * 2) } });
+    }
+    for (let k = sr * 2; k < er * 2; k++) items.push({ y: k % 2 === 0 ? 16 : 46, done: isDone(k), d: partDot(k, false) });
+    items.push({ y: 16, done: false, d: plusDot() });
+    const gut = 24;
+    const step = 46;
+    const trackW = Math.max(350, gut + items.length * step + 22);
+    const cx = (i) => gut + i * step + step / 2;
+    const lines = [];
+    const dots = items.map((it, i) => {
+      if (i < items.length - 1) {
+        const x1 = cx(i), y1 = it.y, x2 = cx(i + 1), y2 = items[i + 1].y;
+        const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+        lines.push({ style: 'position: absolute; left: ' + x1 + 'px; top: ' + (y1 - 1) + 'px; width: ' + len + 'px; height: 2px; transform-origin: 0 50%; transform: rotate(' + ang + 'deg); background: ' + (it.done ? colors.accent : colors.line) + ';' });
+      }
+      return Object.assign({}, it.d, { btn: 'position: absolute; left: ' + (cx(i) - 22) + 'px; top: ' + (it.y - 22) + 'px; width: 44px; height: 44px; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;' });
+    });
+    const popDots = [];
+    for (let k = 0; k < nP; k++) popDots.push(Object.assign({ isCheck: false }, partDot(k, true)));
+    popDots.push(Object.assign({ isCheck: false }, plusDot()));
+    // Gedaan: per volledig afgeronde ronde
+    const full = [];
+    rounds.forEach((r, i) => { if (r.da && r.db) full.push(i); });
+    const shown = full.slice(-3);
+    const rep = (pv, w, r) => (pv ? (w === pv.w ? { d: r - pv.r, kg: false } : { d: w - pv.w, kg: true }) : null);
+    const doneRows = shown.map((i) => {
+      const r = rounds[i];
+      const a = rep(prevA[i], r.wa, r.ra), b = rep(prevB[i], r.wb, r.rb);
+      let delta = 'nieuw', kind = 'same';
+      if (a && b) {
+        if (!a.kg && !b.kg) { const d = a.d + b.d; kind = d > 0 ? 'up' : d < 0 ? 'down' : 'same'; delta = d > 0 ? '↑ +' + d : d < 0 ? '↓ ' + Math.abs(d) : 'gelijk'; }
+        else { const d = (a.kg ? a.d : 0) + (b.kg ? b.d : 0); kind = d > 0 ? 'up' : d < 0 ? 'down' : 'same'; delta = d === 0 ? 'gelijk' : (d > 0 ? '↑ +' : '↓ ') + fmt(Math.abs(d)) + ' kg'; }
+      }
+      const col = kind === 'up' ? colors.accent : kind === 'down' ? colors.worse : colors.muted;
+      return { label: 'Set ' + (i + 1) + ' · ' + fmt(r.wa) + ' × ' + r.ra + ' · ' + fmt(r.wb) + ' × ' + r.rb, aria: 'Set ' + (i + 1) + ' aanpassen, ' + delta, delta, deltaStyle: 'font-size: 14px; font-weight: ' + (kind === 'same' ? '400' : '700') + '; color: ' + col + ';', onClick: () => this.setState({ sel: i * 2 }) };
+    });
+    const hidden = full.length - shown.length;
+    const restIdle = !isA ? true : false;   // na A volgt geen rust; na B wel
+    const shownRest = restIdle ? restDur : restLeft;
+    return Object.assign({}, colors, {
+      lines, dots, popDots, pop, doneRows,
+      // de uitfade aan de randen staat alleen aan als de rij echt breder is dan het scherm
+      fadeStyle: (gut + items.length * step + 22 > 350) ? '-webkit-mask-image: linear-gradient(to right, transparent 0, transparent 4px, #000 76px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, transparent 4px, #000 76px, #000 calc(100% - 22px), transparent 100%);' : '',
+      trackStyle: 'position: relative; direction: ltr; height: 62px; flex: none; width: ' + trackW + 'px;',
+      h1: names[isA ? 0 : 1], prevLine: prevLines[isA ? 0 : 1], goalText: goals[isA ? 0 : 1],
+      showMore: hidden > 0,
+      moreText: hidden === 1 ? '+ 1 eerdere set' : '+ ' + hidden + ' eerdere sets',
+      openPop: () => this.setState({ pop: true }),
+      wText: fmt(curW), rText: String(curR),
+      buttonLabel: editing ? 'Opslaan' : 'Set klaar',
+      wMinus: () => setR(isA ? { wa: Math.max(0, curW - 2.5) } : { wb: Math.max(0, curW - 2.5) }),
+      wPlus: () => setR(isA ? { wa: curW + 2.5 } : { wb: curW + 2.5 }),
+      rMinus: () => setR(isA ? { ra: Math.max(1, curR - 1) } : { rb: Math.max(1, curR - 1) }),
+      rPlus: () => setR(isA ? { ra: curR + 1 } : { rb: curR + 1 }),
+      restEdit, notRestEdit: !restEdit,
+      restText: restIdle ? 'na B' : mmss(shownRest),
+      editText: mmss(shownRest),
+      ringDash: (restIdle ? 0 : Math.round(176 * Math.min(1, restLeft / restDur))) + ' 176',
+      toggleRest: () => { clearTimeout(this._rt); if (!restEdit) arm(); this.setState({ restEdit: !restEdit }); },
+      restMinus: () => { arm(); this.setState({ restLeft: Math.max(0, restLeft - 15), restDur: Math.max(15, restDur - 15) }); },
+      restPlus: () => { arm(); this.setState({ restLeft: restLeft + 15, restDur: restDur + 15 }); },
+      complete: () => {
+        clearTimeout(this._rt);
+        if (editing) { this.setState({ sel: null, pop: false, restEdit: false }); return; }
+        const next = rounds.map((r, i) => (i === ri ? Object.assign({}, r, isA ? { da: true } : { db: true }) : r));
+        // volgende ronde krijgt de waarden van de net afgeronde ronde
+        if (!isA) {
+          const nu = next.findIndex((r, i) => i > ri && !r.da && !r.db);
+          if (nu >= 0) next[nu] = Object.assign({}, next[nu], { wa: next[ri].wa, ra: next[ri].ra, wb: next[ri].wb, rb: next[ri].rb });
+        }
+        this.setState({ rounds: next, sel: null, pop: false, restEdit: false, restLeft: isA ? restLeft : restDur });
+      }
+    });
+  }
+}
+</script>
+</body>
+</html>

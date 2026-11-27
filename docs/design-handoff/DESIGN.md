@@ -11,10 +11,11 @@ Dit document is de bron van waarheid voor het nieuwe uiterlijk en de nieuwe trai
 
 ### Wat is definitief en wat niet (Training)
 
-- **Definitief voor de set-registratie:** `TrainingB1.dc.html` ("Training B1", klikbaar prototype). Dit bepaalt de indeling van het trainingsscherm: setbolletjes met lijntjes, één set-kaart met stappers, "Gedaan"-lijst met verschil, rust-ring naast "Set klaar".
-- **Nog steeds de referentie voor gedrag eromheen:** `Training.dc.html` (oefeningenoverzicht-sheet, oefening toevoegen/overslaan, klaar-toestand, viering). De **set-indeling in dat bestand is verouderd** (inline stappers in de rij); volg daarvoor B1.
-- **Definitief voor unilaterale oefeningen** (links en rechts apart loggen): `TrainingD1U.dc.html` (klikbaar prototype). Het is B1 met een andere set-voortgang (zigzag) en voor de rest identiek. Zie §4 "Set-voortgang, unilateraal" en §6.
-- **Niet bouwen:** `TrainingA1/A2/A3.dc.html`, `TrainingB2.dc.html` en `TrainingC1S/C1U/C2S/C2U/C3S/C3U.dc.html` (verworpen of uitgestelde varianten). **Supersets zijn nog niet ontworpen**; bouw ze nu niet. De zigzag van D1 kan er later voor gebruikt worden (A boven, B onder), maar dat is niet besloten.
+- **Definitief, gewone oefeningen:** `TrainingE1.dc.html` (klikbaar prototype). Dit bepaalt het trainingsscherm: schuifbare set-voortgang, één set-kaart met stappers, "Gedaan"-lijst met verschil, rust-ring met rust-balk. `TrainingB1.dc.html` is de voorloper en wordt door E1 vervangen (verschil: B1 heeft nog geen schuifbare rij en geen rust-balk); gebruik B1 alleen als je iets in E1 niet kunt afleiden.
+- **Definitief, supersets:** `TrainingE2.dc.html` (klikbaar prototype). Zigzag met oefening A boven en B onder, in dezelfde schuifbare rij als E1.
+- **Definitief, unilaterale oefeningen** (links en rechts apart loggen): `TrainingD1U.dc.html` (klikbaar prototype). De indeling klopt, maar het prototype is ouder dan E1/E2: **het mist de schuifbare rij met fade en de rust-balk**. Pas die toe volgens §4 ("Schuifbare set-rij" en "Rust-balk"), net als in E2.
+- **Nog steeds de referentie voor gedrag eromheen:** `Training.dc.html` (oefeningenoverzicht-sheet, oefening toevoegen/overslaan, klaar-toestand, viering). De **set-indeling in dat bestand is verouderd**; volg daarvoor E1.
+- **Niet bouwen:** `TrainingA1/A2/A3.dc.html`, `TrainingB2.dc.html` en `TrainingC1S/C1U/C2S/C2U/C3S/C3U.dc.html` (verworpen varianten).
 
 ### Hoe lees je de bestanden in `screens/`
 
@@ -33,7 +34,7 @@ Een privé weergave met alle schermen naast elkaar staat in claude.ai (artifact 
 2. **Weinig denken tijdens de set.** Waarden zijn vooraf ingevuld met de vorige keer. Een set loggen is één tik op "Set klaar" als niets verandert.
 3. **Inzichten die iets zeggen.** Geen cijfers ter decoratie. Elk getal moet een beslissing ondersteunen (wat trein ik nu, wat moet zwaarder, wat blijft achter).
 4. **Eén visuele taal.** Donker, rustig vlak, één fel accent dat betekent: "dit is de actie" of "dit is beter". Nooit decoratief.
-5. **Geen emoji, geen gradiënten, geen schaduwen.** Diepte komt van een 1 px rand en een iets lichtere vlakkleur.
+5. **Geen emoji, geen gradiënten, geen schaduwen** (enige uitzondering: de functionele uitfade-masker van de schuifbare set-rij, §4). Diepte komt van een 1 px rand en een iets lichtere vlakkleur.
 6. **Tikdoelen minimaal 44 × 44 px.** Primaire knoppen 56 px, "Set klaar" 64 px.
 
 ## 2. Schermen en bestanden
@@ -45,10 +46,11 @@ Bekende routes komen uit de live app. De rest moet je in de repo opzoeken.
 | Home (met data) | `Main.dc.html` | `/` |
 | Home (leeg) | `HomeLeeg.dc.html` | `/` |
 | Start training | `Train.dc.html` | `/start` |
-| Training (tijdens sessie), set-registratie | `TrainingB1.dc.html` (definitief) | controleer |
+| Training (tijdens sessie), gewone oefening | `TrainingE1.dc.html` (definitief, vervangt `TrainingB1`) | controleer |
+| Training, superset | `TrainingE2.dc.html` (definitief) | zelfde scherm |
 | Training, rest van de flow (sheet, toevoegen, viering) | `Training.dc.html` (set-indeling verouderd) | controleer |
-| Training, unilateraal (links/rechts) | `TrainingD1U.dc.html` (definitief) | zelfde scherm als B1 |
-| Training-varianten, niet bouwen | `TrainingA1–A3`, `TrainingB2`, `TrainingC1–C3 (S/U)` `.dc.html` | – |
+| Training, unilateraal (links/rechts) | `TrainingD1U.dc.html` (definitief, mist schuifrij en rust-balk) | zelfde scherm |
+| Training-varianten, niet bouwen | `TrainingA1–A3`, `TrainingB2`, `TrainingC1–C3 (S/U)` `.dc.html` (`TrainingB1` is verouderd door E1) | – |
 | Oefening klaar (viering) | `Moment.dc.html` (lus), en in `Training.dc.html` (live) | onderdeel van training |
 | Habits | `Habits.dc.html` | `/habits` |
 | Progressie, tab Oefeningen | `Progressie.dc.html` | `/progress` |
@@ -172,21 +174,33 @@ Maten in px. Staten: standaard, actief/geselecteerd, uitgeschakeld (muted tekst,
   - *geopend* (de set die nu in de kaart staat, dus ook een afgeronde set die je aanpast): transparant, 2 px accentrand, cijfer accent. Geen extra ring of outline eromheen.
   - *komt nog:* vlak `line`, cijfer muted.
   Lijntje: accent als de set **ervoor** klaar is (de lijn loopt dus tot en met de huidige set gekleurd), anders `line`. Het lijntje voor het plus-rondje is `line`. Tik op een rondje opent die set; `aria-pressed` op het geopende rondje, aria-label "Set 2 (klaar), aanpassen".
+- **Schuifbare set-rij** (geldt voor alle set-voortgangen: gewoon, unilateraal, superset; zie `TrainingE1/E2`). Wordt de rij breder dan het scherm, dan **schuift hij horizontaal, zonder zichtbare scrollbalk** (`scrollbar-width: none` en `::-webkit-scrollbar { display: none }`). Oude sets schuiven links uit beeld. Geen samenvattingsblokje, geen uitklapkaartje.
+  - Scroller: `margin: 0 20` (dezelfde kaders als de set-kaart eronder en de titelregel erboven), `overflow-x: auto`, `overscroll-behavior-x: contain`. Zodat de rij **rechts uitgelijnd begint** (laatste sets en plus in beeld): `direction: rtl` op de scroller en `direction: ltr` op de inhoud. De inhoud heeft `min-width: 100%` (past alles, dan links uitgelijnd zoals zonder scroller) en 22 px padding rechts, zodat het plus-rondje net binnen de rand staat.
+  - Vaste afstand: bij gewone sets 48 px knop + 12 px lijntje; bij zigzag (unilateraal/superset) een stap van 46 px. De rij krimpt dus niet meer.
+  - **Uitfade:** alleen als de rij echt breder is dan het scherm (meten met `scrollWidth > clientWidth`, bij wijzigen van aantal sets en bij resize) krijgt de scroller `mask-image: linear-gradient(to right, transparent 0, transparent 4px, #000 76px, #000 calc(100% - 22px), transparent 100%)` (plus `-webkit-mask-image`). Dit is een functioneel masker en de enige toegestane gradiënt (§1). In het prototype wordt de fade aan beide kanten tegelijk aangezet; beter is per rand (links alleen als `scrollLeft` niet helemaal links staat, rechts alleen als niet helemaal rechts), zie §12.
+  - Het plus-rondje is altijd het meest rechtse item en voegt in één tik een set toe.
+  - Opent de gebruiker een set die buiten beeld staat (via de Gedaan-lijst), scroll dan automatisch naar die set (`scrollIntoView({ inline: 'center' })`). Het prototype doet dit niet.
 - **Set-voortgang, unilateraal** (alleen bij oefeningen die als unilateraal zijn gemarkeerd; vervangt de gewone set-voortgang, de rest van het scherm is gelijk). Eén set bestaat uit een **links**- en een **rechts**-deel. Elk deel is een bolletje; links staat op de **bovenrij**, rechts op de **onderrij**, in zigzag-volgorde L1 → R1 → L2 → R2 …, met een lijntje van middelpunt naar middelpunt.
   - Container: `position: relative`, hoogte 62, marge 10 20 0. Links in de rand twee labels `L` en `R` (12/600 muted, `aria-hidden`), op de hoogte van de rijen.
-  - Positie van deel `k` (0 = L1, 1 = R1, 2 = L2 …): x-middelpunt `24 + k × step + step / 2` met `step = min(46, (350 − 24) / (aantal delen + 1))`; y-middelpunt 16 (links) of 46 (rechts). De stap krimpt dus vanzelf bij veel sets; bij 8 sets past alles zonder scrollen.
-  - Bolletje: 28 × 28, cijfer = setnummer (14/700). Tikdoel een knop van 44 × 44 gecentreerd op het bolletje. Bij ≤ 3 sets overlappen de tikdoelen van buren niet (stap 46). Bij meer sets wordt de stap kleiner dan 44 en overlappen ze deels (bij 8 sets 19 px stap); zie §12. Aria-label "Set 2 rechts" (bij klaar: "Set 2 rechts (klaar), aanpassen"), `aria-pressed` op het geopende deel.
+  - Positie van deel `k` (0 = L1, 1 = R1, 2 = L2 …): x-middelpunt `24 + k × step + step / 2` met een **vaste** `step = 46` (het prototype D1U krimpt de stap nog: `min(46, (350 − 24) / (aantal delen + 1))`; dat is verouderd, volg E2); y-middelpunt 16 (links) of 46 (rechts). Past de rij niet, dan schuift hij (zie "Schuifbare set-rij").
+  - Bolletje: 28 × 28, cijfer = setnummer (14/700). Tikdoel een knop van 44 × 44 gecentreerd op het bolletje. Met stap 46 overlappen de tikdoelen van horizontale buren niet; zie §12. Aria-label "Set 2 rechts" (bij klaar: "Set 2 rechts (klaar), aanpassen"), `aria-pressed` op het geopende deel.
   - Staten: *klaar* gevuld accent met cijfer `on-accent`; *geopend* vlak `bg`, 2 px accentrand, cijfer accent (het vlak `bg` is nodig om het lijntje erachter af te dekken); *komt nog* vlak `line` met muted cijfer.
   - Lijntje: 2 px hoog, accent als het deel waar het lijntje begint klaar is, anders `line`.
   - Plus-rondje: stippelrand 1,5 `line-strong`, accent plus, op de bovenrij na het laatste rechter-deel; voegt een set toe.
+  - Zigzag en schuifrij: zie "Schuifbare set-rij" (stap 46 px, `gut` = 24 voor het eerste bolletje).
   - **Er is geen label of schakelaar voor de kant.** De geopende kant blijkt uit de rij van het geopende bolletje. Het blauwe label (SUPERSET/RECHTS) uit eerdere varianten is bewust weggelaten.
+- **Set-voortgang, superset** (`TrainingE2.dc.html`). Dezelfde zigzag als unilateraal, maar de bovenrij is oefening **A** en de onderrij oefening **B**, met `A` en `B` in de rand (12/600 muted, scrollen mee). Bolletje = één deel van een ronde; cijfer = setnummer (rondenummer). Volgorde A1 → B1 → A2 → B2 …, plus-rondje op de bovenrij na de laatste B (voegt een ronde toe met de waarden van de laatste ronde, per oefening). Staten, lijntjes en tikdoelen als bij unilateraal. Een superset toont bovenin **geen blauw label of pill**: de herkenning zit in de zigzag en in een klein grijs woord "Superset" (13, muted, regelhoogte 16) boven de trainingstimer, binnen de balk van 44 hoog, dus zonder extra hoogte. De oefeningnaam (h1), de "Vorige keer"-regel en het doel-chipje horen bij het **geopende deel** en wisselen mee tussen A en B.
 - **Set-kaart.** `surface`, 1 px `line`, radius 24, padding 18 16 16, marge boven 6. Twee kolommen (Gewicht, Herhalingen) met een verticale scheidingslijn van 1 px `line` ertussen (raster `1fr 1px 1fr`, gap 12). Per kolom, gecentreerd: label 12 muted ("Gewicht (kg)", "Herhalingen"), waarde 40/700 `Space Grotesk`, daaronder twee knoppen − en + van 66 × 52, radius 16, vlak `line`, symbool 24, onderlinge ruimte 8, 8 boven. Gewichtsstap 2,5 kg (instelbaar), herhalingen 1. Aria-labels: "Gewicht 2,5 kg minder/meer", "Eén herhaling minder/meer". **Geen kopregel in de kaart**: set-nummer en vorige keer staan al in het scherm (bolletjes, "Vorige keer"-regel).
 - **Gedaan-lijst met verschil.** Sectielabel "GEDAAN" (12/600, +0,08em, muted). Daaronder per afgeronde set een rij van 44 hoog, 1 px onderlijn `line`, links `Set 1 · 140 kg × 8` (15), rechts het verschil met dezelfde set van de vorige sessie (14). De hele rij is een knop die die set opent. Verschil, in dezelfde notatie als de vergelijkingstabel van het "Oefening klaar"-scherm:
   - zelfde gewicht: herhalingen-verschil: `↑ +1` (accent, 700), `gelijk` (muted, 400), `↓ 1` (`--color-worse`, 700);
   - ander gewicht: verschil in kg: `↑ +2,5 kg` / `↓ 2,5 kg`;
   - geen set met dat nummer vorige keer: `nieuw` (muted).
   Geen woorden als "herh." of "t.o.v. vorige keer".
-- **Rust-ring** (naast de hoofdknop, 64 × 64). Cirkel r 28, lijn 5, spoor `line`, voortgang `accent-2` met ronde uiteinden, begint boven (−90°). Midden: resterende tijd `1:12` in `Space Grotesk` 17/700 `accent-2`. De ring loopt leeg naarmate de rust verstrijkt. Tik = +30 sec. Het is een knop (aria-label "Rust, nog 1 minuut 12. Tik voor 30 seconden extra"), geen aparte kaart.
+- **Rust-ring** (naast de hoofdknop, 64 × 64). Cirkel r 28, lijn 5, spoor `line`, voortgang `accent-2` met ronde uiteinden, begint boven (−90°). Midden: resterende tijd `1:12` in `Space Grotesk` 17/700 `accent-2`. De ring loopt leeg naarmate de rust verstrijkt. **Tik opent de rust-balk** (zie hieronder); er is geen aparte "+30 sec" meer. Het is een knop (aria-label "Rust, nog 1 minuut 12. Tik om de rust in te stellen"), geen aparte kaart. Bij een superset (deel A open) en bij unilateraal (links open) staat de ring leeg met de tekst "na B" of "na R" (15/700 muted): de rust start pas na het laatste deel.
+- **Rust-balk** (instellen van de rust). Tik op de rust-ring en de rij onderin verandert: de ring en "Set klaar" maken plaats voor één balk over de volle breedte: hoogte 64, radius 32, 2 px `accent-2` rand, vlak `surface`, padding 0 8. Inhoud: knop − (48, rond, vlak `line`, symbool 24), in het midden een knop met "Rust" (13/500 muted) en de tijd (`Space Grotesk` 26/700 `accent-2`), knop + (48, rond). Stap 15 s. Aria-labels "Rust 15 seconden korter/langer", "Klaar met rust instellen". **Er staat bewust geen "Set klaar"-knop naast, ook geen verkleinde:** een ronde vinkknop leek op "bevestig de nieuwe rust".
+  - Toont de resterende tijd als er een rust loopt, anders de ingestelde rustduur.
+  - Een aanpassing wijzigt de lopende rust **en de rustduur voor alle volgende sets van deze oefening in deze training**. Het is geen aanpassing in het schema en geldt niet voor andere oefeningen; bij de volgende oefening geldt weer schema of instelling. Rustduur minimaal 15 s.
+  - De balk **sluit vanzelf 3 seconden na de laatste aanpassing** (elke tik zet de teller opnieuw) en toont dan weer ring + "Set klaar". Tik op de tijd sluit meteen. Een afgeronde set (via "Set klaar") sluit de balk ook.
 - **Voortgangsbalk.** 8 hoog, radius 4, spoor `line`. Vulling accent of `accent-2`.
 - **Invoerveld.** 48 hoog (52 bij de belangrijkste), radius 14, rand `line-strong`, vlak `bg` (of `surface` op `bg`), tekst 16 (voorkomt zoom op iOS). Altijd een zichtbaar of toegankelijk label.
 - **Switch.** Knop met `role="switch"` en `aria-checked`. Spoor 52 × 32, radius 16, knop 26. Aan: spoor accent, knop `on-accent`. Uit: spoor `line-strong`, knop muted. De rij is minimaal 60 hoog.
@@ -212,13 +226,13 @@ Leeg: hero wordt "Begin je eerste training" met knoppen "Start vrije training" e
 ### Start training (`Train.dc.html`)
 Voorgestelde training (kaart met 2 px accentrand en primaire knop "Start Benen"), sectie "Uit je schema" met een rij per trainingsdag (A/B/C), en een stippelrij "Vrije training".
 
-### Training (`TrainingB1.dc.html`), het belangrijkste scherm
+### Training (`TrainingE1.dc.html`, superset `TrainingE2.dc.html`, unilateraal `TrainingD1U.dc.html`), het belangrijkste scherm
 Geen navigatiebalk. Van boven naar beneden:
 1. Balk: links alleen de trainingstimer (`42:18`, 22/700); rechts de lijst-knop (opent het oefeningenoverzicht) en "Afronden". Er staat geen label "Benen · oefening 3 van 6".
 2. Oefeningnaam (32/700), regel "Vorige keer: 140 × 8 · 8 · 7" en een chip "Doel: 140 kg × 9" in accent.
-3. Set-voortgang (bolletjes met lijntjes en plus), zie §4.
+3. Set-voortgang (schuifbare rij met bolletjes, lijntjes en plus; zigzag bij unilateraal en superset), zie §4.
 4. Set-kaart met de stappers voor de geopende set, zie §4.
-5. "Gedaan"-lijst met verschil, zie §4.
+5. "Gedaan"-lijst met verschil, zie §4. Toont de **laatste 3** afgeronde sets; eerdere bereik je door de set-rij te schuiven.
 6. **Onderin, vast, in duimbereik** (padding 0 20 32): rij met rust-ring (64) en de hoofdknop "Set klaar" (flex 1, 64 hoog, radius 18, 19/700). Geen "Straks: …"-regel en geen "Oefening overslaan"-knop op dit scherm; overslaan, toevoegen en wisselen kan via de lijst-knop bovenin.
 
 Het scherm tussen kaart en onderrand blijft leeg (flexibele ruimte); dat is bedoeld.
@@ -284,13 +298,21 @@ Dit is wat `Training.dc.html` doet. Neem de logica over, maar koppel hem aan de 
 - Gedaan-lijst: één rij per set waarvan links én rechts klaar zijn, `Set 1 · 20 kg · L 12 · R 12`, rechts het verschil met dezelfde set vorige keer: zelfde gewicht: som van het verschil in herhalingen links + rechts (`↑ +2`, `gelijk`, `↓ 1`), anders kg (`↑ +2,5 kg`); geen set vorige keer: `nieuw`. Een half afgeronde set staat niet in de lijst.
 - Sets toevoegen: plus-rondje voegt een set (links én rechts) toe met de waarden van de laatste set, en opent het linker-deel. Maximaal 8 sets.
 
+**Supersets** (zie `TrainingE2.dc.html`):
+- Een superset is een groep oefeningen die om en om wordt gedaan. Het ontwerp behandelt er **twee** (A en B). Een set is een **ronde** met een deel A en een deel B, elk met eigen gewicht en herhalingen. Meer dan twee oefeningen is niet ontworpen.
+- Geopend deel (`sel`) is een van de bolletjes; standaard het eerste deel dat niet klaar is. De oefeningnaam, vorige keer en doel horen bij het geopende deel. De stappers werken op gewicht en herhalingen van dat deel.
+- "Set klaar" markeert het geopende deel als klaar. **Na A volgt geen rust** (ring toont "na B"). Na B start de rust en worden de waarden van de net afgeronde ronde (per oefening) als voorinvulling voor de eerstvolgende, nog niet begonnen ronde gebruikt.
+- Gedaan-lijst: één rij per ronde waarvan A én B klaar zijn: `Set 3 · 140 × 8 · 45 × 12`. Verschil met dezelfde ronde vorige keer: als geen gewicht afwijkt, de som van het herhalingenverschil van A en B (`↑ +3`, `gelijk`, `↓ 1`); wijkt een gewicht af, dan het kg-verschil (som van de afwijkende gewichten); geen ronde vorige keer: `nieuw`.
+- Een ronde toevoegen: plus-rondje, max 8 rondes.
+- Een afgerond deel aantikken (bolletje of Gedaan-rij) opent het; hoofdknop wordt "Opslaan".
+
 **Klaar-toestand** (alle oefeningen `done` of `skipped`): titel "Training klaar", subregel "Rond af, of voeg nog een oefening toe.", geen setlijst en geen stappers, primaire knop "Training afronden", secundaire knop "+ Oefening toevoegen".
 
 Overige regels:
 - Tijdens de training: scherm aan houden (Screen Wake Lock API, instelbaar), navigatiebalk verbergen.
 - "Afronden" (rechtsboven) vraagt bij openstaande oefeningen om bevestiging. Dat dialoogje is niet ontworpen: gebruik het sheet-patroon.
-- Rustduur komt uit het schema, anders uit de instelling (standaard 1:30). Tik op de ring verlengt met 30 sec. Einde rust: trillen als ondersteund en aan, ring leeg en tijd `0:00`. De rust loopt door terwijl je een andere set opent of aanpast. Een nieuwe "Set klaar" herstart de rust.
-- Voordat er een set is afgerond (geen rust actief): niet ontworpen. Voorstel: toon de ring leeg met de ingestelde rustduur in muted; tik start de rust handmatig.
+- Rustduur komt uit het schema, anders uit de instelling (standaard 1:30). De gebruiker kan de rust per oefening tijdelijk aanpassen via de rust-balk (§4); dat geldt voor de rest van die oefening in deze training en wordt **niet** teruggeschreven naar het schema. Einde rust: trillen als ondersteund en aan, ring leeg en tijd `0:00`. De rust loopt door terwijl je een andere set opent of aanpast. Een nieuwe "Set klaar" herstart de rust met de (eventueel aangepaste) rustduur.
+- Voordat er een set is afgerond (geen rust actief): niet ontworpen. Voorstel: toon de ring leeg met de ingestelde rustduur in muted; tik opent de rust-balk, een tweede tik start de rust handmatig.
 - Bewaar elke afgeronde set direct (niet pas bij afronden), zodat een herlaad of crash niets kwijtraakt.
 
 ## 7. Inzichten: berekeningen
@@ -340,6 +362,7 @@ Controleer wat de app al heeft (§12). Nieuwe afgeleide waarden, indien nog niet
 2. **Vorige sessie per oefening** (alle sets met gewicht en herhalingen): voor voorinvulling, "Doel", viering en vergelijkingstabel.
 3. **Geschat 1RM per sessie per oefening**: berekend bij het ophalen, niet opslaan.
 4. **Doel-regel** ("Doel: 140 kg × 9"): in het prototype `vorige bovenste set + 1 herhaling`. Vervang door de bestaande logica als die er is.
+6. **Superset-groepering:** welke oefeningen in een training bij elkaar horen (groep van twee, volgorde A/B) en per gelogde ronde de sets van beide oefeningen.
 
 ## 10. Tekst
 
@@ -373,17 +396,22 @@ Dit zijn dingen die ik niet kon zien. Zoek ze op en pas het ontwerp aan waar nod
 10. **Verschil bij een unilaterale set.** Het ontwerp telt het verschil links + rechts op. Alternatief: de zwakste kant. Leg de keuze vast.
 11. **Set verwijderen.** In het ontwerp is alleen toevoegen (plus-rondje). Beslis met Maarten hoe je een set weghaalt (bijvoorbeeld een muted tekstknop "Set verwijderen" onder de kaart bij de laatste, niet-afgeronde set).
 12. **Verschil per set.** Het prototype vergelijkt bij een ander gewicht alleen kg. Overweeg geschat 1RM (§7) als de sets sterk afwijken, en leg de keuze vast.
-13. **Tikdoelen bij veel unilaterale sets.** Vanaf 4 sets is de stap tussen de bolletjes kleiner dan 44 px, dus overlappen de tikdoelen deels. Test op een echt toestel; alternatief is horizontaal scrollen met een vaste stap van 46.
-14. **Superset.** Niet ontworpen. `TrainingB2` en `TrainingC*` zijn verworpen of onvoldoende. Niet bouwen; er komt een nieuw ontwerp.
+13. **Tikdoelen bij veel zigzag-sets.** Bij een vaste stap van 46 px (schuifrij) overlappen de tikdoelen van buren op de andere rij niet horizontaal; controleer op een echt toestel of verticale buren (30 px uit elkaar) goed te raken zijn.
+14. **Superset: groepering en bediening.** Waar markeer je dat oefeningen een superset zijn (schema, bij het toevoegen tijdens de training)? Hoe verschijnt een superset in het oefeningenoverzicht-sheet (één rij of twee), hoe sla je hem over, en wanneer start de viering (per oefening, per groep)? Niet ontworpen. Combinatie superset + unilateraal is ook niet ontworpen.
+15. **Fade per rand.** Het prototype zet de uitfade aan beide kanten aan zodra de rij breder is dan het scherm. Beter: links alleen als er links nog sets buiten beeld zijn, rechts alleen als er rechts nog iets is (via `scroll`-event). Bouw dit zo.
+16. **Auto-scroll naar geopende set** (zie §4) en het meten van overflow met `scrollWidth`/`ResizeObserver` in plaats van de berekening uit het prototype.
+17. **Rust-aanpassing bewaren.** Het ontwerp bewaart de aangepaste rust alleen voor de rest van de oefening in de lopende training (niet in het schema). Bevestig dat dit ook zo in de repo past.
 
 ## 13. Bouwvolgorde
+
+0. **Voordat je iets van dit ontwerp toepast** (zie ook `AGENT_PROMPT.md`): (a) deploy eerst wat je nu hebt, zodat er een veilig terugvalpunt is; (b) controleer of de wijzigingen die je tussentijds hebt gemaakt conflicteren met dit ontwerp en meld conflicten voordat je ze oplost.
 
 Werk in kleine, afzonderlijk te reviewen stappen. Houd de app na elke stap werkend.
 
 1. **Inventaris.** Lees de repo, vul §12 in, noem de bestaande schermen, componenten en stijlen.
 2. **Fundament.** Tokens (`tokens/tokens.css`), fonts, globale basisstijl, `theme-color`, navigatiebalk en kaart/knop/chip/rij-componenten volgens §4.
 3. **Home** (met data en leeg).
-4. **Training** volgens `TrainingB1.dc.html` (set-voortgang, set-kaart, Gedaan-lijst met verschil, rust-ring), plus unilateraal volgens `TrainingD1U.dc.html`, en de flow uit `Training.dc.html`: oefening overslaan/toevoegen via het overzicht, overzicht-sheet en klaar-toestand. Dit levert de meeste waarde.
+4. **Training** volgens `TrainingE1.dc.html` (schuifbare set-voortgang, set-kaart, Gedaan-lijst met verschil, rust-ring en rust-balk), plus unilateraal volgens `TrainingD1U.dc.html` en superset volgens `TrainingE2.dc.html` (beide met dezelfde schuifrij en rust-balk als E1), en de flow uit `Training.dc.html`: oefening overslaan/toevoegen via het overzicht, overzicht-sheet en klaar-toestand. Dit levert de meeste waarde.
 5. **Viering** (§8).
 6. **Progressie** (drie tabs) met de berekeningen uit §7.
 7. **Overige schermen:** Habits, Start training, Meer, Oefeningen, Schema's, Instellingen.
