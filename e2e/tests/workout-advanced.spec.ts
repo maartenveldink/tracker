@@ -26,6 +26,29 @@ test.describe('Live workout — advanced', () => {
     await expect.poll(() => workout.setCount()).toBe(3);
   });
 
+  test('has no set limit; the set row scrolls and follows the opened set', async ({ page, schemaEditor, startWorkout, workout }) => {
+    await simpleSchema(schemaEditor, 'E2E Many');
+    await startWorkout.goto();
+    await startWorkout.start('E2E Many');
+
+    await workout.completeActiveSet(60, 10);
+    for (let n = 4; n <= 12; n++) {
+      await workout.addSet();
+      await expect.poll(() => workout.setCount()).toBe(n);
+    }
+    // Past the old maximum of 8 the plus dot is still there and the row starts right-aligned.
+    const plus = page.getByRole('button', { name: 'Set toevoegen' });
+    await expect(plus).toBeInViewport({ ratio: 0.9 });
+    await expect(workout.setDots.nth(11)).toHaveAttribute('aria-pressed', 'true');
+    await expect(workout.setDots.nth(11)).toBeInViewport({ ratio: 0.9 });
+    await expect(workout.setDots.first()).not.toBeInViewport();
+
+    // Opening set 1 via the Gedaan list scrolls the row to it.
+    await workout.doneRows.first().click();
+    await expect(workout.setDots.first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(workout.setDots.first()).toBeInViewport({ ratio: 0.9 });
+  });
+
   test('shows the rest ring after a set and extends it by 30 seconds', async ({ schemaEditor, startWorkout, workout }) => {
     await simpleSchema(schemaEditor, 'E2E Rest');
     await startWorkout.goto();

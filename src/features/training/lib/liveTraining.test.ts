@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkoutExercise, WorkoutSet } from '../../../db/index';
 import {
-  MAX_SETS,
   activeSetIndex,
+  appendSet,
   afterSetLogged,
   restTimerAfterSetLogged,
-  canAddSet,
   canRemoveLastSet,
   exerciseStatus,
   exerciseStatuses,
@@ -121,18 +120,32 @@ describe('activeSetIndex', () => {
   });
 });
 
-describe('canAddSet / canRemoveLastSet', () => {
-  it('allows adding up to MAX_SETS', () => {
-    expect(canAddSet(ex(['todo', 'todo', 'todo']).sets)).toBe(true);
-    expect(canAddSet(ex(Array<S>(MAX_SETS).fill('todo')).sets)).toBe(false);
+describe('appendSet (no maximum number of sets)', () => {
+  it('after 8 sets a 9th and a 20th can be added, copying the last set', () => {
+    let sets = ex(Array<S>(8).fill('done')).sets;
+    sets = appendSet(sets, 'e');
+    expect(sets).toHaveLength(9);
+    expect(sets[8]).toMatchObject({ setNumber: 9, weight: 50, plannedReps: 10, completed: false, skipped: false, actualReps: null });
+    for (let i = 0; i < 11; i++) sets = appendSet(sets, 'e');
+    expect(sets).toHaveLength(20);
+    expect(sets[19]!.setNumber).toBe(20);
   });
-  it('counts a unilateral left/right pair as one set', () => {
-    const pairs: WorkoutSet[] = Array.from({ length: MAX_SETS * 2 }, (_, i) =>
-      set('todo', i + 1, i % 2 === 0 ? 'left' : 'right'),
-    );
-    expect(canAddSet(pairs)).toBe(false);
-    expect(canAddSet(pairs.slice(0, 6))).toBe(true);
+  it('adds a unilateral set as a left/right pair (one logical set), also past 8', () => {
+    let pairs: WorkoutSet[] = Array.from({ length: 16 }, (_, i) => set('done', i + 1, i % 2 === 0 ? 'left' : 'right'));
+    pairs = appendSet(pairs, 'e');
+    expect(pairs).toHaveLength(18);
+    expect(pairs.slice(16).map(s => [s.side, s.setNumber])).toEqual([['left', 17], ['right', 18]]);
+    for (let i = 0; i < 11; i++) pairs = appendSet(pairs, 'e');
+    expect(pairs.filter(s => s.side === 'left')).toHaveLength(20);
   });
+  it('a first set without a previous one starts empty', () => {
+    expect(appendSet([], 'x')).toEqual([
+      { exerciseId: 'x', setNumber: 1, plannedReps: null, actualReps: null, weight: null, completed: false, skipped: false },
+    ]);
+  });
+});
+
+describe('canRemoveLastSet', () => {
   it('removes the last set only when it is not logged and more than one remains', () => {
     expect(canRemoveLastSet(ex(['done', 'todo']).sets)).toBe(true);
     expect(canRemoveLastSet(ex(['done', 'done']).sets)).toBe(false);

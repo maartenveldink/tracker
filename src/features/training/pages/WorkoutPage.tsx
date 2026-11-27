@@ -23,7 +23,6 @@ import { groupSupersets } from '../lib/superset';
 import {
   activeSetIndex,
   afterSetLogged,
-  canAddSet,
   exerciseStatuses,
   findNextTodo,
   focusAfterInsert,
@@ -560,7 +559,7 @@ export function WorkoutPage() {
 
   /** Plus dot: add a set with the values of the last one and open it. */
   async function handleAddSet() {
-    if (!current || !canAddSet(sets) || busyRef.current) return;
+    if (!current || busyRef.current) return;
     busyRef.current = true;
     try {
       const newIdx = sets.length;
@@ -783,15 +782,15 @@ export function WorkoutPage() {
           <div className="flex flex-col">
             {unilateral ? (
               <LiveSideProgress
+                key={cur}
                 dots={parts}
-                canAdd={canAddSet(sets)}
                 onOpen={openSetAt}
                 onAdd={() => void handleAddSet()}
               />
             ) : (
               <LiveSetProgress
+                key={cur}
                 dots={dots}
-                canAdd={canAddSet(sets)}
                 onOpen={openSetAt}
                 onAdd={() => void handleAddSet()}
               />
@@ -837,7 +836,7 @@ export function WorkoutPage() {
 
         {!openSet && moment?.improved && <ExerciseMoment comparison={moment} animate={animateMoment} />}
 
-        {current && <LiveDoneList rows={rows} onOpen={openSetAt} />}
+        {current && <LiveDoneList rows={rows} exercise={cur} onOpen={openSetAt} />}
 
         {current && (
           <div className="flex flex-col">
