@@ -258,16 +258,24 @@ export function WorkoutPage() {
   }, [restTimer?.startedAt]);
 
   // Navigate to summary when workout is completed (must be in useEffect, not during render)
+  // `justFinished` (arrival celebration on the summary) only when this page saw
+  // the workout still running: opening an already completed workout just redirects.
   const completedRef = useRef(false);
+  const sawRunningRef = useRef(false);
   useEffect(() => {
     completedRef.current = false;
+    sawRunningRef.current = false;
   }, [workoutId]);
   useEffect(() => {
+    if (workout && workout.status !== 'completed') sawRunningRef.current = true;
     if (workout?.status === 'completed' && workoutId && !completedRef.current) {
       completedRef.current = true;
-      navigate(`/workout/${workoutId}/summary`, { replace: true });
+      navigate(`/workout/${workoutId}/summary`, {
+        replace: true,
+        state: sawRunningRef.current ? { justFinished: true } : null,
+      });
     }
-  }, [workout?.status, workoutId, navigate]);
+  }, [workout, workoutId, navigate]);
 
   // "Oefening klaar" celebration (DESIGN §8). The banner + comparison table are
   // derived from the stored sets (`moment` below). The one-off effects (fireworks,

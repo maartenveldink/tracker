@@ -26,11 +26,21 @@ test.describe('Progression', () => {
     // beats session 2 but stays under the all-time best — so it is "Vooruitgang"
     // (progress vs previous session), NOT a personal record.
     await freeWorkout(startWorkout, workout, 80);
+    // A first session: an honest "voltooid", no progress claims, no fireworks.
+    await expect(page.getByTestId('summary-headline')).toContainText('Training voltooid');
+    await expect(page.getByTestId('summary-highlight')).toHaveCount(0);
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
+
     await freeWorkout(startWorkout, workout, 60);
+    await expect(page.getByTestId('summary-headline')).toContainText('Training voltooid');
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
+
     await freeWorkout(startWorkout, workout, 70);
 
     await expect(page.getByText('Vooruitgang')).toBeVisible();
     await expect(page.getByText('Persoonlijk record!')).toHaveCount(0);
+    await expect(page.getByTestId('summary-headline')).toContainText('Je bent vooruitgegaan');
+    await expect(page.getByTestId('celebration')).toBeVisible();
   });
 
   test('the summary shows a personal record on an all-time best', async ({
@@ -42,6 +52,31 @@ test.describe('Progression', () => {
     await freeWorkout(startWorkout, workout, 80); // new all-time best
 
     await expect(page.getByText('Persoonlijk record!')).toBeVisible();
+
+    // Finishing a better workout plays the same fireworks as the live moment...
+    const pieces = page.getByTestId('celebration').locator('span');
+    await expect(page.getByTestId('celebration')).toBeVisible();
+    await expect(pieces.last()).toHaveCSS('animation-name', 'firework-ray');
+
+    // ...once: a reload of the summary does not replay them.
+    await page.reload();
+    await expect(page.getByText('Persoonlijk record!')).toBeVisible();
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
+  });
+
+  test('a summary opened from the history does not celebrate again', async ({
+    startWorkout,
+    workout,
+    page,
+  }) => {
+    await freeWorkout(startWorkout, workout, 60);
+    await freeWorkout(startWorkout, workout, 80);
+    const summaryUrl = page.url();
+
+    await startWorkout.goto();
+    await page.goto(summaryUrl);
+    await expect(page.getByText('Persoonlijk record!')).toBeVisible();
+    await expect(page.getByTestId('celebration')).toHaveCount(0);
   });
 
   test('celebrates in the workout when an exercise beats the previous session', async ({

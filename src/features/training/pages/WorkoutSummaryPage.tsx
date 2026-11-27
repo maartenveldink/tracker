@@ -1,15 +1,23 @@
-import { useMemo, useState } from 'react';
-import { formatDurationLong } from '../../../lib/utils';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { cn, formatDurationLong } from '../../../lib/utils';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExerciseLookup } from '../hooks/useExercises';
-import { useCompletedWorkouts, calculate1RM, deleteWorkout } from '../hooks/useProgress';
-import { calculateStreak, volumePerMuscleGroup, workoutVolume } from '../lib/metrics';
-import { isWeightedSet } from '../lib/sets';
-import { improvedExercises } from '../lib/progression';
-import { useSettings } from '../../../hooks/useSettings';
+import { useCompletedWorkoutsQuery, deleteWorkout } from '../hooks/useProgress';
+import { calculateStreak, getISOWeek, statsForWeek, volumePerMuscleGroup } from '../lib/metrics';
+import { isCompletedSet } from '../lib/sets';
+import {
+  hasSomethingToCelebrate,
+  shouldPlayArrivalCelebration,
+  summarizeWorkout,
+  summaryHeadline,
+  type ExerciseResult,
+} from '../lib/workoutSummary';
+import { formatDecimal } from '../lib/liveTraining';
+import { useSettingsState } from '../../../hooks/useSettings';
 import { MuscleVolumeBars } from '../components/MuscleVolumeBars';
-import { CelebrationBurst } from '../components/CelebrationBurst';
+import { CelebrationEffects, prefersReducedMotion } from '../components/CelebrationEffects';
+import { momentSubline } from '../components/ExerciseMoment';
 import { getMuscleGroupById } from '../db/muscles';
 import {
   Sheet,
@@ -23,10 +31,8 @@ import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatTile } from '@/components/ui/stat-tile';
-import { Separator } from '@/components/ui/separator';
-import { X, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp } from 'lucide-react';
+import { X, ArrowRight, Share2, Image as ImageIcon, Trash2, FileText, TrendingUp, Trophy, Flame } from 'lucide-react';
 import { shareText, shareImage, svgToPngBlob } from '../../../lib/share';
-import type { Workout } from '../../../db/index';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', {
@@ -178,18 +184,103 @@ function buildSummarySvg(data: {
   return doc.documentElement as unknown as SVGSVGElement;
 }
 
+/** "82,5" (one decimal at most, Dutch comma). */
+function kg(n: number): string {
+  return formatDecimal(Math.round(n * 10) / 10);
+}
+
+/** "+2,5" / "−1" / "±0" for a kg difference. */
+function signedKg(n: number): string {
+  const r = Math.round(n * 10) / 10;
+  if (r === 0) return '±0';
+  return `${r > 0 ? '+' : '−'}${formatDecimal(Math.abs(r))}`;
+}
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="mb-2 text-caption font-semibold uppercase tracking-[0.08em] text-muted">{children}</h3>
+  );
+}
+
+/** One success moment: a new PR and/or better than last time, with the difference. */
+function HighlightRow({ result, name }: { result: ExerciseResult; name: string }) {
+  const c = result.comparison;
+  return (
+    <li className="rounded-row border bg-surface px-4 py-3" data-testid="summary-highlight">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="min-w-0 break-words text-body font-semibold">{name}</p>
+        {result.isPR ? (
+          <span className="inline-flex items-center gap-1 rounded-chip bg-accent px-2 py-0.5 text-caption font-semibold text-on-accent">
+            <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
+            Persoonlijk record!
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-chip border border-accent-2 px-2 py-0.5 text-caption font-semibold text-accent-2">
+            <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+            Vooruitgang
+          </span>
+        )}
+      </div>
+      {result.isPR && result.previousBest1RM !== null && (
+        <p className="mt-1 text-small text-text">
+          Geschat 1RM {kg(result.best1RM)} kg{' '}
+          <span className="text-accent-2">({signedKg(result.best1RM - result.previousBest1RM)} kg op je vorige record)</span>
+        </p>
+      )}
+      {c && c.improved && (
+        <>
+          <p className="mt-1 text-small text-text">
+            Gem. 1RM {kg(c.previousAvg)} → {kg(c.todayAvg)} kg{' '}
+            <span className="text-accent-2">({c.todayAvg - c.previousAvg < 0.05 ? '+<0,1' : signedKg(c.todayAvg - c.previousAvg)} kg)</span>
+          </p>
+          <p className="text-caption text-muted">{momentSubline(c)} t.o.v. vorige keer</p>
+        </>
+      )}
+    </li>
+  );
+}
+
+/** Neutral comparison line on an exercise card: what changed vs last time, also when it went down. */
+function ComparisonLine({ result }: { result: ExerciseResult }) {
+  const c = result.comparison;
+  if (!c) {
+    return result.best1RM > 0 ? (
+      <p className="mt-2 text-caption text-muted">Nog geen vorige sessie om mee te vergelijken.</p>
+    ) : null;
+  }
+  // Same strict rule as "better than last time", so the card never contradicts the highlights.
+  const word = c.improved ? 'hoger dan' : c.todayAvg === c.previousAvg ? 'gelijk aan' : 'lager dan';
+  return (
+    <p className="mt-2 text-caption text-muted">
+      Gem. 1RM {kg(c.todayAvg)} kg, {word} vorige keer ({kg(c.previousAvg)} kg)
+    </p>
+  );
+}
+
 export function WorkoutSummaryPage() {
   const { id } = useParams<{ id: string }>();
   const workoutId = id || undefined;
   const workout = useWorkout(workoutId);
   const { byId: exerciseMap, nameOf } = useExerciseLookup();
-  const completedWorkouts = useCompletedWorkouts();
-  const settings = useSettings();
+  const historyQuery = useCompletedWorkoutsQuery();
+  const completedWorkouts = useMemo(() => historyQuery ?? [], [historyQuery]);
+  const { settings, loaded: settingsLoaded } = useSettingsState();
   const navigate = useNavigate();
   const location = useLocation();
-  const closeTo = (location.state as { from?: string } | null)?.from ?? '/start';
+  const navState = location.state as { from?: string; justFinished?: boolean } | null;
+  const closeTo = navState?.from ?? '/start';
   const [showDelete, setShowDelete] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [celebrateNonce, setCelebrateNonce] = useState(0);
+  const arrivalHandled = useRef(false);
+  // Read the "just finished" flag once and clear it from history right away, so
+  // a reload or back/forward never replays the effects (even before data loads).
+  const arrivedJustFinished = useRef(navState?.justFinished === true);
+  useEffect(() => {
+    if (navState?.justFinished) {
+      navigate(location.pathname, { replace: true, state: navState.from ? { from: navState.from } : null });
+    }
+  }, [navState, navigate, location.pathname]);
 
   // Volume per muscle group (E3-08)
   const muscleVolume = useMemo(
@@ -197,80 +288,37 @@ export function WorkoutSummaryPage() {
     [workout, exerciseMap],
   );
 
-  // MF-03: PR detection per exercise
-  const prExercises = useMemo(() => {
-    if (!workout) return new Set<string>();
-    const prSet = new Set<string>();
+  // PRs, "better than last time" and volume delta, compared with earlier workouts only.
+  const summary = useMemo(
+    () => (workout ? summarizeWorkout(workout, completedWorkouts, settings.oneRMFormula) : null),
+    [workout, completedWorkouts, settings.oneRMFormula],
+  );
 
-    for (const we of workout.exercises) {
-      // Best 1RM from this session
-      let bestThisSession = 0;
-      for (const set of we.sets) {
-        if (!isWeightedSet(set)) continue;
-        const est = calculate1RM(set.weight!, set.actualReps!, settings.oneRMFormula);
-        if (est > bestThisSession) bestThisSession = est;
-      }
-      if (bestThisSession <= 0) continue;
+  // Streak and week count as they were at this workout (not counting later ones).
+  const upToThis = useMemo(
+    () => (workout ? completedWorkouts.filter(w => w.startedAt.getTime() <= workout.startedAt.getTime()) : []),
+    [completedWorkouts, workout],
+  );
+  const streak = useMemo(() => calculateStreak(upToThis), [upToThis]);
 
-      // Best 1RM from all previous sessions
-      let bestPrevious = 0;
-      for (const w of completedWorkouts) {
-        if (w.id === workout.id) continue;
-        const ex = w.exercises.find(e => e.exerciseId === we.exerciseId);
-        if (!ex) continue;
-        for (const set of ex.sets) {
-          if (!isWeightedSet(set)) continue;
-          const est = calculate1RM(set.weight!, set.actualReps!, settings.oneRMFormula);
-          if (est > bestPrevious) bestPrevious = est;
-        }
-      }
-
-      if (bestThisSession > bestPrevious && bestPrevious > 0) {
-        prSet.add(we.exerciseId);
-      }
+  // Arrival celebration: the same fireworks + vibration as the live "Oefening
+  // klaar" moment, once, right after finishing (router flag `justFinished`, set
+  // by the live workout) and only when there is something to celebrate. The flag
+  // is cleared afterwards so a reload or back/forward never replays it.
+  useEffect(() => {
+    if (arrivalHandled.current) return;
+    if (!workout || !summary || historyQuery === undefined || !settingsLoaded) return;
+    arrivalHandled.current = true;
+    if (!arrivedJustFinished.current) return;
+    if (!settings.celebrationEnabled || !hasSomethingToCelebrate(summary)) return;
+    if (!shouldPlayArrivalCelebration({ justFinished: true, completedAt: workout.completedAt, now: new Date() })) return;
+    setCelebrateNonce(n => n + 1);
+    if (settings.celebrationVibrate && !prefersReducedMotion() && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([20, 40, 20]);
     }
+  }, [workout, summary, historyQuery, settingsLoaded, settings]);
 
-    return prSet;
-  }, [workout, completedWorkouts, settings.oneRMFormula]);
-
-  // Feature 4: exercises that improved over the previous session (1RM up), but
-  // are not an all-time PR. PR takes precedence over this lighter status.
-  const improvedExerciseIds = useMemo(() => {
-    if (!workout) return new Set<string>();
-    return improvedExercises(workout, completedWorkouts, settings.oneRMFormula);
-  }, [workout, completedWorkouts, settings.oneRMFormula]);
-
-  // MF-04: Volume comparison with previous session of same schema
-  const volumeComparison = useMemo<{ current: number; previous: number | null }>(() => {
-    if (!workout) return { current: 0, previous: null };
-
-    const current = workoutVolume(workout);
-
-    if (!workout.schemaId) return { current, previous: null };
-
-    // Find previous workout with same schemaId
-    let previousWorkout: Workout | null = null;
-    for (let i = completedWorkouts.length - 1; i >= 0; i--) {
-      const w = completedWorkouts[i];
-      if (!w) continue;
-      if (w.id === workout.id) continue;
-      if (w.schemaId === workout.schemaId) {
-        previousWorkout = w;
-        break;
-      }
-    }
-
-    if (!previousWorkout) return { current, previous: null };
-
-    const previous = workoutVolume(previousWorkout);
-
-    return { current, previous };
-  }, [workout, completedWorkouts]);
-
-  // MF-05: Training streak
-  const streak = useMemo(() => calculateStreak(completedWorkouts), [completedWorkouts]);
-
-  if (!workout) {
+  if (!workout || !summary) {
     return (
       <div>
         <PageHeader title="Laden..." backTo="/start" />
@@ -282,20 +330,20 @@ export function WorkoutSummaryPage() {
     ? workout.completedAt.getTime() - workout.startedAt.getTime() - workout.totalPausedMs
     : 0;
 
-  const totalSetsCompleted = workout.exercises.reduce(
-    (sum, e) => sum + e.sets.filter(s => s.completed).length,
-    0,
-  );
-
-  const totalVolume = workoutVolume(workout);
-
-  const volumeDiff = volumeComparison.previous !== null
-    ? Math.round(volumeComparison.current - volumeComparison.previous)
-    : null;
+  const totalSetsCompleted = summary.totalSets;
+  const totalVolume = summary.volume;
+  const headline = summaryHeadline(summary);
+  const prIds = new Set(summary.exercises.filter(e => e.isPR).map(e => e.exerciseId));
+  // PRs first, then the other "better than last time" exercises.
+  const highlights = summary.exercises
+    .filter(e => e.isPR || e.improved)
+    .sort((a, b) => Number(b.isPR) - Number(a.isPR) || a.index - b.index);
+  const inCurrentWeek = getISOWeek(workout.startedAt) === getISOWeek(new Date());
+  const sessionsThisWeek = inCurrentWeek ? statsForWeek(upToThis, workout.startedAt).sessions : 0;
+  const title = `${workout.schemaName ?? 'Vrije training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
 
   async function shareSummary() {
     if (!workout) return;
-    const title = `${workout.schemaName ?? 'Vrije training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
     const lines: string[] = [
       `🏋️ ${title} — ${formatDate(workout.startedAt)}`,
       `⏱️ ${formatDurationLong(duration)} · ${totalSetsCompleted} sets · ${Math.round(totalVolume)} kg volume`,
@@ -305,7 +353,7 @@ export function WorkoutSummaryPage() {
       const done = we.sets.filter(s => s.completed);
       if (done.length === 0) continue;
       const setsText = done.map(s => `${s.weight ?? 0}×${s.actualReps ?? 0}`).join(', ');
-      const pr = prExercises.has(we.exerciseId) ? ' 🏆' : '';
+      const pr = prIds.has(we.exerciseId) ? ' 🏆' : '';
       lines.push(`• ${nameOf(we.exerciseId)}: ${setsText}${pr}`);
     }
     await shareText(lines.join('\n'), title);
@@ -313,7 +361,6 @@ export function WorkoutSummaryPage() {
 
   async function shareSummaryImage() {
     if (!workout) return;
-    const title = `${workout.schemaName ?? 'Vrije training'}${workout.schemaDayName ? ` - ${workout.schemaDayName}` : ''}`;
     const exercises: CardExerciseRow[] = [];
     for (const we of workout.exercises) {
       const done = we.sets.filter(s => s.completed);
@@ -321,7 +368,7 @@ export function WorkoutSummaryPage() {
       exercises.push({
         name: nameOf(we.exerciseId),
         sets: done.map(s => `${s.weight ?? 0}×${s.actualReps ?? 0}`).join(', '),
-        isPR: prExercises.has(we.exerciseId),
+        isPR: prIds.has(we.exerciseId),
       });
     }
     const muscles = Array.from(muscleVolume.entries())
@@ -348,9 +395,11 @@ export function WorkoutSummaryPage() {
     navigate(closeTo);
   }
 
+  const volumeDelta = summary.volumeDelta;
+
   return (
-    <div className="min-h-screen">
-      <CelebrationBurst play={settings.celebrationEnabled && (prExercises.size > 0 || improvedExerciseIds.size > 0)} />
+    <div className="mx-auto min-h-screen w-full max-w-column">
+      <CelebrationEffects key={celebrateNonce} play={celebrateNonce > 0} />
       <PageHeader
         title="Samenvatting"
         actions={
@@ -374,130 +423,139 @@ export function WorkoutSummaryPage() {
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => navigate(closeTo)}
+              aria-label="Sluiten"
             >
-              <X className="h-4 w-4" />
-              Sluiten
+              <X className="h-5 w-5" />
             </Button>
           </div>
         }
       />
 
-      {/* Quick stats */}
-      <div className="px-4 py-4">
-        <h2 className="font-display text-title font-bold mb-1">
-          {workout.schemaName ?? 'Vrije training'}
-          {workout.schemaDayName && (
-            <span className="text-muted font-normal"> - {workout.schemaDayName}</span>
+      {/* Hero: training done, what you did, and the headline of how it went */}
+      <section aria-label="Training klaar" className="flex flex-col gap-3 px-4 pt-4">
+        <div>
+          <p className="text-caption font-semibold uppercase tracking-[0.08em] text-muted">Training klaar</p>
+          <h2 className="break-words font-display text-title font-bold">
+            {workout.schemaName ?? 'Vrije training'}
+            {workout.schemaDayName && (
+              <span className="font-normal text-muted"> - {workout.schemaDayName}</span>
+            )}
+          </h2>
+          <p className="text-small text-muted">
+            {formatDate(workout.startedAt)} · {formatTime(workout.startedAt)} -{' '}
+            {workout.completedAt ? formatTime(workout.completedAt) : '?'}
+          </p>
+        </div>
+
+        <div
+          data-testid="summary-headline"
+          className={cn(
+            'flex flex-col items-center gap-1 rounded-card px-4 py-4 text-center',
+            headline.celebrate ? 'bg-accent text-on-accent' : 'border bg-surface text-text',
           )}
-        </h2>
-        <p className="text-muted text-small">{formatDate(workout.startedAt)}</p>
+        >
+          <span className="font-display text-hero font-bold leading-tight">{headline.title}</span>
+          <span className={cn('text-small font-semibold', !headline.celebrate && 'font-normal text-muted')}>
+            {headline.subline}
+          </span>
+        </div>
 
-        {/* MF-05: streak */}
-        {streak >= 2 && (
-          <p className="text-small font-medium text-accent mt-1">
-            {'\uD83D\uDD25'} {streak} weken op rij getraind
+        <div className="grid grid-cols-3 gap-gap">
+          <StatTile className="min-w-0 break-words" label="Duur" value={formatDurationLong(duration)} />
+          <StatTile className="min-w-0 break-words" label="Sets" value={totalSetsCompleted} />
+          <StatTile className="min-w-0 break-words" label="Volume (kg)" value={totalVolume > 0 ? `${Math.round(totalVolume)}` : '-'} />
+        </div>
+
+        {volumeDelta !== null && (
+          <p className="text-small text-text">
+            Volume <span className="font-semibold text-accent-2">{signedKg(volumeDelta)} kg</span>{' '}
+            <span className="text-muted">t.o.v. vorige keer van dit schema</span>
           </p>
         )}
 
-        {/* MF-04: volume comparison */}
-        {volumeDiff !== null && (
-          <p className="text-small text-muted mt-1">
-            Volume: {Math.round(volumeComparison.current)} kg{' '}
-            <span className={volumeDiff >= 0 ? 'text-accent-2' : 'text-danger'}>
-              ({volumeDiff >= 0 ? '+' : ''}{volumeDiff} kg t.o.v. vorige sessie)
-            </span>
+        {(streak >= 2 || sessionsThisWeek > 0) && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-text">
+            <Flame className="h-4 w-4 text-accent" aria-hidden="true" />
+            {streak >= 2 && <span>{streak} weken op rij getraind</span>}
+            {streak >= 2 && sessionsThisWeek > 0 && <span aria-hidden="true" className="text-muted">·</span>}
+            {sessionsThisWeek > 0 && <span>{sessionsThisWeek}e training deze week</span>}
           </p>
         )}
+      </section>
 
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          <StatTile label="Duur" value={formatDurationLong(duration)} />
-          <StatTile label="Sets" value={totalSetsCompleted} />
-          <StatTile label="Volume (kg)" value={totalVolume > 0 ? `${Math.round(totalVolume)}` : '-'} />
-        </div>
+      {/* Success moments: PRs and exercises better than last time */}
+      {highlights.length > 0 && (
+        <section aria-label="Hoogtepunten" className="px-4 pt-6">
+          <SectionTitle>Hoogtepunten</SectionTitle>
+          <ul className="flex flex-col gap-2">
+            {highlights.map(r => (
+              <HighlightRow key={`${r.exerciseId}-${r.index}`} result={r} name={nameOf(r.exerciseId)} />
+            ))}
+          </ul>
+        </section>
+      )}
 
-        <div className="text-caption text-muted mt-2 text-center">
-          {formatTime(workout.startedAt)} - {workout.completedAt ? formatTime(workout.completedAt) : '?'}
-        </div>
-      </div>
-
-      {/* Exercises detail */}
-      <Separator />
-      <div className="px-4 py-3">
-        <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-2">Oefeningen</h3>
+      {/* Details per exercise: sets, notes and the neutral comparison */}
+      <section aria-label="Oefeningen" className="px-4 pt-6">
+        <SectionTitle>Oefeningen</SectionTitle>
         <div className="space-y-3">
           {workout.exercises.map((we, idx) => {
-            const completedSets = we.sets.filter(s => s.completed);
-            const isPR = prExercises.has(we.exerciseId);
-            const isImproved = !isPR && improvedExerciseIds.has(we.exerciseId);
+            const completedSets = we.sets.filter(isCompletedSet);
+            const result = summary.exercises[idx];
 
             return (
               <Card key={`${we.exerciseId}-${idx}`} className="shadow-none">
-                <CardContent className="p-3">
-                  <h4 className="text-small font-medium mb-1 flex items-center gap-1.5">
-                    {nameOf(we.exerciseId)}
-                    {/* MF-03: PR badge */}
-                    {isPR && (
-                      <span className="text-caption text-accent font-medium">
-                        {'\uD83C\uDFC6'} Persoonlijk record!
-                      </span>
-                    )}
-                    {/* Feature 4: progression vs previous session */}
-                    {isImproved && (
-                      <span className="text-caption text-accent-2 font-medium inline-flex items-center gap-0.5">
-                        <TrendingUp className="h-3.5 w-3.5" /> Vooruitgang
-                      </span>
-                    )}
-                  </h4>
+                <CardContent className="p-4">
+                  <h4 className="mb-1 break-words text-body font-semibold">{nameOf(we.exerciseId)}</h4>
                   {completedSets.length > 0 ? (
                     <div className="space-y-0.5">
                       {completedSets.map((set) => (
-                        <div key={set.setNumber} className="text-caption text-muted flex gap-2">
-                          <span className="text-muted w-8">Set {set.setNumber}</span>
-                          <span>{set.weight ?? 0} kg x {set.actualReps ?? 0}</span>
+                        <div key={set.setNumber} className="flex gap-3 text-small">
+                          <span className="w-12 shrink-0 text-muted">Set {set.setNumber}</span>
+                          <span>{formatDecimal(set.weight ?? 0)} kg × {set.actualReps ?? 0}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <p className="text-caption text-muted">Geen sets voltooid</p>
                   )}
+                  {result && <ComparisonLine result={result} />}
                   {we.notes && (
-                    <p className="text-caption text-muted mt-1 italic">{we.notes}</p>
+                    <p className="mt-1 break-words text-caption italic text-muted">{we.notes}</p>
                   )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* Volume per muscle group (E3-08) */}
       {muscleVolume.size > 0 && (
-        <>
-          <Separator />
-          <div className="px-4 py-3">
-            <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-2">Volume per spiergroep</h3>
-            <MuscleVolumeBars volume={muscleVolume} />
-          </div>
-        </>
+        <section className="px-4 pt-6">
+          <SectionTitle>Volume per spiergroep</SectionTitle>
+          <MuscleVolumeBars volume={muscleVolume} />
+        </section>
       )}
 
       {/* Workout notes */}
       {workout.notes && (
-        <>
-          <Separator />
-          <div className="px-4 py-3">
-            <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-muted mb-1">Trainingsnotities</h3>
-            <p className="text-small text-text">{workout.notes}</p>
-          </div>
-        </>
+        <section className="px-4 pt-6">
+          <SectionTitle>Trainingsnotities</SectionTitle>
+          <p className="break-words text-small text-text">{workout.notes}</p>
+        </section>
       )}
 
-      {/* CT-05: Next session button */}
-      <Separator />
-      <div className="px-4 py-4 pb-8">
+      {/* Share + next session */}
+      <div className="flex flex-col gap-3 px-4 pb-8 pt-6">
+        <Button variant="outline" className="w-full" onClick={() => setShowShare(true)}>
+          <Share2 className="h-4 w-4" />
+          Training delen
+        </Button>
         <Button
+          size="lg"
           className="w-full"
           onClick={() => {
             if (workout.schemaId) {

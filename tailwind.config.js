@@ -83,12 +83,6 @@ export default {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
-        celebrate: {
-          '0%': { transform: 'scale(0.4)', opacity: '0' },
-          '40%': { transform: 'scale(1.15)', opacity: '1' },
-          '70%': { transform: 'scale(0.95)', opacity: '1' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
         // WP5: two-phase confetti (burst out, then fall + fade). Per-piece
         // --cx/--cy (burst offset), --cr (spin) are set inline.
         confetti: {
@@ -112,17 +106,10 @@ export default {
           '0%': { transform: 'translateY(8px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        'float-up': {
-          '0%': { transform: 'translateY(8px) scale(0.8)', opacity: '0' },
-          '30%': { opacity: '1' },
-          '100%': { transform: 'translateY(-28px) scale(1.1)', opacity: '0' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        celebrate: 'celebrate 0.6s ease-out both',
-        'float-up': 'float-up 1.4s ease-out forwards',
         'banner-pop': 'banner-pop var(--motion-pop) both',
         'moment-fade': 'moment-fade var(--motion-row) both',
         // CelebrationEffects sets duration/delay per piece inline; without these
