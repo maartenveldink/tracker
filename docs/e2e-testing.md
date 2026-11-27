@@ -72,7 +72,7 @@ The suite exercises the main user flows across the app:
   logging.
 - **Dashboard** — quick weigh-in, resume active workout, streak, deload card.
 - **Schema import & AI-coach** — readable-JSON import (valid, invalid with per-path errors, unknown exercise), "Kopieer voor AI" summary/clipboard.
-- **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, an added exercise lands after the last finished one.
+- **Sets & workout edits** — bodyweight sets count, unilateral set pairs removed together, the D1U zigzag for unilateral exercises (L1 → R1 → L2, the right side starts with the left's reps, rest only after the right side, idle ring "na R", Gedaan row `Set 1 · 20 kg · L 12 · R 12`, adjusting a side with "Opslaan"), an added exercise lands after the last finished one.
 - **Data** — export → wipe → import (replace and merge), dates revived, `schemaId` remapped; deleted exercises keep their name in history.
 - **Exercise detail** — a list row opens `/exercises/:id` (`exercise-info` card, goal, 1RM chart, sessions); `exercises.open(name)` goes on via "Bewerk" to the form, `exercises.openDetail(name)` stays on the detail page.
 - **Progress extras** — month calendar, exercise goal progress bar, deload suggestion.
@@ -129,8 +129,10 @@ are semantic and style-independent.
 | `current-exercise`| the current exercise on the live screen | following the app's focus (name, set list) |
 | `weight-input`    | weight input in the set card (live workout) | entering weight |
 | `reps-input`      | reps input in the set card (live workout)   | entering reps |
-| `set-row`         | a set dot in the set progress (one per set; a unilateral left/right pair is one dot), `data-state` done/open/todo, `aria-pressed` = opened | counting sets, opening a set |
-| `done-row`        | a row of the "Gedaan" list (logged set + difference to last time) | asserting logged values and the difference |
+| `set-row`         | a set dot in the set progress (one per set, bilateral exercises), `data-state` done/open/todo, `aria-pressed` = opened | counting sets, opening a set |
+| `side-dot`        | a dot of the unilateral zigzag (one per side, order L1, R1, L2, …), `data-set` (1-based), `data-side` left/right, `data-state`, `aria-pressed` = opened | `workout.sideDots`, `workout.sideDot(set, side)`; `setCount()` counts its left dots |
+| `rest-ring-idle`  | the idle rest ring (no rest running; "na R" on a unilateral exercise, else the rest duration) | `workout.restRingIdle` |
+| `done-row`        | a row of the "Gedaan" list (logged set + difference to last time; unilateral: one row per set with both sides logged) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
 | `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
 | `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |

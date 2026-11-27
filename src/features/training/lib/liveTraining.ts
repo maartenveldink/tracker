@@ -1,7 +1,7 @@
 import type { WorkoutExercise, WorkoutSet } from '../../../db/index';
 import { groupSupersets } from './superset';
 import { shiftIndex } from './insertPosition';
-import { removeSetAt } from './sets';
+import { pairPartnerIndex, removeSetAt } from './sets';
 
 /**
  * Pure state machine behind the live-training screen (DESIGN §6,
@@ -133,8 +133,15 @@ export function afterSetLogged(
       (s, sIdx) => !s.completed && !s.skipped && !(i === exIdx && sIdx === setIdx),
     );
 
-  // Solo: rest only while this exercise still has an open set.
-  if (!info || !info.inSuperset) return { focusIdx: exIdx, rest: hasOpenSet(exIdx) };
+  // Solo: rest only while this exercise still has an open set. Unilateral
+  // (D1U): only once the logged part completes its left/right set, so not
+  // between the left and the right side.
+  if (!info || !info.inSuperset) {
+    const sets = exercises[exIdx]?.sets ?? [];
+    const partner = sets[pairPartnerIndex(sets, setIdx)];
+    const setComplete = !partner || partner.completed || partner.skipped;
+    return { focusIdx: exIdx, rest: setComplete && hasOpenSet(exIdx) };
+  }
 
   const nextMember = info.members.find(m => m > exIdx && hasOpenSet(m));
   if (nextMember != null) return { focusIdx: nextMember, rest: false };
@@ -162,6 +169,8 @@ export function focusAfterInsert(exercises: WorkoutExercise[], cur: number, at: 
 export interface PrevSetRef {
   weight: number;
   reps: number;
+  /** Side of a unilateral set (logged per side). */
+  side?: 'left' | 'right';
 }
 
 /** 62.5 → "62,5"; null → "" (decimal comma, as in the design). */
