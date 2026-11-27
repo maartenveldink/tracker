@@ -65,6 +65,9 @@ test.describe('Progression', () => {
     const pieces = page.getByTestId('celebration').locator('span');
     await expect(pieces.first()).toHaveCSS('animation-name', 'confetti');
     await expect(pieces.last()).toHaveCSS('animation-name', 'firework-ray');
+    // Backwards fill must not apply: the last firework burst (delay 0.6s) stays
+    // invisible during its delay instead of showing at its start frame.
+    await expect(pieces.last()).toHaveCSS('animation-fill-mode', 'forwards');
     await expect(page.getByTestId('moment-banner')).toContainText('Beter dan vorige keer');
 
     // A reload must not replay the effects.

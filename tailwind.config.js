@@ -127,8 +127,8 @@ export default {
         'moment-fade': 'moment-fade var(--motion-row) both',
         // CelebrationEffects sets duration/delay per piece inline; without these
         // entries the classes don't exist and the pieces stay at opacity 0.
-        confetti: 'confetti 4.5s both',
-        'firework-ray': 'firework-ray 3.2s ease-out both',
+        confetti: 'confetti 4.5s forwards',
+        'firework-ray': 'firework-ray 3.2s ease-out forwards',
       },
     },
   },

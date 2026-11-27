@@ -73,7 +73,7 @@ export function CelebrationEffects({ play }: { play: boolean }) {
                 '--cr': `${p.spin}deg`,
                 animationDuration: `${DURATION_MS}ms`,
                 animationDelay: `${p.delay}s`,
-                animationFillMode: 'both',
+                animationFillMode: 'forwards',
               } as CSSProperties}
             />
           );
@@ -91,7 +91,7 @@ export function CelebrationEffects({ play }: { play: boolean }) {
               '--fa': `${i * 30}deg`,
               animationDuration: '3.2s',
               animationDelay: `${b.delay}s`,
-              animationFillMode: 'both',
+              animationFillMode: 'forwards',
               animationTimingFunction: 'ease-out',
             } as CSSProperties}
           />
