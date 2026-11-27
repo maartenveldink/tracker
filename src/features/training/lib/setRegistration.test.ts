@@ -203,13 +203,13 @@ describe('rest ring', () => {
     expect(formatRestClock(0)).toBe('0:00');
   });
   it('labels the running ring as in the design', () => {
-    expect(restRingLabel(72, true)).toBe('Rust, nog 1 minuut 12. Tik voor 30 seconden extra');
-    expect(restRingLabel(150, true)).toBe('Rust, nog 2 minuten 30. Tik voor 30 seconden extra');
-    expect(restRingLabel(45, true)).toBe('Rust, nog 45 seconden. Tik voor 30 seconden extra');
-    expect(restRingLabel(120, true)).toBe('Rust, nog 2 minuten. Tik voor 30 seconden extra');
+    expect(restRingLabel(72, true)).toBe('Rust, nog 1 minuut 12. Tik om de rust in te stellen');
+    expect(restRingLabel(150, true)).toBe('Rust, nog 2 minuten 30. Tik om de rust in te stellen');
+    expect(restRingLabel(45, true)).toBe('Rust, nog 45 seconden. Tik om de rust in te stellen');
+    expect(restRingLabel(120, true)).toBe('Rust, nog 2 minuten. Tik om de rust in te stellen');
   });
-  it('labels the idle ring as a start button', () => {
-    expect(restRingLabel(90, false)).toBe('Rust 1 minuut 30. Tik om de rust te starten');
+  it('labels the idle ring as opening the rest bar', () => {
+    expect(restRingLabel(90, false)).toBe('Rust 1 minuut 30. Tik om de rust in te stellen');
   });
   it('keeps the timer label format', () => {
     expect(restTimerLabel(72)).toBe('Rust nog 1 minuut 12 seconden');
@@ -396,7 +396,7 @@ describe('rest ring idle (unilateral)', () => {
     expect(restRingIdleText(90, true, false)).toBe('0:00');
   });
   it('says the rest follows after the right side', () => {
-    expect(restRingIdleLabel(90, true)).toBe('Rust volgt na rechts (1 minuut 30). Tik om de rust nu te starten');
+    expect(restRingIdleLabel(90, true)).toBe('Rust volgt na rechts (1 minuut 30). Tik om de rust in te stellen');
     expect(restRingIdleLabel(90, false)).toBe(restRingLabel(90, false));
   });
 });

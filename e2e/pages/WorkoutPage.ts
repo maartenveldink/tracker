@@ -7,7 +7,8 @@ import type { Locator, Page } from '@playwright/test';
  * set dots (`set-row`, one per set) or, for a unilateral exercise, the zigzag
  * (`side-dot`, one per side: L1 → R1 → L2 → R2, `data-set` + `data-side`),
  * the set card with the weight/reps steppers for the opened set, the "Gedaan"
- * list (`done-row`) and at the bottom the rest ring next to the main button. The full list of
+ * list (`done-row`) and at the bottom the rest ring next to the main button; a tap on the
+ * ring swaps that row for the rest bar (`rest-bar`, −/+ 15 s) until it closes. The full list of
  * exercises lives in the "Oefeningen in deze training" sheet; helpers that need
  * it (`exerciseOrder`, `exerciseMeta`, …) open and close it themselves.
  */
@@ -210,9 +211,31 @@ export class WorkoutPage {
     await this.page.getByRole('button', { name: 'Set verwijderen', exact: true }).click();
   }
 
-  /** Taps the running rest ring: +30 seconds. */
-  async extendRest(): Promise<void> {
-    await this.restTimer.getByRole('button').click();
+  /** The rest bar (replaces ring + main button while setting the rest). */
+  get restBar(): Locator {
+    return this.page.getByTestId('rest-bar');
+  }
+
+  /** Taps the rest ring (running or idle): opens the rest bar. */
+  async openRestBar(): Promise<void> {
+    await this.page.locator('[data-testid="rest-timer"], [data-testid="rest-ring-idle"]').getByRole('button').click();
+  }
+
+  /** Taps − or + in the rest bar (15 seconds shorter / longer). */
+  async adjustRest(dir: 'shorter' | 'longer'): Promise<void> {
+    await this.restBar.getByRole('button', { name: `Rust 15 seconden ${dir === 'longer' ? 'langer' : 'korter'}` }).click();
+  }
+
+  /** Taps the time in the rest bar: closes it (idle: also starts the rest). */
+  async closeRestBar(): Promise<void> {
+    await this.restBar.getByRole('button', { name: /^Klaar met rust instellen/ }).click();
+  }
+
+  /** Seconds shown in the rest bar ("1:45" -> 105). */
+  async restBarSeconds(): Promise<number> {
+    const text = (await this.restBar.getByTestId('rest-bar-time').textContent()) ?? '';
+    const [m, s] = text.trim().split(':');
+    return Number(m) * 60 + Number(s);
   }
 
   /** Remaining rest in seconds, read from the timer's aria-label ("Rust nog 1 minuut 12 seconden"). */

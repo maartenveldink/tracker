@@ -61,22 +61,46 @@ test.describe('Live workout — one exercise at a time', () => {
     await page.waitForURL(/\/workout\/[^\/]+\/summary$/);
   });
 
-  test('tapping the rest ring adds 30 seconds', async ({
+  test('the rest ring opens the rest bar: idle it sets and starts the rest, running it adjusts it', async ({
     schemaEditor,
     startWorkout,
     workout,
+    page,
   }) => {
     await schemaEditor.gotoNew();
-    await schemaEditor.setName('E2E Extend');
+    await schemaEditor.setName('E2E Rust-balk');
     await schemaEditor.addExercise(A);
     await schemaEditor.save();
 
     await startWorkout.goto();
-    await startWorkout.start('E2E Extend');
-    await workout.completeActiveSet(60, 10);
+    await startWorkout.start('E2E Rust-balk');
+
+    // Idle: the bar shows the set rest duration; + makes it exactly 15 s longer.
+    await workout.openRestBar();
+    await expect(workout.restBar).toBeVisible();
+    // No "Set klaar" next to the bar.
+    await expect(page.getByRole('button', { name: 'Set klaar', exact: true })).toHaveCount(0);
+    const idle = await workout.restBarSeconds();
+    await workout.adjustRest('longer');
+    expect(await workout.restBarSeconds()).toBe(idle + 15);
+
+    // A tap on the time closes the bar right away and (idle) starts the rest by hand.
+    await workout.closeRestBar();
+    await expect(workout.restBar).toHaveCount(0);
+    await expect(workout.restTimer).toBeVisible();
+    expect(await workout.restSeconds()).toBeGreaterThan(idle + 5);
+
+    // Running: + adds 15 s to the remaining rest; the bar closes ~3 s after the last tap.
     const before = await workout.restSeconds();
-    await workout.extendRest();
-    expect(await workout.restSeconds()).toBeGreaterThan(before + 20);
+    await workout.openRestBar();
+    await workout.adjustRest('longer');
+    expect(await workout.restBarSeconds()).toBeGreaterThan(before + 10);
+    await expect(workout.restBar).toHaveCount(0, { timeout: 6000 });
+    await expect(page.getByRole('button', { name: 'Set klaar', exact: true })).toBeVisible();
+
+    // The adjusted rest holds for the next sets of this exercise.
+    await workout.completeActiveSet(60, 10);
+    expect(await workout.restSeconds()).toBeGreaterThan(idle + 5);
   });
 
   test('a set cannot be logged without a weight', async ({ startWorkout, workout, page }) => {

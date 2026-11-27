@@ -58,6 +58,14 @@ import { LiveSideProgress } from '../components/LiveSideProgress';
 import { LiveSetCard } from '../components/LiveSetCard';
 import { LiveDoneList } from '../components/LiveDoneList';
 import { LiveRestRing, type RestTimerState } from '../components/LiveRestRing';
+import { LiveRestBar } from '../components/LiveRestBar';
+import {
+  REST_BAR_AUTO_CLOSE_MS,
+  adjustRestDuration,
+  adjustRunningRest,
+  restBarSeconds,
+  sessionRestSeconds,
+} from '../lib/restBar';
 import { LiveOverviewSheet, type OverviewRow } from '../components/LiveOverviewSheet';
 import { LiveAddExerciseSheet } from '../components/LiveAddExerciseSheet';
 import { useSettings } from '../../../hooks/useSettings';
@@ -202,8 +210,32 @@ export function WorkoutPage() {
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
   // DESIGN §11: announce the end of the rest once (not every second).
   const [restEnded, setRestEnded] = useState(false);
-  // Per-exercise rest override for this session (exerciseId -> seconds)
+  // Per-exercise rest override for this session (exerciseId -> seconds); set by
+  // the rest bar and the rest control, never written back unless "Als standaard".
   const [exerciseRest, setExerciseRest] = useState<Record<string, number>>({});
+  // Rust-balk (DESIGN §4): open after a tap on the ring, closes by itself
+  // REST_BAR_AUTO_CLOSE_MS after the last adjustment.
+  const [restBarOpen, setRestBarOpen] = useState(false);
+  const restBarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeRestBar = useCallback(() => {
+    if (restBarTimeoutRef.current !== null) clearTimeout(restBarTimeoutRef.current);
+    restBarTimeoutRef.current = null;
+    setRestBarOpen(false);
+  }, []);
+  /** (Re)start the auto-close countdown: each adjustment resets it. */
+  const armRestBar = useCallback(() => {
+    if (restBarTimeoutRef.current !== null) clearTimeout(restBarTimeoutRef.current);
+    restBarTimeoutRef.current = setTimeout(() => {
+      restBarTimeoutRef.current = null;
+      setRestBarOpen(false);
+    }, REST_BAR_AUTO_CLOSE_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (restBarTimeoutRef.current !== null) clearTimeout(restBarTimeoutRef.current);
+    },
+    [],
+  );
   const [deleteExerciseIdx, setDeleteExerciseIdx] = useState<number | null>(null);
   // The "current exercise" pointer (the only UI state of the state machine).
   // undefined = not chosen yet: the first `todo` exercise (resume-friendly);
@@ -222,7 +254,8 @@ export function WorkoutPage() {
     setSelected(null);
     setCurState(undefined);
     setRestTimer(null);
-  }, [workoutId]);
+    closeRestBar();
+  }, [workoutId, closeRestBar]);
 
   // Build previous session references for each exercise in the workout (E3-10)
   const previousSessions = useMemo(() => {
@@ -354,7 +387,8 @@ export function WorkoutPage() {
     setInputError(null);
     setNotesOpen(false);
     setExerciseNotesDraft(null);
-  }, []);
+    closeRestBar();
+  }, [closeRestBar]);
 
   if (!workout || !workoutId) {
     return (
@@ -409,14 +443,16 @@ export function WorkoutPage() {
 
   // Effective rest time (E3-15): session override -> schema exercise -> per-exercise
   // default -> laterality default -> global.
-  function getRest(exerciseId: string): number {
-    const override = exerciseRest[exerciseId];
-    if (override !== undefined) return override;
+  function resolvedRest(exerciseId: string): number {
     return resolveRestSeconds({
       schemaRestSeconds: exercises.find(e => e.exerciseId === exerciseId)?.restSeconds,
       exercise: exerciseMap.get(exerciseId),
       settings,
     });
+  }
+
+  function getRest(exerciseId: string): number {
+    return sessionRestSeconds(exerciseRest, exerciseId, resolvedRest(exerciseId));
   }
 
   // E3-12/16: alert the user when the rest timer ends
@@ -500,6 +536,7 @@ export function WorkoutPage() {
         await updateWorkoutSet(wid, cur, nextOpen, { weight });
       }
       closeOpenedSet();
+      closeRestBar();
       // "Set klaar" always ends the current rest: a new rest restarts from the
       // full duration, otherwise (unilateral left part, superset switch, last
       // open set) a running timer is cleared.
@@ -610,11 +647,35 @@ export function WorkoutPage() {
   }
 
   // Adjust this exercise's rest time for the session (15s steps, 15–600)
-  function adjustRest(exerciseId: string, delta: number) {
-    setExerciseRest(prev => {
-      const currentRest = prev[exerciseId] ?? getRest(exerciseId);
-      return { ...prev, [exerciseId]: Math.min(600, Math.max(15, currentRest + delta)) };
-    });
+  function adjustRest(exerciseId: string, dir: 1 | -1) {
+    const resolved = resolvedRest(exerciseId);
+    setExerciseRest(prev => ({
+      ...prev,
+      [exerciseId]: adjustRestDuration(sessionRestSeconds(prev, exerciseId, resolved), dir),
+    }));
+  }
+
+  // --- Rust-balk (DESIGN §4, §6, §12 q17) ---
+
+  function openRestBar() {
+    setRestBarOpen(true);
+    armRestBar();
+  }
+
+  /** − / +: changes the running rest and the rest of this exercise for the rest of this workout. */
+  function adjustRestFromBar(dir: 1 | -1) {
+    armRestBar();
+    // Klaar-toestand (no current exercise): only the running rest changes.
+    if (current) adjustRest(current.exerciseId, dir);
+    setRestTimer(t => (t ? adjustRunningRest(t, dir) : t));
+  }
+
+  /** Tap on the time: close the bar; without a running rest this is the "second tap" that starts it (§6). */
+  function finishRestBar() {
+    closeRestBar();
+    if (restTimer || !current) return;
+    requestNotifyPermission();
+    startRest(current.exerciseId);
   }
 
   // Persist the current rest time as this exercise's default
@@ -701,6 +762,7 @@ export function WorkoutPage() {
   const rows = current ? doneRows(sets, prevLines) : [];
   // DESIGN §6: the ring stays visible while it runs once the exercise is done.
   const showRing = !!restTimer || (!!current && !exerciseComplete) || !!openSet;
+  const restIdleSeconds = current ? getRest(current.exerciseId) : settings.restTimerSeconds;
 
   const textBtn =
     'flex h-touch items-center px-1 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-chip disabled:opacity-40';
@@ -873,7 +935,7 @@ export function WorkoutPage() {
               <RestControl
                 seconds={getRest(current.exerciseId)}
                 isDefault={exerciseRest[current.exerciseId] === undefined}
-                onAdjust={delta => adjustRest(current.exerciseId, delta)}
+                onAdjust={dir => adjustRest(current.exerciseId, dir)}
                 onSaveDefault={() => void saveRestAsDefault(current.exerciseId)}
               />
             )}
@@ -888,26 +950,34 @@ export function WorkoutPage() {
       {/* Flexible empty space between the content and the thumb zone is intended (DESIGN §5). */}
       <div className="flex-1" />
 
-      {/* Fixed bottom row in thumb reach: rest ring + main button (DESIGN §5, B1). */}
+      {/* Fixed bottom row in thumb reach: rest ring + main button (DESIGN §5, B1),
+          or the rest bar over the full width while setting the rest (E1). */}
       <div className="sticky bottom-0 z-30 mt-4 flex flex-col gap-2 bg-bg px-screen-x pb-[max(2rem,env(safe-area-inset-bottom))] pt-3">
         <div className="flex items-center gap-3">
-          {showRing && (
-            <LiveRestRing
-              timer={restTimer}
-              idleSeconds={current ? getRest(current.exerciseId) : settings.restTimerSeconds}
-              ended={restEnded}
-              unilateral={unilateral}
-              onExtend={() => setRestTimer(t => (t ? { ...t, remaining: t.remaining + 30, total: t.total + 30 } : t))}
-              onStart={() => {
-                requestNotifyPermission();
-                startRest(current?.exerciseId ?? '');
-              }}
+          {showRing && restBarOpen ? (
+            <LiveRestBar
+              seconds={restBarSeconds(restTimer, restIdleSeconds)}
+              running={!!restTimer}
+              onAdjust={adjustRestFromBar}
+              onDone={finishRestBar}
             />
+          ) : (
+            <>
+              {showRing && (
+                <LiveRestRing
+                  timer={restTimer}
+                  idleSeconds={restIdleSeconds}
+                  ended={restEnded}
+                  unilateral={unilateral}
+                  onOpen={openRestBar}
+                />
+              )}
+              {/* An exercise without sets has nothing to log: add one via the plus dot. */}
+              <Button size="xl" className="min-w-0 flex-1" onClick={handlePrimary} disabled={action === 'set' && openIdx < 0}>
+                {primaryLabel(action)}
+              </Button>
+            </>
           )}
-          {/* An exercise without sets has nothing to log: add one via the plus dot. */}
-          <Button size="xl" className="min-w-0 flex-1" onClick={handlePrimary} disabled={action === 'set' && openIdx < 0}>
-            {primaryLabel(action)}
-          </Button>
         </div>
         {finished && (
           <Button variant="secondary" size="lg" onClick={openAdd}>
@@ -992,7 +1062,7 @@ function RestControl({
 }: {
   seconds: number;
   isDefault: boolean;
-  onAdjust: (delta: number) => void;
+  onAdjust: (dir: 1 | -1) => void;
   onSaveDefault: () => void;
 }) {
   const btn =
@@ -1000,11 +1070,11 @@ function RestControl({
   return (
     <div className="flex items-center gap-1">
       <span className="text-small text-muted">Rust</span>
-      <button type="button" className={btn} aria-label="Rust verlagen" onClick={() => onAdjust(-15)}>
+      <button type="button" className={btn} aria-label="Rust verlagen" onClick={() => onAdjust(-1)}>
         <Minus className="h-4 w-4" aria-hidden="true" />
       </button>
       <span className="min-w-[2.5rem] text-center font-display text-small font-bold">{formatSecs(seconds)}</span>
-      <button type="button" className={btn} aria-label="Rust verhogen" onClick={() => onAdjust(15)}>
+      <button type="button" className={btn} aria-label="Rust verhogen" onClick={() => onAdjust(1)}>
         <Plus className="h-4 w-4" aria-hidden="true" />
       </button>
       <div className="flex-1" />

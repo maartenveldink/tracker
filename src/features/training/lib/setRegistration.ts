@@ -397,11 +397,11 @@ function spokenDuration(seconds: number): string {
   return r === 0 ? min : `${min} ${r}`;
 }
 
-/** Button label of the ring (DESIGN §4): running = +30 sec, idle = start the rest. */
+/** Button label of the ring (DESIGN §4): a tap opens the rest bar (running or idle). */
 export function restRingLabel(seconds: number, running: boolean): string {
   return running
-    ? `Rust, nog ${spokenDuration(seconds)}. Tik voor 30 seconden extra`
-    : `Rust ${spokenDuration(seconds)}. Tik om de rust te starten`;
+    ? `Rust, nog ${spokenDuration(seconds)}. Tik om de rust in te stellen`
+    : `Rust ${spokenDuration(seconds)}. Tik om de rust in te stellen`;
 }
 
 /**
@@ -414,10 +414,10 @@ export function restRingIdleText(seconds: number, ended: boolean, unilateral: bo
   return unilateral ? 'na R' : formatRestClock(seconds);
 }
 
-/** Button label of the idle ring; it still starts the rest by hand on tap. */
+/** Button label of the idle ring; a tap opens the rest bar (which can start the rest by hand). */
 export function restRingIdleLabel(seconds: number, unilateral: boolean): string {
   return unilateral
-    ? `Rust volgt na rechts (${spokenDuration(seconds)}). Tik om de rust nu te starten`
+    ? `Rust volgt na rechts (${spokenDuration(seconds)}). Tik om de rust in te stellen`
     : restRingLabel(seconds, false);
 }
 
