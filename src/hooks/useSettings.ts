@@ -38,13 +38,26 @@ export async function initSettings(): Promise<void> {
 }
 
 export function useSettings(): AppSettings {
-  const row = useLiveQuery(() => db.settings.get(1));
-  if (!row) return DEFAULTS;
+  return useSettingsState().settings;
+}
+
+/**
+ * Settings plus whether the stored row has been read. Use `loaded` before a
+ * one-off decision that depends on a setting (e.g. playing a celebration once),
+ * so the defaults aren't acted on while the real row is still loading.
+ */
+export function useSettingsState(): { settings: AppSettings; loaded: boolean } {
+  // `null` = read and absent, `undefined` = still loading.
+  const row = useLiveQuery(async () => (await db.settings.get(1)) ?? null);
+  if (!row) return { settings: DEFAULTS, loaded: row === null };
   // Merge defaults so rows saved before a field was introduced stay valid
   return {
-    ...DEFAULTS,
-    ...row,
-    weightSteps: { ...DEFAULTS.weightSteps, ...row.weightSteps },
+    settings: {
+      ...DEFAULTS,
+      ...row,
+      weightSteps: { ...DEFAULTS.weightSteps, ...row.weightSteps },
+    },
+    loaded: true,
   };
 }
 
