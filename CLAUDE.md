@@ -83,6 +83,7 @@ src/
 - **No external state management:** Dexie live queries replace Redux/Zustand
 - **Exercise names in history/schemas:** look names and metadata up via `useExerciseLookup` (includes soft-deleted exercises). Pickers and suggestions keep using `useExercises` (excludes deleted).
 - **Sets without weight:** a completed set with reps > 0 counts as a set even without weight (bodyweight work), but contributes 0 kg volume and no 1RM/PR. Use the predicates in `features/training/lib/sets.ts`.
+- **Deleted workouts leave no trace:** `deleteWorkout` writes a content-free tombstone (`src/db/workoutTombstone.ts`: only `id` + sync fields mean anything) when a backend is configured (`backendConfigured()`), and really deletes the row without one. DB v22 emptied older workout tombstones once (removed them without a backend). Export skips tombstones.
 - **Local-only prefs** (deload snooze) live in `localStorage` (`tracker.deload.*`), never in `AppSettings`, export or sync; `clearAllData()` removes them.
 
 ## Implemented Epics
