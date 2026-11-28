@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, tombstonePatch, type Workout } from '../../../db/index';
+import { db, type Workout } from '../../../db/index';
+import { workoutTombstone } from '../../../db/workoutTombstone';
 import { isCompletedSet, isWeightedSet } from '../lib/sets';
 
 // --- 1RM formulas (E4-02, E8-01) ---
@@ -214,9 +215,21 @@ export function useLatestOneRMByExercise(formula: OneRMFormula = 'epley'): Map<s
   }, [workouts, formula]);
 }
 
-/** Delete an entire workout (E4-06). Soft-delete so it syncs as a tombstone. */
+/**
+ * Delete an entire workout (E4-06) without leaving its content behind. With a
+ * backend (`VITE_PB_URL`) the row becomes a minimal, content-free tombstone so the
+ * deletion still syncs; without one there is nothing to sync, so it is removed.
+ */
 export async function deleteWorkout(id: string): Promise<void> {
-  await db.workouts.update(id, tombstonePatch());
+  // Lazy: `pb` touches `window` on load, and this module is imported by Node unit tests.
+  const { backendConfigured } = await import('@/lib/pb');
+  if (!backendConfigured()) {
+    await db.workouts.delete(id);
+    return;
+  }
+  await db.transaction('rw', db.workouts, async () => {
+    if (await db.workouts.get(id)) await db.workouts.put(workoutTombstone({ id }));
+  });
 }
 
 /** Filter sessions by period. */

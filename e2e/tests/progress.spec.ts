@@ -19,12 +19,31 @@ async function logOneWorkout(
   await workout.finish();
 }
 
+/** Number of workout rows in IndexedDB, including tombstones. */
+async function storedWorkoutCount(page: import('@playwright/test').Page): Promise<number> {
+  return page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('TrackerDB');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const count = await new Promise<number>((resolve, reject) => {
+      const req = db.transaction('workouts').objectStore('workouts').count();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return count;
+  });
+}
+
 test.describe('Progress & history', () => {
   test('a completed workout appears in the history and can be deleted', async ({
     schemaEditor,
     startWorkout,
     workout,
     history,
+    page,
   }) => {
     await logOneWorkout(schemaEditor, startWorkout, workout, 'E2E History schema');
 
@@ -33,6 +52,10 @@ test.describe('Progress & history', () => {
 
     await history.deleteFirst();
     await expect(history.entries).toHaveCount(0);
+
+    // Without a backend (e2e runs without VITE_PB_URL) the row is really gone: no tombstone
+    // with the old sets/notes stays behind in IndexedDB.
+    await expect.poll(() => storedWorkoutCount(page)).toBe(0);
   });
 
   test('the records board lists a trained exercise', async ({

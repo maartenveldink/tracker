@@ -127,6 +127,12 @@ voor sync. Oplossing:
      voor last-write-wins).
    - `deleted: boolean` — **tombstone** i.p.v. harde delete, zodat verwijderingen
      ook syncen.
+     Een verwijderde **training** wordt een *lege* tombstone (alleen `id` + sync-velden
+     betekenisvol, inhoud gewist, `src/db/workoutTombstone.ts`), zodat er lokaal en op
+     de server niets van overblijft; zonder backend (`VITE_PB_URL` leeg) wordt de rij
+     echt verwijderd. DB v22 maakt oudere workout-tombstones eenmalig leeg (zonder backend: verwijderd).
+     Een apparaat dat nog op een oude versie draait kan een volle tombstone opnieuw pushen
+     tot het is bijgewerkt.
    - `dirty: 0 | 1` — lokaal gewijzigd sinds laatste succesvolle push.
 
 Foreign keys die vandaag numeriek zijn (`schema.exercises[].exerciseId`,

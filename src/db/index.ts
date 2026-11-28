@@ -1,5 +1,6 @@
 import { DATE_FIELDS, reviveDateFields } from '@/lib/sync/dates';
 import Dexie, { type EntityTable } from 'dexie';
+import { workoutTombstone } from './workoutTombstone';
 
 // --- Sync metadata ---
 
@@ -749,6 +750,20 @@ class TrackerDB extends Dexie {
           Object.assign(row, reviveDateFields(row, fields));
         });
       }
+    });
+
+    // Cleanup: deleted workouts used to keep their full content as a tombstone. With a
+    // backend, empty them to the minimal tombstone and mark them dirty so the server copy is
+    // wiped on the next sync; without one (same check as `backendConfigured()` in
+    // `lib/pb.ts`, which can't be imported here) there is nothing to sync, so remove them.
+    this.version(22).stores({}).upgrade(async tx => {
+      const now = Date.now();
+      const hasBackend = Boolean(import.meta.env.VITE_PB_URL);
+      await tx.table('workouts').toCollection().modify((row: Workout, ctx: { value?: Workout }) => {
+        if (!row.deleted) return;
+        if (hasBackend) ctx.value = workoutTombstone(row, now);
+        else delete ctx.value;
+      });
     });
   }
 }
