@@ -154,19 +154,22 @@ const ZIGZAG_GUTTER = 24;
 const ZIGZAG_STEP = 46;
 const ZIGZAG_ROW_Y = { left: 16, right: 46 } as const;
 
+/** Centre of zigzag slot k: x `24 + k × 46 + 23`, y 16 (even slot, top row) or 46 (odd, bottom row). */
+function zigzagPoint(slot: number): { x: number; y: number } {
+  return {
+    x: ZIGZAG_GUTTER + slot * ZIGZAG_STEP + ZIGZAG_STEP / 2,
+    y: slot % 2 === 0 ? ZIGZAG_ROW_Y.left : ZIGZAG_ROW_Y.right,
+  };
+}
+
 /**
- * Positions of the zigzag (DESIGN §4, schuifbare set-rij): centre x of part k =
- * `24 + k × 46 + 23`, y 16 (left, top row) or 46 (right). The step is fixed:
- * with many sets the row scrolls instead of shrinking, so the 44 px tap targets
- * of horizontal neighbours never overlap (§12 q13).
+ * A zigzag over the given slots (ascending; the last one is the plus dot):
+ * one centre per slot and a line from each centre to the next listed one, so
+ * skipped slots (an empty superset part) get no dot and no line of their own.
+ * The track is as wide as the slot after the last one.
  */
-export function zigzagLayout(parts: number): ZigzagLayout {
-  const slots = parts + 1;
-  const step = ZIGZAG_STEP;
-  const points = Array.from({ length: slots }, (_, k) => ({
-    x: ZIGZAG_GUTTER + k * step + step / 2,
-    y: k % 2 === 0 ? ZIGZAG_ROW_Y.left : ZIGZAG_ROW_Y.right,
-  }));
+export function zigzagTrack(slots: number[]): ZigzagLayout {
+  const points = slots.map(zigzagPoint);
   const lines = points.slice(0, -1).map((p, k) => {
     const q = points[k + 1]!;
     return {
@@ -176,7 +179,18 @@ export function zigzagLayout(parts: number): ZigzagLayout {
       angle: (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI,
     };
   });
-  return { step, points, lines, width: ZIGZAG_GUTTER + slots * step };
+  const last = slots[slots.length - 1] ?? -1;
+  return { step: ZIGZAG_STEP, points, lines, width: ZIGZAG_GUTTER + (last + 1) * ZIGZAG_STEP };
+}
+
+/**
+ * Positions of the zigzag (DESIGN §4, schuifbare set-rij): centre x of part k =
+ * `24 + k × 46 + 23`, y 16 (left, top row) or 46 (right). The step is fixed:
+ * with many sets the row scrolls instead of shrinking, so the 44 px tap targets
+ * of horizontal neighbours never overlap (§12 q13).
+ */
+export function zigzagLayout(parts: number): ZigzagLayout {
+  return zigzagTrack(Array.from({ length: parts + 1 }, (_, k) => k));
 }
 
 export type DeltaKind = 'up' | 'down' | 'same' | 'new';
@@ -405,20 +419,26 @@ export function restRingLabel(seconds: number, running: boolean): string {
 }
 
 /**
- * Text in the idle ring: 0:00 right after a rest ran out (§6), else on a
- * unilateral exercise "na R" (D1U: the rest follows after the right part),
- * else the rest duration.
+ * What the rest waits for while idle: `R` = the right part of a unilateral set
+ * (D1U), `B` = the B part of a superset round (E2); null = nothing (solo).
  */
-export function restRingIdleText(seconds: number, ended: boolean, unilateral: boolean): string {
+export type RestAfter = 'R' | 'B' | null;
+
+/**
+ * Text in the idle ring: 0:00 right after a rest ran out (§6), else "na R"
+ * (unilateral) or "na B" (superset: the rest follows after the round), else
+ * the rest duration.
+ */
+export function restRingIdleText(seconds: number, ended: boolean, after: RestAfter): string {
   if (ended) return formatRestClock(0);
-  return unilateral ? 'na R' : formatRestClock(seconds);
+  return after ? `na ${after}` : formatRestClock(seconds);
 }
 
 /** Button label of the idle ring; a tap opens the rest bar (which can start the rest by hand). */
-export function restRingIdleLabel(seconds: number, unilateral: boolean): string {
-  return unilateral
-    ? `Rust volgt na rechts (${spokenDuration(seconds)}). Tik om de rust in te stellen`
-    : restRingLabel(seconds, false);
+export function restRingIdleLabel(seconds: number, after: RestAfter): string {
+  if (!after) return restRingLabel(seconds, false);
+  const what = after === 'R' ? 'rechts' : 'B';
+  return `Rust volgt na ${what} (${spokenDuration(seconds)}). Tik om de rust in te stellen`;
 }
 
 /** Label of the `role="timer"` element while resting: "Rust nog 1 minuut 12 seconden". */

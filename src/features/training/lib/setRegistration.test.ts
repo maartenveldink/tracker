@@ -388,16 +388,16 @@ describe('openSetValues (unilateral)', () => {
 
 describe('rest ring idle (unilateral)', () => {
   it('shows "na R" while no rest runs on a unilateral exercise', () => {
-    expect(restRingIdleText(90, false, true)).toBe('na R');
-    expect(restRingIdleText(90, false, false)).toBe('1:30');
+    expect(restRingIdleText(90, false, 'R')).toBe('na R');
+    expect(restRingIdleText(90, false, null)).toBe('1:30');
   });
   it('shows 0:00 right after a rest ran out', () => {
-    expect(restRingIdleText(90, true, true)).toBe('0:00');
-    expect(restRingIdleText(90, true, false)).toBe('0:00');
+    expect(restRingIdleText(90, true, 'R')).toBe('0:00');
+    expect(restRingIdleText(90, true, null)).toBe('0:00');
   });
   it('says the rest follows after the right side', () => {
-    expect(restRingIdleLabel(90, true)).toBe('Rust volgt na rechts (1 minuut 30). Tik om de rust in te stellen');
-    expect(restRingIdleLabel(90, false)).toBe(restRingLabel(90, false));
+    expect(restRingIdleLabel(90, 'R')).toBe('Rust volgt na rechts (1 minuut 30). Tik om de rust in te stellen');
+    expect(restRingIdleLabel(90, null)).toBe(restRingLabel(90, false));
   });
 });
 

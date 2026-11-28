@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { removeSetAt } from '../lib/sets';
 import { findInsertIndex, insertExerciseAt } from '../lib/insertPosition';
 import { appendSet } from '../lib/liveTraining';
+import { appendRound } from '../lib/supersetRegistration';
 import { db, newId, freshSyncMeta, touchSyncMeta, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
 export function useWorkout(id: string | undefined) {
@@ -111,6 +112,29 @@ export async function addWorkoutSet(
       sets: appendSet(exercise.sets, exercise.exerciseId),
     };
 
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
+  });
+}
+
+/**
+ * Superset plus dot (E2): add a round to a pair of members in one write, see
+ * `appendRound` (fills both up to one round more, with their own last values).
+ */
+export async function addSupersetRound(
+  workoutId: string,
+  memberIndices: [number, number],
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    if (!workout) return;
+    const exercises = [...workout.exercises];
+    const [ia, ib] = memberIndices;
+    const a = exercises[ia];
+    const b = exercises[ib];
+    if (!a || !b) return;
+    const [setsA, setsB] = appendRound(a.sets, b.sets, [a.exerciseId, b.exerciseId]);
+    exercises[ia] = { ...a, sets: setsA };
+    exercises[ib] = { ...b, sets: setsB };
     await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }
