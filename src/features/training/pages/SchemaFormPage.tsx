@@ -3,14 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSchema, createSchema, updateSchema } from '../hooks/useSchemas';
 import { useExercises, useExerciseLookup } from '../hooks/useExercises';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
-import { useLatestOneRMByExercise, estimateWeightForReps } from '../hooks/useProgress';
 import { useSettings } from '../../../hooks/useSettings';
-import { formatReps } from '../lib/reps';
-import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
-import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { normalizeSupersets, type SupersetInfo } from '../lib/superset';
 import { exerciseCardSummary, toggleExpanded } from '../lib/exerciseEditCard';
-import { ExerciseEditCard, ExerciseEditList, StepperRow } from '../components/ExerciseEditCard';
+import { ExerciseEditCard, ExerciseEditList } from '../components/ExerciseEditCard';
+import { ExerciseFields, useEffectiveFields, useStartWeightSuggestion } from '../components/ExerciseFields';
+import { SwapExerciseSheet } from '../components/SwapExerciseSheet';
+import { swapExerciseOf } from '../lib/exerciseFields';
 import { PageHeader } from '../../../components/PageHeader';
 import { ExerciseForm } from '../components/ExerciseForm';
 import { Button } from '@/components/ui/button';
@@ -73,10 +72,6 @@ function clearDraft(): void {
   }
 }
 
-function roundToStep(value: number, step = 2.5): number {
-  return Math.round(value / step) * step;
-}
-
 export function SchemaFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined;
@@ -87,18 +82,9 @@ export function SchemaFormPage() {
   // their name, rest and weight step; the picker only uses allExercises.
   const { byId: exerciseById, nameOf } = useExerciseLookup();
   const settings = useSettings();
-  const latestOneRM = useLatestOneRMByExercise(settings.oneRMFormula);
+  const effectiveFields = useEffectiveFields();
+  const suggestStartWeight = useStartWeightSuggestion();
   const navigate = useNavigate();
-
-  /** Suggested start weight from the latest 1RM and the rep-range lower bound. */
-  const suggestStartWeight = useCallback(
-    (exerciseId: string, repsMin: number): number | null => {
-      const oneRM = latestOneRM.get(exerciseId);
-      if (!oneRM || oneRM <= 0) return null;
-      return roundToStep(estimateWeightForReps(oneRM, repsMin, settings.oneRMFormula));
-    },
-    [latestOneRM, settings.oneRMFormula],
-  );
 
   // Restore a saved draft once (new schema only), before the first render
   const draftRef = useRef<SchemaDraft | null | undefined>(undefined);
@@ -118,6 +104,8 @@ export function SchemaFormPage() {
     draft?.days && draft.days.length > 0 ? draft.days[0]!.id : 'single',
   );
   const [showPicker, setShowPicker] = useState(false);
+  // Index (in the active day's list) of the exercise being swapped ("Wissel oefening")
+  const [swapIndex, setSwapIndex] = useState<number | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState('');
   // Prefilled name when creating a brand-new exercise inline (null = picker mode)
   const [creatingExercise, setCreatingExercise] = useState<string | null>(null);
@@ -372,73 +360,23 @@ export function SchemaFormPage() {
     });
   }
 
-  function stepSets(index: number, delta: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => (i === index ? { ...e, sets: Math.max(1, e.sets + delta) } : e))
-    );
+  function updateExercise(index: number, next: SchemaExercise) {
+    setCurrentExercises(prev => prev.map((e, i) => (i === index ? next : e)));
   }
 
-  function stepReps(index: number, delta: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => {
-        if (i !== index) return e;
-        const repsPerSet = Math.max(1, e.repsPerSet + delta);
-        // Keep the range valid: drop the max if it no longer exceeds the min.
-        const repsMax = e.repsMax != null && e.repsMax <= repsPerSet ? undefined : e.repsMax;
-        return { ...e, repsPerSet, repsMax };
-      })
-    );
-  }
-
-  function stepRepsMax(index: number, delta: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => {
-        if (i !== index) return e;
-        if (delta > 0) {
-          const base = e.repsMax ?? e.repsPerSet;
-          return { ...e, repsMax: base + 1 };
-        }
-        if (e.repsMax == null) return e;
-        const next = e.repsMax - 1;
-        return { ...e, repsMax: next > e.repsPerSet ? next : undefined };
-      })
-    );
-  }
-
-  function stepStartWeight(index: number, dir: 1 | -1) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => {
-        if (i !== index) return e;
-        const base = e.startWeight ?? suggestStartWeight(e.exerciseId, e.repsPerSet) ?? 0;
-        const exercise = exerciseById.get(e.exerciseId);
-        return { ...e, startWeight: steppedWeight(base, dir, weightStepForExercise(exercise, settings.weightSteps)) };
-      })
-    );
-  }
-
-  function resetStartWeight(index: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => (i === index ? { ...e, startWeight: undefined } : e))
-    );
-  }
-
-  function stepRest(index: number, delta: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => {
-        if (i !== index) return e;
-        const base = e.restSeconds ?? resolveRestSeconds({
-          exercise: exerciseById.get(e.exerciseId),
-          settings,
-        });
-        return { ...e, restSeconds: clampRest(base + delta) };
-      })
-    );
-  }
-
-  function resetRest(index: number) {
-    setCurrentExercises(prev =>
-      prev.map((e, i) => (i === index ? { ...e, restSeconds: undefined } : e))
-    );
+  function swapExercise(index: number, exerciseId: string) {
+    const previousId = getCurrentExercises()[index]?.exerciseId;
+    setCurrentExercises(prev => prev.map((e, i) => (i === index ? swapExerciseOf(e, exerciseId) : e)));
+    // Keep the swapped card open when it was open (expansion is keyed by exercise id).
+    if (previousId && expandedExercises.has(previousId)) {
+      setExpandedExercises(prev => {
+        const next = new Set(prev);
+        next.delete(previousId);
+        next.add(exerciseId);
+        return next;
+      });
+    }
+    setSwapIndex(null);
   }
 
   function openPicker(dayId: string | null) {
@@ -495,15 +433,7 @@ export function SchemaFormPage() {
   // --- Render helpers ---
 
   function renderExerciseCard(ex: SchemaExercise, i: number, totalLength: number, info: SupersetInfo) {
-    const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
-    const effectiveWeight = ex.startWeight ?? suggestion;
-    const isAutoWeight = ex.startWeight == null;
-    const inheritedRest = resolveRestSeconds({
-      exercise: exerciseById.get(ex.exerciseId),
-      settings,
-    });
-    const effectiveRest = ex.restSeconds ?? inheritedRest;
-    const isAutoRest = ex.restSeconds == null;
+    const eff = effectiveFields(ex, exerciseById.get(ex.exerciseId));
     return (
       <ExerciseEditCard
         key={`${ex.exerciseId}-${i}`}
@@ -511,59 +441,15 @@ export function SchemaFormPage() {
         index={i}
         total={totalLength}
         info={info}
-        summary={exerciseCardSummary(ex, { restSeconds: effectiveRest, weight: effectiveWeight })}
+        summary={exerciseCardSummary(ex, { restSeconds: eff.rest, weight: eff.weight })}
         expanded={expandedExercises.has(ex.exerciseId)}
         onToggle={() => setExpandedExercises(prev => toggleExpanded(prev, ex.exerciseId))}
         onMove={direction => moveExercise(i, direction)}
         onRemove={() => removeExercise(i)}
         onToggleSuperset={() => toggleSupersetLink(i)}
+        onSwap={() => setSwapIndex(i)}
       >
-        <StepperRow
-          label="Sets"
-          value={ex.sets}
-          decDisabled={ex.sets <= 1}
-          onDec={() => stepSets(i, -1)}
-          onInc={() => stepSets(i, 1)}
-        />
-        <StepperRow
-          label="Reps"
-          value={ex.repsPerSet}
-          decDisabled={ex.repsPerSet <= 1}
-          onDec={() => stepReps(i, -1)}
-          onInc={() => stepReps(i, 1)}
-        />
-        <StepperRow
-          label="Max reps"
-          value={ex.repsMax ?? '—'}
-          caption={ex.repsMax == null ? 'geen bovengrens' : `range ${formatReps(ex.repsPerSet, ex.repsMax)}`}
-          decDisabled={ex.repsMax == null}
-          onDec={() => stepRepsMax(i, -1)}
-          onInc={() => stepRepsMax(i, 1)}
-        />
-        <StepperRow
-          label="Startgewicht"
-          value={effectiveWeight != null ? `${effectiveWeight} kg` : '—'}
-          decDisabled={(effectiveWeight ?? 0) <= 0}
-          onDec={() => stepStartWeight(i, -1)}
-          onInc={() => stepStartWeight(i, 1)}
-          onReset={!isAutoWeight && suggestion != null ? () => resetStartWeight(i) : undefined}
-          caption={
-            isAutoWeight
-              ? suggestion != null
-                ? `auto o.b.v. 1RM · ${ex.repsPerSet} reps`
-                : 'geen 1RM-historie'
-              : 'handmatig aangepast'
-          }
-        />
-        <StepperRow
-          label="Rust"
-          value={formatRest(effectiveRest)}
-          decDisabled={effectiveRest <= 15}
-          onDec={() => stepRest(i, -15)}
-          onInc={() => stepRest(i, 15)}
-          onReset={!isAutoRest ? () => resetRest(i) : undefined}
-          caption={isAutoRest ? 'standaard' : 'handmatig aangepast'}
-        />
+        <ExerciseFields item={ex} exercise={exerciseById.get(ex.exerciseId)} onChange={next => updateExercise(i, next)} />
       </ExerciseEditCard>
     );
   }
@@ -816,6 +702,14 @@ export function SchemaFormPage() {
             </>
           )}
         </div>
+
+        <SwapExerciseSheet
+          exercise={swapIndex !== null ? exerciseById.get(getCurrentExercises()[swapIndex]?.exerciseId ?? '') ?? null : null}
+          all={allExercises}
+          usedIds={new Set(getCurrentExercises().map(e => e.exerciseId))}
+          onPick={id => swapExercise(swapIndex!, id)}
+          onClose={() => setSwapIndex(null)}
+        />
 
         {/* Exercise picker via Sheet (mobile bottom sheet) */}
         <Sheet open={showPicker} onOpenChange={(open) => { setShowPicker(open); if (!open) { setExerciseSearch(''); setPickerDayId(null); setCreatingExercise(null); } }}>

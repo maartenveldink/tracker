@@ -208,11 +208,15 @@ Both screens render their exercise list with `ExerciseEditList` + `ExerciseEditC
 `data-testid="exercise-edit-card"`): superset members sit in one `superset-group` wrapper; collapsed (the default) a card shows
 the number or superset letter, the name, the summary (`exerciseCardSummary`) and up/down/remove (`Omhoog`/`Omlaag`/`Verwijderen`);
 the header button toggles `aria-expanded`. Only an **expanded** card shows the superset button (`Superset met vorige` /
-`Superset ontkoppelen`, not on the first card) plus screen actions, and the screen's fields (`StepperRow`, 44 px steppers). Per
-screen: Schema bewerken has Sets, Reps, Max reps, Startgewicht, Rust (summary adds rest + weight); the suggestion has Sets and
-Reps (reps shift the range, as before), a reason line (`Rug · 3/10 sets deze week`, visible collapsed too) and a "Wissel"
-action (`Wissel oefening`, opens the similar-exercise sheet). The old swipe-to-swap gesture on the suggestion was dropped
-(it clashed with the tap-to-expand header); swap is the expanded "Wissel" button.
+`Superset ontkoppelen`, not on the first card), `Wissel oefening` (`SwapExerciseSheet`: similar exercises by primary
+muscle via `findSimilarExercises`) and the fields. **One view for both screens**: `ExerciseFields` renders Sets, Reps,
+Max reps, Startgewicht, Rust (`StepperRow`, 44 px; empty start weight/rest inherit: 1RM suggestion, exercise/settings
+rest; step rules pure in `lib/exerciseFields.ts`, tests). The only per-screen difference is the optional `reason` line
+(`Rug · 3/10 sets deze week`, visible collapsed too) on the suggestion. Swapping (also in Schema bewerken) keeps
+sets/reps/max reps/rest/superset link and clears the start weight (it belonged to the other exercise). The suggestion
+items are `SchemaExercise`s, so `repsMax`/`startWeight`/`restSeconds` go through `buildWorkoutExercises` into the workout
+(then `seedHistoryWeights` as with a schema start). The old swipe-to-swap gesture on the suggestion was dropped
+(it clashed with the tap-to-expand header).
 
 ## Rest-time resolution
 

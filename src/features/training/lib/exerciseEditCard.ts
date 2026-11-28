@@ -7,8 +7,7 @@ import { formatRest } from './restTime';
 
 /**
  * The collapsed one-line summary: `3 × 8-12`, plus `· rust 1:30` and `· 60 kg`
- * when the screen passes them (the schema editor; the suggestion only edits
- * sets and reps).
+ * when the caller passes them (both screens do).
  */
 export function exerciseCardSummary(
   ex: { sets: number; repsPerSet: number; repsMax?: number },
