@@ -8,14 +8,14 @@ import { useSettings } from '../../../hooks/useSettings';
 import { formatReps } from '../lib/reps';
 import { clampRest, formatRest, resolveRestSeconds } from '../lib/restTime';
 import { steppedWeight, weightStepForExercise } from '../lib/weightStep';
-import { groupSupersets, normalizeSupersets, supersetBlocks } from '../lib/superset';
-import { cn } from '@/lib/utils';
+import { normalizeSupersets, type SupersetInfo } from '../lib/superset';
+import { exerciseCardSummary, toggleExpanded } from '../lib/exerciseEditCard';
+import { ExerciseEditCard, ExerciseEditList, StepperRow } from '../components/ExerciseEditCard';
 import { PageHeader } from '../../../components/PageHeader';
 import { ExerciseForm } from '../components/ExerciseForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
@@ -24,7 +24,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Minus, RotateCcw, Pencil, Trash2, Link2, Link2Off } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, Pencil, Trash2 } from 'lucide-react';
 import type { SchemaExercise, SchemaDay } from '../../../db/index';
 
 interface DayState {
@@ -75,78 +75,6 @@ function clearDraft(): void {
 
 function roundToStep(value: number, step = 2.5): number {
   return Math.round(value / step) * step;
-}
-
-/**
- * Keyboard-free stepper row: label (+ optional caption) on the left, a
- * `– value +` control group on the right. One field per line so the schema
- * form stays legible on narrow screens.
- */
-function StepperRow({
-  label,
-  value,
-  onDec,
-  onInc,
-  decDisabled,
-  caption,
-  onReset,
-}: {
-  label: string;
-  value: React.ReactNode;
-  onDec: () => void;
-  onInc: () => void;
-  decDisabled?: boolean;
-  caption?: React.ReactNode;
-  onReset?: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-2.5">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-small font-medium">{label}</span>
-          {onReset && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 text-muted"
-              onClick={onReset}
-              aria-label={`${label} terug naar suggestie`}
-            >
-              <RotateCcw className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        {caption && <p className="text-caption leading-tight text-muted">{caption}</p>}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={onDec}
-          disabled={decDisabled}
-          aria-label={`${label} verlagen`}
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <span className="w-16 text-center text-small font-semibold tabular-nums select-none">
-          {value}
-        </span>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={onInc}
-          aria-label={`${label} verhogen`}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export function SchemaFormPage() {
@@ -201,14 +129,6 @@ export function SchemaFormPage() {
   // so more fit on screen; the header toggles expansion.
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
 
-  function toggleExpanded(exerciseId: string) {
-    setExpandedExercises(prev => {
-      const next = new Set(prev);
-      if (next.has(exerciseId)) next.delete(exerciseId);
-      else next.add(exerciseId);
-      return next;
-    });
-  }
   const [editingDayName, setEditingDayName] = useState('');
   const initialized = useRef(false);
 
@@ -574,177 +494,86 @@ export function SchemaFormPage() {
 
   // --- Render helpers ---
 
-  function renderExerciseCard(ex: SchemaExercise, i: number, totalLength: number, info: ReturnType<typeof groupSupersets>[number]) {
-          const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
-          const effectiveWeight = ex.startWeight ?? suggestion;
-          const isAutoWeight = ex.startWeight == null;
-          const inheritedRest = resolveRestSeconds({
-            exercise: exerciseById.get(ex.exerciseId),
-            settings,
-          });
-          const effectiveRest = ex.restSeconds ?? inheritedRest;
-          const isAutoRest = ex.restSeconds == null;
-          const isExpanded = expandedExercises.has(ex.exerciseId);
-          // Linked = shares a superset with the exercise directly above.
-          const isLinkedAbove = i > 0 && info.inSuperset && !info.isFirst;
-          const summary =
-            `${ex.sets} × ${formatReps(ex.repsPerSet, ex.repsMax)} · rust ${formatRest(effectiveRest)}` +
-            (effectiveWeight != null ? ` · ${effectiveWeight} kg` : '');
-          return (
-          <Card key={`${ex.exerciseId}-${i}`} data-testid="schema-exercise" className="shadow-none">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleExpanded(ex.exerciseId)}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  aria-expanded={isExpanded}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
-                  )}
-                  {info.inSuperset ? (
-                    <span className="w-4 text-center shrink-0 text-caption font-semibold text-primary">{info.label}</span>
-                  ) : (
-                    <span className="text-muted text-caption w-4 text-center shrink-0">{i + 1}</span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-small font-medium truncate">
-                      {nameOf(ex.exerciseId)}
-                    </span>
-                    {!isExpanded && (
-                      <span className="block text-caption text-muted truncate">{summary}</span>
-                    )}
-                  </span>
-                </button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-touch w-touch text-muted"
-                  onClick={() => moveExercise(i, 'up')}
-                  disabled={i === 0}
-                  aria-label="Omhoog"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-touch w-touch text-muted"
-                  onClick={() => moveExercise(i, 'down')}
-                  disabled={i === totalLength - 1}
-                  aria-label="Omlaag"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-touch w-touch text-muted hover:text-danger"
-                  onClick={() => removeExercise(i)}
-                  aria-label="Verwijderen"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              {i > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn('h-touch px-2 text-caption', isLinkedAbove ? 'text-primary' : 'text-muted')}
-                  onClick={() => toggleSupersetLink(i)}
-                  aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
-                  title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
-                >
-                  {isLinkedAbove ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                  {isLinkedAbove ? 'Ontkoppelen' : 'Superset met vorige'}
-                </Button>
-              )}
-              {isExpanded && (
-                  <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
-                    <StepperRow
-                      label="Sets"
-                      value={ex.sets}
-                      decDisabled={ex.sets <= 1}
-                      onDec={() => stepSets(i, -1)}
-                      onInc={() => stepSets(i, 1)}
-                    />
-                    <StepperRow
-                      label="Reps"
-                      value={ex.repsPerSet}
-                      decDisabled={ex.repsPerSet <= 1}
-                      onDec={() => stepReps(i, -1)}
-                      onInc={() => stepReps(i, 1)}
-                    />
-                    <StepperRow
-                      label="Max reps"
-                      value={ex.repsMax ?? '—'}
-                      caption={ex.repsMax == null ? 'geen bovengrens' : `range ${formatReps(ex.repsPerSet, ex.repsMax)}`}
-                      decDisabled={ex.repsMax == null}
-                      onDec={() => stepRepsMax(i, -1)}
-                      onInc={() => stepRepsMax(i, 1)}
-                    />
-                    <StepperRow
-                      label="Startgewicht"
-                      value={effectiveWeight != null ? `${effectiveWeight} kg` : '—'}
-                      decDisabled={(effectiveWeight ?? 0) <= 0}
-                      onDec={() => stepStartWeight(i, -1)}
-                      onInc={() => stepStartWeight(i, 1)}
-                      onReset={!isAutoWeight && suggestion != null ? () => resetStartWeight(i) : undefined}
-                      caption={
-                        isAutoWeight
-                          ? suggestion != null
-                            ? `auto o.b.v. 1RM · ${ex.repsPerSet} reps`
-                            : 'geen 1RM-historie'
-                          : 'handmatig aangepast'
-                      }
-                    />
-                    <StepperRow
-                      label="Rust"
-                      value={formatRest(effectiveRest)}
-                      decDisabled={effectiveRest <= 15}
-                      onDec={() => stepRest(i, -15)}
-                      onInc={() => stepRest(i, 15)}
-                      onReset={!isAutoRest ? () => resetRest(i) : undefined}
-                      caption={isAutoRest ? 'standaard' : 'handmatig aangepast'}
-                    />
-                  </div>
-              )}
-            </CardContent>
-          </Card>
-          );
+  function renderExerciseCard(ex: SchemaExercise, i: number, totalLength: number, info: SupersetInfo) {
+    const suggestion = suggestStartWeight(ex.exerciseId, ex.repsPerSet);
+    const effectiveWeight = ex.startWeight ?? suggestion;
+    const isAutoWeight = ex.startWeight == null;
+    const inheritedRest = resolveRestSeconds({
+      exercise: exerciseById.get(ex.exerciseId),
+      settings,
+    });
+    const effectiveRest = ex.restSeconds ?? inheritedRest;
+    const isAutoRest = ex.restSeconds == null;
+    return (
+      <ExerciseEditCard
+        key={`${ex.exerciseId}-${i}`}
+        name={nameOf(ex.exerciseId)}
+        index={i}
+        total={totalLength}
+        info={info}
+        summary={exerciseCardSummary(ex, { restSeconds: effectiveRest, weight: effectiveWeight })}
+        expanded={expandedExercises.has(ex.exerciseId)}
+        onToggle={() => setExpandedExercises(prev => toggleExpanded(prev, ex.exerciseId))}
+        onMove={direction => moveExercise(i, direction)}
+        onRemove={() => removeExercise(i)}
+        onToggleSuperset={() => toggleSupersetLink(i)}
+      >
+        <StepperRow
+          label="Sets"
+          value={ex.sets}
+          decDisabled={ex.sets <= 1}
+          onDec={() => stepSets(i, -1)}
+          onInc={() => stepSets(i, 1)}
+        />
+        <StepperRow
+          label="Reps"
+          value={ex.repsPerSet}
+          decDisabled={ex.repsPerSet <= 1}
+          onDec={() => stepReps(i, -1)}
+          onInc={() => stepReps(i, 1)}
+        />
+        <StepperRow
+          label="Max reps"
+          value={ex.repsMax ?? '—'}
+          caption={ex.repsMax == null ? 'geen bovengrens' : `range ${formatReps(ex.repsPerSet, ex.repsMax)}`}
+          decDisabled={ex.repsMax == null}
+          onDec={() => stepRepsMax(i, -1)}
+          onInc={() => stepRepsMax(i, 1)}
+        />
+        <StepperRow
+          label="Startgewicht"
+          value={effectiveWeight != null ? `${effectiveWeight} kg` : '—'}
+          decDisabled={(effectiveWeight ?? 0) <= 0}
+          onDec={() => stepStartWeight(i, -1)}
+          onInc={() => stepStartWeight(i, 1)}
+          onReset={!isAutoWeight && suggestion != null ? () => resetStartWeight(i) : undefined}
+          caption={
+            isAutoWeight
+              ? suggestion != null
+                ? `auto o.b.v. 1RM · ${ex.repsPerSet} reps`
+                : 'geen 1RM-historie'
+              : 'handmatig aangepast'
+          }
+        />
+        <StepperRow
+          label="Rust"
+          value={formatRest(effectiveRest)}
+          decDisabled={effectiveRest <= 15}
+          onDec={() => stepRest(i, -15)}
+          onInc={() => stepRest(i, 15)}
+          onReset={!isAutoRest ? () => resetRest(i) : undefined}
+          caption={isAutoRest ? 'standaard' : 'handmatig aangepast'}
+        />
+      </ExerciseEditCard>
+    );
   }
 
   function renderExerciseList(exs: SchemaExercise[], totalLength: number) {
-    const infos = groupSupersets(exs);
-    const blocks = supersetBlocks(exs);
     return (
-      <div className="space-y-2">
-        {blocks.map(indices => {
-          if (indices.length === 1) {
-            const i = indices[0]!;
-            return renderExerciseCard(exs[i]!, i, totalLength, infos[i]!);
-          }
-          return (
-            <div
-              key={`ss-${exs[indices[0]!]!.supersetGroup}`}
-              data-testid="superset-group"
-              className="rounded-xl border border-primary/30 bg-primary/5 p-1.5 space-y-1.5"
-            >
-              <div className="px-1.5 pt-0.5 flex items-center gap-1 text-caption font-medium text-primary">
-                <Link2 className="h-3 w-3" />
-                Superset
-              </div>
-              {indices.map(i => renderExerciseCard(exs[i]!, i, totalLength, infos[i]!))}
-            </div>
-          );
-        })}
-      </div>
+      <ExerciseEditList
+        items={exs}
+        renderCard={(ex, i, info) => renderExerciseCard(ex, i, totalLength, info)}
+      />
     );
   }
 

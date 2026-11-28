@@ -40,16 +40,27 @@ export class SchemaEditorPage {
 
   /** A single exercise row in the list, located by its exercise name. */
   exerciseRow(name: string): Locator {
-    return this.page.getByTestId('schema-exercise').filter({ hasText: name });
+    return this.page.getByTestId('exercise-edit-card').filter({ hasText: name });
+  }
+
+  /**
+   * Expands the named exercise card (no-op when already open). The superset
+   * button and the steppers only exist on an expanded card.
+   */
+  async expand(name: string): Promise<void> {
+    const toggle = this.exerciseRow(name).locator('button[aria-expanded]');
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
   }
 
   /** Links the named exercise into a superset with the exercise directly above it. */
   async linkWithPrevious(name: string): Promise<void> {
+    await this.expand(name);
     await this.exerciseRow(name).getByRole('button', { name: 'Superset met vorige' }).click();
   }
 
   /** Removes the named exercise from its superset. */
   async unlink(name: string): Promise<void> {
+    await this.expand(name);
     await this.exerciseRow(name).getByRole('button', { name: 'Superset ontkoppelen' }).click();
   }
 

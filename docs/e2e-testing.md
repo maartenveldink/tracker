@@ -72,7 +72,8 @@ The suite exercises the main user flows across the app:
   no set limit: past 8 sets the plus dot stays, the set row scrolls (starts
   right-aligned) and opening set 1 via the Gedaan list scrolls it into view.
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
-- **Suggested workout** — the cold-start full-body suggestion, target-duration
+- **Suggested workout** (same collapsible card as the schema editor; expand a card
+  for swap, superset link and Sets/Reps) — the cold-start full-body suggestion, target-duration
   control, adding an exercise, and the swap-for-similar sheet.
 - **Progression** — the summary's "Vooruitgang" flag vs an all-time PR, and the
   Progress "Progressie" tab listing an exercise's % 1RM change.
@@ -132,8 +133,8 @@ are semantic and style-independent.
 
 | `data-testid`     | Element                              | Used for |
 |-------------------|--------------------------------------|----------|
-| `superset-group`  | superset wrapper (editor & workout)  | asserting a group exists / is dissolved |
-| `schema-exercise` | an exercise row in the schema editor | scoping actions to one row |
+| `superset-group`  | superset wrapper (schema editor, suggested workout & live workout) | asserting a group exists / is dissolved |
+| `exercise-edit-card` | the shared collapsible exercise card (schema editor and suggested workout; toggle = `button[aria-expanded]`) | scoping actions to one row; `schemaEditor.expand(name)` / `suggest.expand(nth)` open it first, the superset button, swap and steppers only exist expanded |
 | `current-exercise`| the current exercise on the live screen | following the app's focus (name, set list) |
 | `weight-input`    | weight input in the set card (live workout) | entering weight |
 | `reps-input`      | reps input in the set card (live workout)   | entering reps |

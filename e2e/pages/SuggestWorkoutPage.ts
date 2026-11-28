@@ -13,9 +13,20 @@ export class SuggestWorkoutPage {
     return this.page.getByRole('heading', { name: 'Voorgestelde training' });
   }
 
-  /** One "Wissel oefening" button per suggested exercise — a stable row count. */
+  /** One shared exercise card per suggested exercise — a stable row count. */
   get rows(): Locator {
-    return this.page.getByRole('button', { name: 'Wissel oefening' });
+    return this.page.getByTestId('exercise-edit-card');
+  }
+
+  /**
+   * Expands the nth card (0-based; no-op when already open). Swap, the
+   * superset button and the Sets/Reps steppers only exist on an expanded card.
+   */
+  async expand(nth: number): Promise<Locator> {
+    const card = this.rows.nth(nth);
+    const toggle = card.locator('button[aria-expanded]');
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+    return card;
   }
 
   count(): Promise<number> {
@@ -32,12 +43,13 @@ export class SuggestWorkoutPage {
   }
 
   async removeFirst(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Verwijder oefening' }).first().click();
+    await this.rows.first().getByRole('button', { name: 'Verwijderen' }).click();
   }
 
   /** Opens the "swap for a similar exercise" sheet on the first row. */
   async openSwapFirst(): Promise<void> {
-    await this.rows.first().click();
+    const card = await this.expand(0);
+    await card.getByRole('button', { name: 'Wissel oefening' }).click();
   }
 
   get swapSheetTitle(): Locator {
