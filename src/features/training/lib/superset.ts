@@ -114,3 +114,55 @@ export function normalizeSupersets<T extends Groupable>(items: T[]): T[] {
     return rest as T;
   });
 }
+
+/** True when item `index` is linked (same superset run) with the item above it. */
+export function isLinkedToPrevious(items: Groupable[], index: number): boolean {
+  const info = groupSupersets(items)[index];
+  return !!info && info.inSuperset && !info.isFirst;
+}
+
+/**
+ * Links item `index` with the item above it (`link`), or unlinks it. Linking
+ * joins the group above (a pair becomes a group of three) and pulls along the
+ * run that `index` starts, if any. Unlinking splits the run at `index`: the
+ * members from `index` on keep a group of their own under `newGroupId` (a lone
+ * member loses its id). Only `supersetGroup` changes; a no-op returns `items`.
+ */
+export function setSupersetLink<T extends Groupable>(
+  items: T[],
+  index: number,
+  link: boolean,
+  newGroupId: string,
+): T[] {
+  if (index <= 0 || index >= items.length) return items;
+  if (isLinkedToPrevious(items, index) === link) return items;
+  const infos = groupSupersets(items);
+  const own = infos[index]!.members;
+  let next: T[];
+  if (link) {
+    const group = (infos[index - 1]!.inSuperset ? items[index - 1]!.supersetGroup : undefined) ?? newGroupId;
+    const members = new Set([index - 1, ...own]);
+    next = items.map((it, i) => (members.has(i) ? { ...it, supersetGroup: group } : it));
+  } else {
+    const below = new Set(own.filter(m => m >= index));
+    next = items.map((it, i) => (below.has(i) ? { ...it, supersetGroup: newGroupId } : it));
+  }
+  return normalizeSupersets(next);
+}
+
+interface LinkableExercise extends Groupable {
+  sets: { completed: boolean; skipped?: boolean }[];
+}
+
+/**
+ * Live workout rule: item `index` may be linked with the one above only when
+ * every member of the resulting superset is untouched (no set logged or
+ * skipped), so the round mapping never reinterprets logged sets and a skipped
+ * exercise is never pulled into a superset.
+ */
+export function canLinkWithPrevious(items: LinkableExercise[], index: number): boolean {
+  if (index <= 0 || index >= items.length || isLinkedToPrevious(items, index)) return false;
+  const infos = groupSupersets(items);
+  const members = [...infos[index - 1]!.members, ...infos[index]!.members];
+  return members.every(m => items[m]!.sets.every(s => !s.completed && !s.skipped));
+}

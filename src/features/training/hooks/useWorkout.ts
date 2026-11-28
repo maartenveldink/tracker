@@ -3,6 +3,7 @@ import { removeSetAt } from '../lib/sets';
 import { findInsertIndex, insertExerciseAt } from '../lib/insertPosition';
 import { appendSet } from '../lib/liveTraining';
 import { appendRound } from '../lib/supersetRegistration';
+import { canLinkWithPrevious, setSupersetLink } from '../lib/superset';
 import { db, newId, freshSyncMeta, touchSyncMeta, type Workout, type WorkoutExercise, type WorkoutSet } from '../../../db/index';
 
 export function useWorkout(id: string | undefined) {
@@ -318,6 +319,27 @@ export async function setExerciseSets(
     if (!workout || !exercise) return;
     const exercises = [...workout.exercises];
     exercises[exerciseIndex] = { ...exercise, sets };
+    await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
+  });
+}
+
+/**
+ * Link a workout exercise as superset with the one above it, or unlink it
+ * (`setSupersetLink`). Only `supersetGroup` changes; sets stay as they are.
+ * Linking is refused unless `canLinkWithPrevious` (nothing logged or skipped in
+ * the resulting group); unlinking is always allowed.
+ */
+export async function setExerciseSuperset(
+  workoutId: string,
+  exerciseIndex: number,
+  linkedToPrevious: boolean,
+): Promise<void> {
+  await db.transaction('rw', db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    if (!workout) return;
+    if (linkedToPrevious && !canLinkWithPrevious(workout.exercises, exerciseIndex)) return;
+    const exercises = setSupersetLink(workout.exercises, exerciseIndex, linkedToPrevious, newId());
+    if (exercises === workout.exercises) return;
     await db.workouts.update(workoutId, { exercises, ...touchSyncMeta() });
   });
 }

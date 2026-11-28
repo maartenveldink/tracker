@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Dumbbell, Link2, StickyNote } from 'lucide-react';
+import { ChevronDown, Dumbbell, Link2, Link2Off, StickyNote } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { MuscleVolumeBars } from './MuscleVolumeBars';
@@ -12,6 +12,12 @@ export interface OverviewRow {
   meta: string;
   /** Superset label ("A", "B", …) or undefined. */
   superset?: string;
+  /**
+   * Superset link with the exercise above: `linked` offers "Ontkoppelen",
+   * `can-link` offers "Superset met vorige", absent = no button (first row, or
+   * linking not allowed because something in the group is logged or skipped).
+   */
+  link?: 'linked' | 'can-link';
 }
 
 interface LiveOverviewSheetProps {
@@ -25,6 +31,7 @@ interface LiveOverviewSheetProps {
   onJump: (index: number) => void;
   onSkip: (index: number) => void;
   onRestore: (index: number) => void;
+  onToggleSuperset: (index: number) => void;
   onAdd: () => void;
 }
 
@@ -40,10 +47,13 @@ export function LiveOverviewSheet({
   onJump,
   onSkip,
   onRestore,
+  onToggleSuperset,
   onAdd,
 }: LiveOverviewSheetProps) {
   const [musclesOpen, setMusclesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  // Announced once after a link/unlink (the row changes in place).
+  const [linkStatus, setLinkStatus] = useState('');
   const pill =
     'h-touch shrink-0 rounded-pill border px-3 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
@@ -53,7 +63,7 @@ export function LiveOverviewSheet({
         <SheetHeader>
           <SheetTitle>Oefeningen</SheetTitle>
           <SheetDescription className="sr-only">
-            Kies een oefening, sla er een over of voeg er een toe.
+            Kies een oefening, sla er een over, koppel er een als superset of voeg er een toe.
           </SheetDescription>
         </SheetHeader>
 
@@ -125,9 +135,39 @@ export function LiveOverviewSheet({
                 </button>
               )}
               {r.status === 'done' && <span className="text-small text-muted">Klaar</span>}
+              {r.link && (
+                <button
+                  type="button"
+                  data-testid="overview-superset-toggle"
+                  aria-label={
+                    r.link === 'linked'
+                      ? `${r.name} ontkoppelen`
+                      : `${r.name} koppelen als superset met vorige`
+                  }
+                  onClick={() => {
+                    setLinkStatus(
+                      r.link === 'linked'
+                        ? `${r.name} is ontkoppeld`
+                        : `${r.name} is nu een superset met de oefening erboven`,
+                    );
+                    onToggleSuperset(i);
+                  }}
+                  className="col-span-2 -mt-1.5 mb-0.5 inline-flex h-touch items-center gap-1.5 justify-self-start rounded-pill px-1 text-small font-semibold text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {r.link === 'linked' ? (
+                    <Link2Off className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Link2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {r.link === 'linked' ? 'Ontkoppelen' : 'Superset met vorige'}
+                </button>
+              )}
             </li>
           ))}
         </ul>
+        <p role="status" className="sr-only">
+          {linkStatus}
+        </p>
 
         <button
           type="button"

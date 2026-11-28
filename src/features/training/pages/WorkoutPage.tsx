@@ -14,6 +14,7 @@ import {
   completeWorkout,
   setExerciseSets,
   addSupersetRound,
+  setExerciseSuperset,
   type SetsChange,
 } from '../hooks/useWorkout';
 import { useExercises, useExerciseLookup, updateExercise } from '../hooks/useExercises';
@@ -21,7 +22,7 @@ import { useWakeLock } from '../hooks/useWakeLock';
 import { resolveRestSeconds } from '../lib/restTime';
 import { shiftIndex } from '../lib/insertPosition';
 import { resolveStep, steppedWeight, weightStepForExercise } from '../lib/weightStep';
-import { groupSupersets } from '../lib/superset';
+import { canLinkWithPrevious, groupSupersets, isLinkedToPrevious } from '../lib/superset';
 import {
   activeSetIndex,
   afterSetLogged,
@@ -700,6 +701,18 @@ export function WorkoutPage() {
     if (finished) setCur(idx);
   }
 
+  // Link/unlink an exercise as superset with the one above it (overview sheet).
+  async function toggleSuperset(idx: number) {
+    const linked = isLinkedToPrevious(exercises, idx);
+    if (!linked && !canLinkWithPrevious(exercises, idx)) return;
+    // Indices don't change, only groups. When a pair derives the shown member
+    // (first open part), store it as the pointer so unlinking keeps it on
+    // screen. A freshly linked pair is not pinned: it opens at A1, the start
+    // of the superset.
+    if (cur >= 0 && cur !== baseCur) setCur(cur);
+    await setExerciseSuperset(wid, idx, !linked);
+  }
+
   async function jumpTo(idx: number) {
     if (statuses[idx] === 'skipped') await restoreExercise(idx);
     // Pinned: a superset member that was jumped to stays on screen.
@@ -801,7 +814,7 @@ export function WorkoutPage() {
     const prev = previousSessions.get(we.exerciseId);
     const { done: settled, total } = setProgress(we.sets);
     const top = prev ? [...prev.sets].sort((a, b) => b.weight - a.weight || b.reps - a.reps)[0] : undefined;
-    const info = groupSupersets(exercises)[i]!;
+    const info = supersets[i]!;
     return {
       name: nameOf(we.exerciseId),
       status: statuses[i]!,
@@ -810,6 +823,13 @@ export function WorkoutPage() {
         `${settled > 0 ? `${settled}/` : ''}${total} sets` +
         (top ? ` · vorige ${formatDecimal(top.weight)} × ${top.reps}` : ' · nieuw'),
       superset: info.inSuperset ? info.label : undefined,
+      link: i === 0
+        ? undefined
+        : isLinkedToPrevious(exercises, i)
+          ? 'linked'
+          : canLinkWithPrevious(exercises, i)
+            ? 'can-link'
+            : undefined,
     };
   });
 
@@ -1114,6 +1134,7 @@ export function WorkoutPage() {
         onJump={i => void jumpTo(i)}
         onSkip={i => void skipExercise(i)}
         onRestore={i => void restoreExercise(i)}
+        onToggleSuperset={i => void toggleSuperset(i)}
         onAdd={openAdd}
       />
 
