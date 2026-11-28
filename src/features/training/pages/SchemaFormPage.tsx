@@ -619,19 +619,6 @@ export function SchemaFormPage() {
                     )}
                   </span>
                 </button>
-                {i > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn('h-touch w-touch', isLinkedAbove ? 'text-primary' : 'text-muted')}
-                    onClick={() => toggleSupersetLink(i)}
-                    aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
-                    title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
-                  >
-                    {isLinkedAbove ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                  </Button>
-                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -665,6 +652,19 @@ export function SchemaFormPage() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+              {i > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={cn('h-touch px-2 text-caption', isLinkedAbove ? 'text-primary' : 'text-muted')}
+                  onClick={() => toggleSupersetLink(i)}
+                  aria-label={isLinkedAbove ? 'Superset ontkoppelen' : 'Superset met vorige'}
+                  title={isLinkedAbove ? 'Superset ontkoppelen' : 'Koppel als superset met de oefening erboven'}
+                >
+                  {isLinkedAbove ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                  {isLinkedAbove ? 'Ontkoppelen' : 'Superset met vorige'}
+                </Button>
+              )}
               {isExpanded && (
                   <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
                     <StepperRow

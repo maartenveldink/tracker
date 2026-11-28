@@ -382,7 +382,7 @@ export function SuggestWorkoutPage() {
                   </div>
 
                   {/* Controls */}
-                  <div className="mt-2 flex items-center gap-4 text-caption">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption">
                     <Stepper
                       label="Sets"
                       value={String(it.sets)}
@@ -395,18 +395,28 @@ export function SuggestWorkoutPage() {
                       onDec={() => stepReps(index, -1)}
                       onInc={() => stepReps(index, 1)}
                     />
-                    <div className="ml-auto flex items-center gap-1">
-                      {index > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn('h-touch w-touch', info?.inSuperset && !info.isFirst && 'text-primary')}
-                          onClick={() => toggleSuperset(index)}
-                          aria-label="Superset koppelen"
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                  </div>
+
+                  {/* Acties: eigen rij zodat ze op smalle schermen nooit worden weggeknipt */}
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
+                    {index > 0 ? (
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          'h-touch px-2 text-caption',
+                          info?.inSuperset && !info.isFirst && 'text-primary',
+                        )}
+                        onClick={() => toggleSuperset(index)}
+                        aria-label="Superset koppelen"
+                        title="Koppel als superset met de oefening erboven"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        {info?.inSuperset && !info.isFirst ? 'Ontkoppelen' : 'Superset met vorige'}
+                      </Button>
+                    ) : (
+                      <span />
+                    )}
+                    <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
