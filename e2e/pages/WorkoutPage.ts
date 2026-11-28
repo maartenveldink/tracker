@@ -280,6 +280,33 @@ export class WorkoutPage {
     return Number(m?.[1]) * 60 + Number(m?.[2]);
   }
 
+  /** "Superset met vorige" button of an exercise in the open overview sheet. */
+  overviewLinkButton(name: string): Locator {
+    return this.page.getByRole('button', { name: `${name} koppelen als superset met vorige`, exact: true });
+  }
+
+  /** "Ontkoppelen" button of an exercise in the open overview sheet. */
+  overviewUnlinkButton(name: string): Locator {
+    return this.page.getByRole('button', { name: `${name} ontkoppelen`, exact: true });
+  }
+
+  /** Links an exercise as superset with the one above it via the overview sheet. */
+  async linkWithPrevious(name: string): Promise<void> {
+    await this.openOverview();
+    await this.overviewLinkButton(name).click();
+    await this.overviewUnlinkButton(name).waitFor({ state: 'visible' });
+    await this.closeSheet();
+  }
+
+  /** Unlinks an exercise from the one above it via the overview sheet. */
+  async unlinkFromPrevious(name: string): Promise<void> {
+    await this.openOverview();
+    await this.overviewUnlinkButton(name).click();
+    // "Superset met vorige" only returns when linking is allowed again (nothing logged).
+    await this.overviewUnlinkButton(name).waitFor({ state: 'detached' });
+    await this.closeSheet();
+  }
+
   /** Skips an exercise via the overview sheet (the live screen has no skip button, B1). */
   async skipExercise(name: string): Promise<void> {
     await this.openOverview();

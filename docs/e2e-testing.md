@@ -62,7 +62,10 @@ The suite exercises the main user flows across the app:
   the E2 zigzag (A1 → B1 → A2 …, "Superset" above the timer, a round logged A
   then B with rest only after B and "na B" on the idle ring, the Gedaan row per
   round with the difference to last time, the plus dot adding a round); groups
-  of three keep the pill view and alternate A → B → C.
+  of three keep the pill view and alternate A → B → C. Linking in the live
+  overview sheet (`superset-live-link.spec.ts`): a free workout links two
+  exercises into the zigzag and unlinks them again (logged sets stay), a third
+  joins as a group of three, and a started exercise offers no link button.
 - **Live workout** — free and schema-based workouts to summary, pause/resume,
   weight carry-over, rest ring + rust-balk (ring tap opens the bar, ±15 s, closes on a tap on the time or after 3 s, idle tap on the time starts the rest), the B1 set registration
   (Gedaan list with the difference per set, opening a logged set and "Opslaan"),
@@ -142,6 +145,7 @@ are semantic and style-independent.
 | `rest-ring-idle`  | the idle rest ring (no rest running; "na R" on a unilateral exercise, "na B" in a superset pair, else the rest duration) | `workout.restRingIdle` |
 | `done-row`        | a row of the "Gedaan" list (every logged set, oldest first, inside the scrollable `done-list`; logged set + difference to last time; unilateral: one row per set with both sides logged; superset pair: one row per finished round, `Set 1 · 60 × 10 · 50 × 12`) | asserting logged values and the difference |
 | `overview-row`    | an exercise row in the overview sheet| status per exercise ("Klaar", "Nu") |
+| `overview-superset-toggle` | "Superset met vorige" / "Ontkoppelen" in an overview row (aria `${name} koppelen als superset met vorige` / `${name} ontkoppelen`) | `workout.linkWithPrevious(name)`, `workout.unlinkFromPrevious(name)`, `workout.overviewLinkButton(name)` |
 | `rest-timer`      | the running rest ring (`role="timer"`, only while resting; idle it is `rest-ring-idle`) | asserting rest starts (only) after a round |
 | `rest-bar`        | the rust-balk (−/time/+, replaces ring + main button while open); `rest-bar-time` is the time inside | `workout.restBar`, `openRestBar()`, `adjustRest()`, `closeRestBar()`, `restBarSeconds()` |
 | `rest-ended-announcement` | visually hidden `aria-live` region | announcing the end of the rest once |
