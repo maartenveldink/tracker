@@ -302,7 +302,8 @@ export class WorkoutPage {
   async unlinkFromPrevious(name: string): Promise<void> {
     await this.openOverview();
     await this.overviewUnlinkButton(name).click();
-    await this.overviewLinkButton(name).waitFor({ state: 'visible' });
+    // "Superset met vorige" only returns when linking is allowed again (nothing logged).
+    await this.overviewUnlinkButton(name).waitFor({ state: 'detached' });
     await this.closeSheet();
   }
 
