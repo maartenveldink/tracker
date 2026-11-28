@@ -16,7 +16,10 @@ import {
 import { getMuscleGroupById } from '../db/muscles';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
-import { groupSupersets, normalizeSupersets } from '../lib/superset';
+import { normalizeSupersets } from '../lib/superset';
+import { formatReps } from '../lib/reps';
+import { exerciseCardSummary, toggleExpanded } from '../lib/exerciseEditCard';
+import { ExerciseEditCard, ExerciseEditList, StepperRow } from '../components/ExerciseEditCard';
 import { isCompletedSet } from '../lib/sets';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -32,22 +35,21 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeftRight,
-  ChevronUp,
-  ChevronDown,
-  Trash2,
   Plus,
   Minus,
   RefreshCw,
-  Link2,
   Play,
   Clock,
-  Target,
 } from 'lucide-react';
 import type { SchemaExercise } from '../../../db/index';
 
 const MIN_TARGET = 15;
 const MAX_TARGET = 120;
 const STEP_TARGET = 5;
+const MIN_SETS = 1;
+const MAX_SETS = 10;
+const MIN_REPS = 1;
+const MAX_REPS = 30;
 
 function newSchemaExercise(exerciseId: string, order: number): SchemaExercise {
   return { exerciseId, sets: 3, repsPerSet: 8, repsMax: 12, order };
@@ -87,6 +89,8 @@ export function SuggestWorkoutPage() {
 
   const [targetMin, setTargetMin] = useState(45);
   const [items, setItems] = useState<SchemaExercise[]>([]);
+  // Expanded cards by exercise id; cards start collapsed, like in the schema editor.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const seedRef = useRef(1);
   const initRef = useRef(false);
 
@@ -118,7 +122,6 @@ export function SuggestWorkoutPage() {
     [items, exerciseById, settings],
   );
 
-  const supersetInfos = useMemo(() => groupSupersets(items), [items]);
   const usedIds = useMemo(() => new Set(items.map(i => i.exerciseId)), [items]);
 
   // Why each exercise was chosen: the stalest primary muscle group per exercise.
@@ -156,7 +159,7 @@ export function SuggestWorkoutPage() {
 
   function stepSets(index: number, delta: number) {
     setItems(prev =>
-      prev.map((it, i) => (i === index ? { ...it, sets: Math.max(1, Math.min(10, it.sets + delta)) } : it)),
+      prev.map((it, i) => (i === index ? { ...it, sets: Math.max(MIN_SETS, Math.min(MAX_SETS, it.sets + delta)) } : it)),
     );
   }
 
@@ -164,7 +167,7 @@ export function SuggestWorkoutPage() {
     setItems(prev =>
       prev.map((it, i) => {
         if (i !== index) return it;
-        const reps = Math.max(1, Math.min(30, it.repsPerSet + delta));
+        const reps = Math.max(MIN_REPS, Math.min(MAX_REPS, it.repsPerSet + delta));
         const repsMax = it.repsMax != null ? Math.max(reps, it.repsMax + delta) : undefined;
         return { ...it, repsPerSet: reps, ...(repsMax != null ? { repsMax } : {}) };
       }),
@@ -191,7 +194,17 @@ export function SuggestWorkoutPage() {
   }
 
   function swapAt(index: number, exerciseId: string) {
+    const previousId = items[index]?.exerciseId;
     setItems(prev => prev.map((it, i) => (i === index ? { ...it, exerciseId } : it)));
+    // Keep the swapped card open when it was open (expansion is keyed by exercise id).
+    if (previousId && expanded.has(previousId)) {
+      setExpanded(prev => {
+        const next = new Set(prev);
+        next.delete(previousId);
+        next.add(exerciseId);
+        return next;
+      });
+    }
     setSwapIndex(null);
   }
 
@@ -213,32 +226,10 @@ export function SuggestWorkoutPage() {
     navigate(`/workout/${workoutId}`);
   }
 
-  // --- Swipe-to-swap ---
+  // --- Swap / add sheets ---
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
-  const dragRef = useRef<{ index: number; startX: number } | null>(null);
-  const [drag, setDrag] = useState<{ index: number; dx: number } | null>(null);
-  const reducedMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-  function onDragStart(index: number, e: React.PointerEvent) {
-    dragRef.current = { index, startX: e.clientX };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function onDragMove(e: React.PointerEvent) {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    setDrag({ index: dragRef.current.index, dx: reducedMotion ? 0 : dx });
-  }
-  function onDragEnd(e: React.PointerEvent) {
-    const d = dragRef.current;
-    dragRef.current = null;
-    setDrag(null);
-    if (!d) return;
-    const dx = e.clientX - d.startX;
-    if (Math.abs(dx) > 60) setSwapIndex(d.index);
-  }
 
   const swapCandidates = useMemo(() => {
     if (swapIndex === null) return [];
@@ -303,7 +294,7 @@ export function SuggestWorkoutPage() {
             </div>
           </CardContent>
         </Card>
-        <p className={cn('text-caption mt-2 text-center', overTarget ? 'text-muted-foreground' : 'text-amber-400')}>
+        <p className={cn('text-caption mt-2 text-center', overTarget ? 'text-muted-foreground' : 'text-accent-2')}>
           Geschat: {formatEstimatedTime(estSeconds)} · {items.length} oefeningen
         </p>
       </div>
@@ -315,134 +306,59 @@ export function SuggestWorkoutPage() {
             Geen suggestie beschikbaar. Voeg eerst wat oefeningen toe of log een training.
           </div>
         ) : (
-          items.map((it, index) => {
-            const ex = exerciseById.get(it.exerciseId);
-            const info = supersetInfos[index];
-            const dragging = drag?.index === index;
-            const stale = ex ? stalestGroupForExercise(ex, stalenessMap, settings.muscleDetailLevel) : undefined;
-            const reason = stale ? formatReason(stale) : undefined;
-            return (
-              <Card
-                key={`${it.exerciseId}-${index}`}
-                className={cn('overflow-hidden', info?.inSuperset && 'border-l-2 border-l-primary')}
-                style={dragging ? { transform: `translateX(${drag!.dx}px)`, transition: 'none' } : undefined}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    {/* Drag handle / swipe area */}
-                    <div
-                      className="flex-1 min-w-0 cursor-grab touch-pan-y select-none"
-                      onPointerDown={e => onDragStart(index, e)}
-                      onPointerMove={onDragMove}
-                      onPointerUp={onDragEnd}
-                      onPointerCancel={onDragEnd}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        {info?.inSuperset && (
-                          <span className="text-nav font-semibold text-primary bg-primary/10 rounded px-1">
-                            {info.label}
-                          </span>
-                        )}
-                        <span className="font-medium text-small truncate">{ex?.name ?? 'Onbekend'}</span>
-                      </div>
-                      {reason ? (
-                        <div
-                          className={cn(
-                            'text-caption mt-0.5 flex items-center gap-1',
-                            reason.urgent ? 'text-amber-400' : 'text-muted-foreground',
-                          )}
-                        >
-                          <Target className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{reason.text}</span>
-                        </div>
-                      ) : (
-                        <div className="text-caption text-muted-foreground mt-0.5">
-                          Swipe of wissel voor een vergelijkbare oefening
-                        </div>
-                      )}
-                    </div>
+          <ExerciseEditList
+            items={items}
+            renderCard={(it, index, info) => {
+              const ex = exerciseById.get(it.exerciseId);
+              const stale = ex ? stalestGroupForExercise(ex, stalenessMap, settings.muscleDetailLevel) : undefined;
+              return (
+                <ExerciseEditCard
+                  key={`${it.exerciseId}-${index}`}
+                  name={ex?.name ?? 'Onbekend'}
+                  index={index}
+                  total={items.length}
+                  info={info}
+                  summary={exerciseCardSummary(it)}
+                  reason={stale ? formatReason(stale) : undefined}
+                  expanded={expanded.has(it.exerciseId)}
+                  onToggle={() => setExpanded(prev => toggleExpanded(prev, it.exerciseId))}
+                  onMove={direction => move(index, direction === 'up' ? -1 : 1)}
+                  onRemove={() => removeAt(index)}
+                  onToggleSuperset={() => toggleSuperset(index)}
+                  actions={
                     <Button
+                      type="button"
                       variant="ghost"
-                      size="icon"
-                      className="h-touch w-touch"
+                      className="h-touch px-2 text-caption text-muted"
                       onClick={() => setSwapIndex(index)}
                       aria-label="Wissel oefening"
+                      title="Wissel voor een vergelijkbare oefening"
                     >
                       <ArrowLeftRight className="h-4 w-4" />
+                      Wissel
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-touch w-touch text-muted-foreground hover:text-danger"
-                      onClick={() => removeAt(index)}
-                      aria-label="Verwijder oefening"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Controls */}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption">
-                    <Stepper
-                      label="Sets"
-                      value={String(it.sets)}
-                      onDec={() => stepSets(index, -1)}
-                      onInc={() => stepSets(index, 1)}
-                    />
-                    <Stepper
-                      label="Reps"
-                      value={it.repsMax && it.repsMax > it.repsPerSet ? `${it.repsPerSet}–${it.repsMax}` : String(it.repsPerSet)}
-                      onDec={() => stepReps(index, -1)}
-                      onInc={() => stepReps(index, 1)}
-                    />
-                  </div>
-
-                  {/* Acties: eigen rij zodat ze op smalle schermen nooit worden weggeknipt */}
-                  <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
-                    {index > 0 ? (
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          'h-touch px-2 text-caption',
-                          info?.inSuperset && !info.isFirst && 'text-primary',
-                        )}
-                        onClick={() => toggleSuperset(index)}
-                        aria-label="Superset koppelen"
-                        title="Koppel als superset met de oefening erboven"
-                      >
-                        <Link2 className="h-4 w-4" />
-                        {info?.inSuperset && !info.isFirst ? 'Ontkoppelen' : 'Superset met vorige'}
-                      </Button>
-                    ) : (
-                      <span />
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-touch w-touch"
-                        onClick={() => move(index, -1)}
-                        disabled={index === 0}
-                        aria-label="Omhoog"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-touch w-touch"
-                        onClick={() => move(index, 1)}
-                        disabled={index === items.length - 1}
-                        aria-label="Omlaag"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+                  }
+                >
+                  <StepperRow
+                    label="Sets"
+                    value={it.sets}
+                    decDisabled={it.sets <= MIN_SETS}
+                    incDisabled={it.sets >= MAX_SETS}
+                    onDec={() => stepSets(index, -1)}
+                    onInc={() => stepSets(index, 1)}
+                  />
+                  <StepperRow
+                    label="Reps"
+                    value={formatReps(it.repsPerSet, it.repsMax)}
+                    decDisabled={it.repsPerSet <= MIN_REPS}
+                    incDisabled={it.repsPerSet >= MAX_REPS}
+                    onDec={() => stepReps(index, -1)}
+                    onInc={() => stepReps(index, 1)}
+                  />
+                </ExerciseEditCard>
+              );
+            }}
+          />
         )}
 
         <Button variant="outline" className="w-full" onClick={() => setShowAdd(true)}>
@@ -513,31 +429,6 @@ export function SuggestWorkoutPage() {
           </div>
         </SheetContent>
       </Sheet>
-    </div>
-  );
-}
-
-function Stepper({
-  label,
-  value,
-  onDec,
-  onInc,
-}: {
-  label: string;
-  value: string;
-  onDec: () => void;
-  onInc: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-muted-foreground">{label}</span>
-      <Button variant="outline" size="icon" className="h-touch w-touch" onClick={onDec} aria-label={`${label} minder`}>
-        <Minus className="h-3 w-3" />
-      </Button>
-      <span className="tabular-nums w-10 text-center font-medium">{value}</span>
-      <Button variant="outline" size="icon" className="h-touch w-touch" onClick={onInc} aria-label={`${label} meer`}>
-        <Plus className="h-3 w-3" />
-      </Button>
     </div>
   );
 }
