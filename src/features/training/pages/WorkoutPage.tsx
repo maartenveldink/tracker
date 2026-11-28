@@ -19,6 +19,7 @@ import {
 import { useExercises, useExerciseLookup, updateExercise } from '../hooks/useExercises';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { resolveRestSeconds } from '../lib/restTime';
+import { shiftIndex } from '../lib/insertPosition';
 import { resolveStep, steppedWeight, weightStepForExercise } from '../lib/weightStep';
 import { groupSupersets } from '../lib/superset';
 import {
@@ -754,7 +755,11 @@ export function WorkoutPage() {
     await removeWorkoutExercise(wid, idx);
     setDeleteExerciseIdx(null);
     const remaining = statuses.filter((_, i) => i !== idx);
+    // A deleted pair member hands over to its partner while that one still has open sets.
+    const partner = pair && pair.includes(idx) ? pair.find(m => m !== idx)! : -1;
+    const partnerAfter = partner > idx ? partner - 1 : partner;
     if (idx < cur) setCur(cur - 1);
+    else if (idx === cur && partnerAfter >= 0 && remaining[partnerAfter] === 'todo') setCur(partnerAfter);
     else if (idx === cur) setCur(findNextTodo(remaining, idx - 1));
   }
 
@@ -769,7 +774,9 @@ export function WorkoutPage() {
     }
     if (at >= 0) {
       // The exercise is inserted mid-list: keep the pointer on the right exercise.
-      setCur(focusAfterInsert(exercises, cur, at));
+      // A pair counts as one exercise: a round in progress keeps the focus on the pair.
+      const pairBusy = !!pairSets && !!pairFirst && pairSets.some(list => list.some(s => s.completed || s.skipped));
+      setCur(pairBusy ? shiftIndex(cur, at) : focusAfterInsert(exercises, cur, at));
       // Other index-keyed state shifts along with the exercises behind it.
       setDeleteExerciseIdx(prev => (prev === null || prev < at ? prev : prev + 1));
     }
