@@ -73,8 +73,8 @@ The suite exercises the main user flows across the app:
   right-aligned) and opening set 1 via the Gedaan list scrolls it into view.
 - **Progressive overload** — hitting the target reps bumps the next suggestion.
 - **Suggested workout** (same collapsible card as the schema editor; expand a card
-  for swap, superset link and Sets/Reps) — the cold-start full-body suggestion, target-duration
-  control, adding an exercise, and the swap-for-similar sheet.
+  for swap, superset link and the same Sets/Reps/Max reps/Startgewicht/Rust fields) — the cold-start full-body suggestion, target-duration
+  control, adding an exercise, and the swap-for-similar sheet (also on the schema editor card).
 - **Progression** — the summary's "Vooruitgang" flag vs an all-time PR, and the
   Progress "Progressie" tab listing an exercise's % 1RM change.
 - **Progress & history** — records board, workout history + delete, body-weight

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Link2, Link2Off, Minus, Plus, RotateCcw, Target, X } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, ChevronRight, ChevronUp, Link2, Link2Off, Minus, Plus, RotateCcw, Target, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -94,17 +94,16 @@ export interface ExerciseEditCardProps {
   onMove: (direction: 'up' | 'down') => void;
   onRemove: () => void;
   onToggleSuperset: () => void;
-  /** Extra actions next to the superset button, only when expanded (e.g. swap). */
-  actions?: ReactNode;
-  /** The editable fields, only when expanded (differs per screen). */
+  /** Opens the swap sheet ("Wissel oefening"), only offered when expanded. */
+  onSwap: () => void;
+  /** The editable fields (`ExerciseFields`), only when expanded. */
   children: ReactNode;
 }
 
 /**
  * Collapsible exercise card shared by the schema editor and the suggested
  * workout: header (number or superset letter, name, summary/reason, up/down,
- * remove); expanded it shows the superset link button, extra actions and the
- * screen's fields.
+ * remove); expanded it shows the superset link button, "Wissel" and the fields.
  */
 export function ExerciseEditCard({
   name,
@@ -118,7 +117,7 @@ export function ExerciseEditCard({
   onMove,
   onRemove,
   onToggleSuperset,
-  actions,
+  onSwap,
   children,
 }: ExerciseEditCardProps) {
   const linkAction = supersetLinkAction(index, info);
@@ -194,8 +193,8 @@ export function ExerciseEditCard({
         </div>
         {expanded && (
           <div className="mt-1 border-t border-border/60">
-            {(linkAction || actions) && (
-              // Own wrapping row so the actions never get clipped on narrow screens.
+            {/* Own wrapping row so the actions never get clipped on narrow screens. */}
+            {
               <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-border/60 py-1">
                 {linkAction ? (
                   <Button
@@ -210,9 +209,21 @@ export function ExerciseEditCard({
                     {linkAction === 'unlink' ? 'Ontkoppelen' : 'Superset met vorige'}
                   </Button>
                 ) : null}
-                {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+                <div className="ml-auto flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-touch px-2 text-caption text-muted"
+                    onClick={onSwap}
+                    aria-label="Wissel oefening"
+                    title="Wissel voor een vergelijkbare oefening"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Wissel
+                  </Button>
+                </div>
               </div>
-            )}
+            }
             <div className="divide-y divide-border/60">{children}</div>
           </div>
         )}

@@ -47,6 +47,20 @@ test.describe('Schemas — advanced', () => {
     await expect(page.getByText(NEW, { exact: true })).toBeVisible();
   });
 
+  test('an expanded schema card offers all fields and "Wissel oefening"', async ({ schemaEditor, page }) => {
+    await schemaEditor.gotoNew();
+    await schemaEditor.setName('E2E Fields');
+    await schemaEditor.addExercise(A);
+    await schemaEditor.expand(A);
+
+    const row = schemaEditor.exerciseRow(A);
+    for (const label of ['Sets', 'Reps', 'Max reps', 'Startgewicht', 'Rust']) {
+      await expect(row.getByRole('button', { name: `${label} verhogen` })).toBeVisible();
+    }
+    await row.getByRole('button', { name: 'Wissel oefening' }).click();
+    await expect(page.getByRole('heading', { name: 'Vergelijkbare oefening' })).toBeVisible();
+  });
+
   test('shows the muscle-coverage breakdown on the detail page', async ({ schemaEditor, page }) => {
     await schemaEditor.gotoNew();
     await schemaEditor.setName('E2E Coverage');

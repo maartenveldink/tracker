@@ -6,7 +6,6 @@ import { useSettings } from '../../../hooks/useSettings';
 import { startWorkout } from '../hooks/useWorkout';
 import {
   suggestWorkout,
-  findSimilarExercises,
   stalenessByGroup,
   stalestGroupForExercise,
   WEEKLY_SET_TARGET,
@@ -17,9 +16,11 @@ import { getMuscleGroupById } from '../db/muscles';
 import { estimateExercisesSeconds, formatEstimatedTime } from '../lib/estimateSchemaTime';
 import { buildWorkoutExercises, seedHistoryWeights } from '../lib/workoutBuild';
 import { normalizeSupersets } from '../lib/superset';
-import { formatReps } from '../lib/reps';
+import { swapExerciseOf } from '../lib/exerciseFields';
 import { exerciseCardSummary, toggleExpanded } from '../lib/exerciseEditCard';
-import { ExerciseEditCard, ExerciseEditList, StepperRow } from '../components/ExerciseEditCard';
+import { ExerciseEditCard, ExerciseEditList } from '../components/ExerciseEditCard';
+import { ExerciseFields, useEffectiveFields } from '../components/ExerciseFields';
+import { SwapExerciseSheet } from '../components/SwapExerciseSheet';
 import { isCompletedSet } from '../lib/sets';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
-  ArrowLeftRight,
   Plus,
   Minus,
   RefreshCw,
@@ -46,10 +46,6 @@ import type { SchemaExercise } from '../../../db/index';
 const MIN_TARGET = 15;
 const MAX_TARGET = 120;
 const STEP_TARGET = 5;
-const MIN_SETS = 1;
-const MAX_SETS = 10;
-const MIN_REPS = 1;
-const MAX_REPS = 30;
 
 function newSchemaExercise(exerciseId: string, order: number): SchemaExercise {
   return { exerciseId, sets: 3, repsPerSet: 8, repsMax: 12, order };
@@ -74,6 +70,7 @@ export function SuggestWorkoutPage() {
   const completedWorkouts = useCompletedWorkouts();
   const settings = useSettings();
   const navigate = useNavigate();
+  const effectiveFields = useEffectiveFields();
 
   const exerciseById = useMemo(() => new Map(exercises.map(e => [e.id, e])), [exercises]);
 
@@ -157,21 +154,8 @@ export function SuggestWorkoutPage() {
     });
   }
 
-  function stepSets(index: number, delta: number) {
-    setItems(prev =>
-      prev.map((it, i) => (i === index ? { ...it, sets: Math.max(MIN_SETS, Math.min(MAX_SETS, it.sets + delta)) } : it)),
-    );
-  }
-
-  function stepReps(index: number, delta: number) {
-    setItems(prev =>
-      prev.map((it, i) => {
-        if (i !== index) return it;
-        const reps = Math.max(MIN_REPS, Math.min(MAX_REPS, it.repsPerSet + delta));
-        const repsMax = it.repsMax != null ? Math.max(reps, it.repsMax + delta) : undefined;
-        return { ...it, repsPerSet: reps, ...(repsMax != null ? { repsMax } : {}) };
-      }),
-    );
+  function updateAt(index: number, next: SchemaExercise) {
+    setItems(prev => prev.map((it, i) => (i === index ? next : it)));
   }
 
   function toggleSuperset(index: number) {
@@ -195,7 +179,7 @@ export function SuggestWorkoutPage() {
 
   function swapAt(index: number, exerciseId: string) {
     const previousId = items[index]?.exerciseId;
-    setItems(prev => prev.map((it, i) => (i === index ? { ...it, exerciseId } : it)));
+    setItems(prev => prev.map((it, i) => (i === index ? swapExerciseOf(it, exerciseId) : it)));
     // Keep the swapped card open when it was open (expansion is keyed by exercise id).
     if (previousId && expanded.has(previousId)) {
       setExpanded(prev => {
@@ -230,15 +214,6 @@ export function SuggestWorkoutPage() {
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
-
-  const swapCandidates = useMemo(() => {
-    if (swapIndex === null) return [];
-    const it = items[swapIndex];
-    const ex = it && exerciseById.get(it.exerciseId);
-    if (!ex) return [];
-    const exclude = new Set(items.map(i => i.exerciseId));
-    return findSimilarExercises(ex, exercises, exclude);
-  }, [swapIndex, items, exerciseById, exercises]);
 
   const addCandidates = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -310,6 +285,7 @@ export function SuggestWorkoutPage() {
             items={items}
             renderCard={(it, index, info) => {
               const ex = exerciseById.get(it.exerciseId);
+              const eff = effectiveFields(it, ex);
               const stale = ex ? stalestGroupForExercise(ex, stalenessMap, settings.muscleDetailLevel) : undefined;
               return (
                 <ExerciseEditCard
@@ -318,43 +294,16 @@ export function SuggestWorkoutPage() {
                   index={index}
                   total={items.length}
                   info={info}
-                  summary={exerciseCardSummary(it)}
+                  summary={exerciseCardSummary(it, { restSeconds: eff.rest, weight: eff.weight })}
                   reason={stale ? formatReason(stale) : undefined}
                   expanded={expanded.has(it.exerciseId)}
                   onToggle={() => setExpanded(prev => toggleExpanded(prev, it.exerciseId))}
                   onMove={direction => move(index, direction === 'up' ? -1 : 1)}
                   onRemove={() => removeAt(index)}
                   onToggleSuperset={() => toggleSuperset(index)}
-                  actions={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-touch px-2 text-caption text-muted"
-                      onClick={() => setSwapIndex(index)}
-                      aria-label="Wissel oefening"
-                      title="Wissel voor een vergelijkbare oefening"
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                      Wissel
-                    </Button>
-                  }
+                  onSwap={() => setSwapIndex(index)}
                 >
-                  <StepperRow
-                    label="Sets"
-                    value={it.sets}
-                    decDisabled={it.sets <= MIN_SETS}
-                    incDisabled={it.sets >= MAX_SETS}
-                    onDec={() => stepSets(index, -1)}
-                    onInc={() => stepSets(index, 1)}
-                  />
-                  <StepperRow
-                    label="Reps"
-                    value={formatReps(it.repsPerSet, it.repsMax)}
-                    decDisabled={it.repsPerSet <= MIN_REPS}
-                    incDisabled={it.repsPerSet >= MAX_REPS}
-                    onDec={() => stepReps(index, -1)}
-                    onInc={() => stepReps(index, 1)}
-                  />
+                  <ExerciseFields item={it} exercise={ex} onChange={next => updateAt(index, next)} />
                 </ExerciseEditCard>
               );
             }}
@@ -373,31 +322,13 @@ export function SuggestWorkoutPage() {
         </Button>
       </div>
 
-      {/* Swap sheet */}
-      <Sheet open={swapIndex !== null} onOpenChange={open => !open && setSwapIndex(null)}>
-        <SheetContent side="bottom" className="max-h-[70vh]">
-          <SheetHeader>
-            <SheetTitle>Vergelijkbare oefening</SheetTitle>
-            <SheetDescription>Kies een alternatief voor dezelfde spiergroep.</SheetDescription>
-          </SheetHeader>
-          <div className="mt-4 h-64 overflow-y-auto space-y-1">
-            {swapCandidates.length === 0 ? (
-              <p className="text-small text-muted-foreground px-1 py-4">Geen vergelijkbare oefening gevonden.</p>
-            ) : (
-              swapCandidates.map(e => (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => swapAt(swapIndex!, e.id)}
-                  className="w-full text-left px-3 py-2 text-small rounded-md hover:bg-line/60 transition-colors"
-                >
-                  {e.name}
-                </button>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <SwapExerciseSheet
+        exercise={swapIndex !== null ? exerciseById.get(items[swapIndex]?.exerciseId ?? '') ?? null : null}
+        all={exercises}
+        usedIds={usedIds}
+        onPick={id => swapAt(swapIndex!, id)}
+        onClose={() => setSwapIndex(null)}
+      />
 
       {/* Add sheet */}
       <Sheet open={showAdd} onOpenChange={open => { setShowAdd(open); if (!open) setSearch(''); }}>
