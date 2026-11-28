@@ -62,7 +62,7 @@ test.describe('Suggested workout', () => {
 
     const card = await suggest.expand(0);
     for (const label of ['Sets', 'Reps', 'Max reps', 'Startgewicht', 'Rust']) {
-      await expect(card.getByRole('button', { name: `${label} verhogen` })).toBeVisible();
+      await expect(card.getByRole('button', { name: `${label} verhogen`, exact: true })).toBeVisible();
     }
     await expect(card.getByRole('button', { name: 'Wissel oefening' })).toBeVisible();
   });

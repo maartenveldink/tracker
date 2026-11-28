@@ -55,7 +55,7 @@ test.describe('Schemas — advanced', () => {
 
     const row = schemaEditor.exerciseRow(A);
     for (const label of ['Sets', 'Reps', 'Max reps', 'Startgewicht', 'Rust']) {
-      await expect(row.getByRole('button', { name: `${label} verhogen` })).toBeVisible();
+      await expect(row.getByRole('button', { name: `${label} verhogen`, exact: true })).toBeVisible();
     }
     await row.getByRole('button', { name: 'Wissel oefening' }).click();
     await expect(page.getByRole('heading', { name: 'Vergelijkbare oefening' })).toBeVisible();
